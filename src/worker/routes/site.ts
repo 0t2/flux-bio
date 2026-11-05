@@ -3,7 +3,6 @@ import {
 	DEFAULT_SETTINGS,
 	isHttpUrl,
 	LINE_PART,
-	linkItems,
 	mapsUrl,
 	MEDIA_ID,
 	LINK_PART,
@@ -15,6 +14,8 @@ import {
 	type CustomPage,
 	type Item,
 	type Locale,
+	type PageContent,
+	type Settings,
 } from '../../shared/content'
 import { FONT_FILE } from '../../shared/fonts'
 import { pageLanguages, requestedLocale, resolveLocale } from '../../shared/locale'
@@ -26,7 +27,7 @@ import { renderSystemPage, type SystemPageKind, type SystemPageOptions } from '.
 import { agentGuide, agentSkill, workerNameOf } from '../lib/agent'
 import { getLinkRecord, getSite, getSnapshot, mediaKey, type LinkRecord, type SiteRecord, type Snapshot } from '../lib/cache'
 import { readPreviewToken, sessionKeyOf } from '../lib/auth'
-import { ensureSchema, getPage, listPages, listPublished, loadSettings, parseContent } from '../lib/db'
+import { ensureSchema, getPage, listPublished, loadSettings, publicNames } from '../lib/db'
 import { fontKey } from '../lib/fonts'
 import { isTestSite } from '../lib/mode'
 import { findSite, linkRecordFromDb, snapshotFromDb } from '../lib/ops'
@@ -118,22 +119,30 @@ site.get('/sitemap.xml', async (c) => {
 })
 
 /** Every published page at the address it says is its own, with the languages it is fully translated into. None while pages are off. */
+function fullyTranslated(published: string, languages: Settings['languages']): Locale[] {
+	try {
+		return translatedLocales(JSON.parse(published) as PageContent, languages)
+	} catch {
+		return []
+	}
+}
+
 async function sitemapPages(env: Env): Promise<SitemapPage[]> {
 	await ensureSchema(env.DB)
 	const settings = await loadSettings(env.DB)
 	if (!settings.bio) return []
-	const pages = await listPublished(env.DB)
+	// The text of a page only matters with other languages to list, and even then needs no schema check: this runs for anyone who asks.
+	const pages = await listPublished(env.DB, { content: settings.languages.length > 0 })
 	return pages
 		.flatMap((page) => {
-			const content = parseContent(page.published)
 			// A page that sends visitors elsewhere isn't a page for search engines to list.
-			if (content?.custom?.kind === 'redirect') return []
+			if (page.customKind === 'redirect') return []
 			return [
 				{
 					path: page.id === settings.home ? '/' : `/${encodeURIComponent(page.handle)}`,
 					updatedAt: page.publishedAt,
 					locale: settings.locale,
-					languages: content && settings.languages.length ? translatedLocales(content, settings.languages) : [],
+					languages: page.published ? fullyTranslated(page.published, settings.languages) : [],
 				},
 			]
 		})
@@ -503,12 +512,10 @@ async function suggestionsFor(env: Env, slug: string): Promise<string[]> {
 		await ensureSchema(env.DB)
 		// With pages off there are no public addresses to suggest.
 		if (!(await loadSettings(env.DB)).bio) return []
-		const names = new Set<string>()
-		for (const page of await listPages(env.DB)) {
-			if (!page.published) continue
-			names.add(page.handle)
-			for (const link of linkItems({ items: visibleItems(page.published) })) if (link.slug) names.add(link.slug)
-		}
+		const now = Date.now()
+		const names = new Set(
+			(await publicNames(env.DB, now)).filter((entry) => (entry.startsAt === null || entry.startsAt <= now) && (entry.endsAt === null || entry.endsAt > now)).map((entry) => entry.name),
+		)
 		const limit = slug.length <= 4 ? 1 : 2
 		return [...names]
 			.map((name) => ({ name, d: distance(slug, name) }))

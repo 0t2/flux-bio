@@ -105,6 +105,15 @@ const MIGRATIONS: string[][] = [
 		)`,
 		'CREATE INDEX IF NOT EXISTS page_versions_by_page ON page_versions (page_id, published_at)',
 	],
+	// A site can hold any number of pages and short links, so nothing reads a whole table to find one.
+	[
+		// Queries name this one, and a database from before v0.2 may not have it.
+		'CREATE INDEX IF NOT EXISTS stats_target_day ON stats (target, day)',
+		'CREATE INDEX IF NOT EXISTS links_by_page ON links (page_id)',
+		'CREATE INDEX IF NOT EXISTS links_listing ON links (status, created_at DESC, id DESC)',
+		'CREATE INDEX IF NOT EXISTS pages_by_position ON pages (position, created_at)',
+		'CREATE INDEX IF NOT EXISTS pages_handle_nocase ON pages (handle COLLATE NOCASE)',
+	],
 ]
 
 /** How many migrations a database has run once it is up to date. */
@@ -198,30 +207,170 @@ function toPageRow(row: PageRecordRow): PageRow | null {
 	}
 }
 
+/** D1 allows 100 bound values in a query. */
+const MAX_BOUND = 100
+
+export function chunks<T>(values: readonly T[], size: number): T[][] {
+	const out: T[][] = []
+	for (let at = 0; at < values.length; at += size) out.push(values.slice(at, at + size))
+	return out
+}
+
+const placeholders = (count: number, from = 1) => Array.from({ length: count }, (_, i) => `?${i + from}`).join(', ')
+
+/** Every page, a slice at a time: a single D1 result can't pass 50 MB. For a backup; nothing a person waits on should need this. */
 export async function listPages(db: D1Database): Promise<PageRow[]> {
-	const { results } = await db.prepare('SELECT * FROM pages ORDER BY position, created_at').all<PageRecordRow>()
+	const pages: PageRow[] = []
+	for (let offset = 0; ; offset += 200) {
+		const { results } = await db.prepare('SELECT * FROM pages ORDER BY position, created_at LIMIT 200 OFFSET ?1').bind(offset).all<PageRecordRow>()
+		for (const row of results) {
+			const page = toPageRow(row)
+			if (page) pages.push(page)
+		}
+		if (results.length < 200) return pages
+	}
+}
+
+/** Up to `limit` pages in the order they are listed. */
+export async function firstPublishedPages(db: D1Database, limit: number): Promise<PageRow[]> {
+	const { results } = await db.prepare('SELECT * FROM pages WHERE published IS NOT NULL ORDER BY position, created_at LIMIT ?1').bind(limit).all<PageRecordRow>()
 	return results.map(toPageRow).filter((row): row is PageRow => row !== null)
 }
 
-/** Ids and handles only, for name checks. */
-export async function listHandles(db: D1Database): Promise<{ id: string; handle: string; position: number }[]> {
+/** The most recently published pages. */
+export async function recentlyPublishedPages(db: D1Database, limit: number): Promise<PageRow[]> {
+	const { results } = await db.prepare('SELECT * FROM pages WHERE published IS NOT NULL ORDER BY published_at DESC LIMIT ?1').bind(limit).all<PageRecordRow>()
+	return results.map(toPageRow).filter((row): row is PageRow => row !== null)
+}
+
+export async function firstPage(db: D1Database): Promise<PageRow | null> {
+	const row = await db.prepare('SELECT * FROM pages WHERE handle IS NOT NULL ORDER BY position, created_at LIMIT 1').first<PageRecordRow>()
+	return row ? toPageRow(row) : null
+}
+
+/** The last position in the list, or null with no pages yet. */
+export async function lastPosition(db: D1Database): Promise<number | null> {
+	const row = await db.prepare('SELECT position FROM pages ORDER BY position DESC LIMIT 1').first<{ position: number }>()
+	return row ? row.position : null
+}
+
+export async function hasOtherPage(db: D1Database, id: string): Promise<boolean> {
+	return Boolean(await db.prepare('SELECT 1 FROM pages WHERE id != ?1 LIMIT 1').bind(id).first())
+}
+
+export async function pageExists(db: D1Database, id: string): Promise<boolean> {
+	return Boolean(await db.prepare('SELECT 1 FROM pages WHERE id = ?1').bind(id).first())
+}
+
+/** Handles of published pages, for dropping their KV copies. */
+export async function publishedHandles(db: D1Database): Promise<string[]> {
+	const { results } = await db.prepare('SELECT handle FROM pages WHERE published IS NOT NULL AND handle IS NOT NULL').all<{ handle: string }>()
+	return results.map((row) => row.handle)
+}
+
+/** What a page's line in a list needs, worked out by D1 so the Worker doesn't parse every draft (the free plan allows 10 ms of CPU). */
+export interface PageListRow {
+	id: string
+	handle: string
+	position: number
+	qrLogo: string | null
+	name: string | null
+	avatar: string | null
+	theme: string | null
+	customKind: string | null
+	hasPublished: boolean
+	sameAsPublished: boolean
+	draftUpdatedAt: number
+	publishedAt: number | null
+	/** Null when the draft isn't in the current shape; such a page needs reading in full. */
+	items: number | null
+	links: number
+}
+
+export async function listPageRows(db: D1Database): Promise<PageListRow[]> {
 	const { results } = await db
-		.prepare('SELECT id, handle, position FROM pages WHERE handle IS NOT NULL ORDER BY position, created_at')
-		.all<{ id: string; handle: string; position: number }>()
+		.prepare(
+			`SELECT id, handle, position, qr_logo AS qrLogo, draft_updated_at AS draftUpdatedAt, published_at AS publishedAt,
+				json_extract(draft, '$.profile.name') AS name,
+				json_extract(draft, '$.profile.avatar') AS avatar,
+				json_extract(COALESCE(published, draft), '$.appearance.theme') AS theme,
+				json_extract(draft, '$.custom.kind') AS customKind,
+				published IS NOT NULL AS hasPublished,
+				draft IS published AS sameAsPublished,
+				json_array_length(draft, '$.items') AS items,
+				(SELECT COUNT(*) FROM json_each(draft, '$.items') AS item
+					WHERE json_extract(item.value, '$.kind') = 'link' AND trim(COALESCE(json_extract(item.value, '$.url'), '')) != '') AS links
+			FROM pages WHERE handle IS NOT NULL ORDER BY position, created_at`,
+		)
+		.all<Omit<PageListRow, 'hasPublished' | 'sameAsPublished'> & { hasPublished: number; sameAsPublished: number }>()
+	return results.map((row) => ({ ...row, hasPublished: Boolean(row.hasPublished), sameAsPublished: Boolean(row.sameAsPublished) }))
+}
+
+/** What the sitemap needs. `content` leaves out the page's text, which only matters when there are other languages to list. */
+export async function listPublished(
+	db: D1Database,
+	{ content }: { content: boolean },
+): Promise<{ id: string; handle: string; published: string | null; customKind: string | null; publishedAt: number | null }[]> {
+	const { results } = await db
+		.prepare(
+			`SELECT id, handle, ${content ? 'published' : 'NULL AS published'}, json_extract(published, '$.custom.kind') AS customKind, published_at AS publishedAt
+			FROM pages WHERE published IS NOT NULL AND handle IS NOT NULL ORDER BY position, created_at LIMIT 50000`,
+		)
+		.all<{ id: string; handle: string; published: string | null; customKind: string | null; publishedAt: number | null }>()
 	return results
 }
 
-/** What the sitemap needs, without parsing every draft. */
-export async function listPublished(db: D1Database): Promise<{ id: string; handle: string; published: string; publishedAt: number | null }[]> {
+/** One address visitors could mean: a page, or a link on a page while it is shown. */
+export interface PublicName {
+	name: string
+	startsAt: number | null
+	endsAt: number | null
+}
+
+let publicNamesMemo: { names: PublicName[]; until: number } | null = null
+
+/** Forgets the list below; every write that changes what's public calls this. Other copies of the Worker catch up within 5 minutes. */
+export function forgetPublicNames(): void {
+	publicNamesMemo = null
+}
+
+/**
+ * Published pages and the links shown on them, for "did you mean" on the not-found page. Anyone can ask for a
+ * made-up address as often as they like, so a copy of the Worker reads this at most once in 5 minutes,
+ * and no more than 20,000 of them: past that, a typo may just get no suggestion.
+ */
+export async function publicNames(db: D1Database, now = Date.now()): Promise<PublicName[]> {
+	if (publicNamesMemo && publicNamesMemo.until > now) return publicNamesMemo.names
 	const { results } = await db
-		.prepare('SELECT id, handle, published, published_at AS publishedAt FROM pages WHERE published IS NOT NULL AND handle IS NOT NULL ORDER BY position, created_at')
-		.all<{ id: string; handle: string; published: string; publishedAt: number | null }>()
+		.prepare(
+			`SELECT handle AS name, NULL AS startsAt, NULL AS endsAt FROM pages WHERE published IS NOT NULL AND handle IS NOT NULL
+			UNION ALL
+			SELECT json_extract(item.value, '$.slug'), json_extract(item.value, '$.startsAt'), json_extract(item.value, '$.endsAt')
+			FROM pages, json_each(pages.published, '$.items') AS item
+			WHERE pages.published IS NOT NULL
+				AND json_extract(item.value, '$.kind') = 'link'
+				AND COALESCE(json_extract(item.value, '$.hidden'), 0) = 0
+				AND COALESCE(json_extract(item.value, '$.slug'), '') != ''
+				AND trim(COALESCE(json_extract(item.value, '$.title'), '')) != ''
+				AND trim(COALESCE(json_extract(item.value, '$.url'), '')) != ''
+			LIMIT 20000`,
+		)
+		.all<PublicName>()
+	publicNamesMemo = { names: results, until: now + 5 * 60 * 1000 }
 	return results
 }
 
 export async function getPage(db: D1Database, id: string): Promise<PageRow | null> {
 	const row = await db.prepare('SELECT * FROM pages WHERE id = ?1').bind(id).first<PageRecordRow>()
 	return row ? toPageRow(row) : null
+}
+
+export async function getPagesByIds(db: D1Database, ids: readonly string[]): Promise<PageRow[]> {
+	if (!ids.length) return []
+	const results = await db.batch<PageRecordRow>(
+		chunks([...new Set(ids)], MAX_BOUND).map((part) => db.prepare(`SELECT * FROM pages WHERE id IN (${placeholders(part.length)})`).bind(...part)),
+	)
+	return results.flatMap((result) => result.results.map(toPageRow)).filter((row): row is PageRow => row !== null)
 }
 
 export async function getPageByHandle(db: D1Database, handle: string): Promise<PageRow | null> {
@@ -462,14 +611,111 @@ function toLinkRow(row: LinkRecordRow): LinkRow {
 	}
 }
 
+/** Every short link, a slice at a time. For a backup; a person's list uses listLinkPage. */
 export async function listLinks(db: D1Database): Promise<LinkRow[]> {
-	const { results } = await db.prepare('SELECT * FROM links ORDER BY created_at DESC').all<LinkRecordRow>()
-	return results.map(toLinkRow)
+	const rows: LinkRow[] = []
+	for (let offset = 0; ; offset += 5000) {
+		const { results } = await db.prepare('SELECT * FROM links ORDER BY created_at DESC, id DESC LIMIT 5000 OFFSET ?1').bind(offset).all<LinkRecordRow>()
+		for (const row of results) rows.push(toLinkRow(row))
+		if (results.length < 5000) return rows
+	}
 }
 
+export interface LinkQuery {
+	limit: number
+	cursor?: string | null
+	kind?: 'bio' | 'solo'
+	/** Part of the slug, the address or the title. */
+	q?: string
+}
+
+/** The position after a row: its status, age and id, the order of the links_listing index. */
+const linkCursor = (row: LinkRecordRow) => `${row.status === 'archived' ? 1 : 0}.${row.created_at}.${row.id}`
+
+function parseLinkCursor(cursor: string | null | undefined): { status: string; createdAt: number; id: string } | null {
+	const match = /^([01])\.(\d+)\.(.+)$/.exec(cursor ?? '')
+	return match ? { status: match[1] === '1' ? 'archived' : 'active', createdAt: Number(match[2]), id: match[3]! } : null
+}
+
+/** One screenful of short links: live ones first, newest first. `nextCursor` is null on the last. */
+export async function listLinkPage(db: D1Database, { limit, cursor, kind, q }: LinkQuery): Promise<{ rows: LinkRow[]; nextCursor: string | null }> {
+	const where: string[] = []
+	const values: unknown[] = []
+	const value = (entry: unknown) => {
+		values.push(entry)
+		return `?${values.length}`
+	}
+	const after = parseLinkCursor(cursor)
+	if (after) {
+		const status = value(after.status)
+		const age = value(after.createdAt)
+		const id = value(after.id)
+		where.push(`(status > ${status} OR (status = ${status} AND (created_at < ${age} OR (created_at = ${age} AND id < ${id}))))`)
+	}
+	if (kind) where.push(`kind = ${value(kind)}`)
+	if (q) {
+		const like = value(`%${q.toLowerCase().replace(/[\\%_]/g, '\\$&')}%`)
+		where.push(`(lower(slug) LIKE ${like} ESCAPE '\\' OR lower(url) LIKE ${like} ESCAPE '\\' OR lower(title) LIKE ${like} ESCAPE '\\')`)
+	}
+	const { results } = await db
+		.prepare(`SELECT * FROM links ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY status, created_at DESC, id DESC LIMIT ${value(limit + 1)}`)
+		.bind(...values)
+		.all<LinkRecordRow>()
+	const shown = results.slice(0, limit)
+	return { rows: shown.map(toLinkRow), nextCursor: results.length > limit ? linkCursor(shown.at(-1)!) : null }
+}
+
+/** Live links of one page. */
 export async function listPageLinks(db: D1Database, pageId: string): Promise<LinkRow[]> {
 	const { results } = await db.prepare("SELECT * FROM links WHERE page_id = ?1 AND status = 'active'").bind(pageId).all<LinkRecordRow>()
 	return results.map(toLinkRow)
+}
+
+/** A page's own links, archived ones too. */
+export async function listOwnLinks(db: D1Database, pageId: string): Promise<LinkRow[]> {
+	const { results } = await db.prepare("SELECT * FROM links WHERE page_id = ?1 AND kind = 'bio'").bind(pageId).all<LinkRecordRow>()
+	return results.map(toLinkRow)
+}
+
+export async function getLinksByIds(db: D1Database, ids: readonly string[]): Promise<LinkRow[]> {
+	if (!ids.length) return []
+	const results = await db.batch<LinkRecordRow>(
+		chunks([...new Set(ids)], MAX_BOUND).map((part) => db.prepare(`SELECT * FROM links WHERE id IN (${placeholders(part.length)})`).bind(...part)),
+	)
+	return results.flatMap((result) => result.results.map(toLinkRow))
+}
+
+/** Slugs of live short links, for dropping their KV copies. */
+export async function liveSlugs(db: D1Database, limit: number): Promise<{ slugs: string[]; more: boolean }> {
+	const { results } = await db.prepare("SELECT slug FROM links WHERE status = 'active' ORDER BY status, created_at DESC, id DESC LIMIT ?1").bind(limit + 1).all<{ slug: string }>()
+	return { slugs: results.slice(0, limit).map((row) => row.slug).filter((slug) => !slug.startsWith('~')), more: results.length > limit }
+}
+
+/** Who holds a name in the namespace pages and short links share. */
+export interface NameOwner {
+	name: string
+	linkId: string | null
+	kind: 'bio' | 'solo' | null
+	/** The page itself, or the page a link is on. */
+	pageId: string | null
+}
+
+/** The pages and short links, archived ones too, that hold any of these names. Both lookups go through an index. */
+export async function ownersOf(db: D1Database, names: readonly string[]): Promise<NameOwner[]> {
+	if (!names.length) return []
+	const results = await db.batch<NameOwner>(
+		chunks([...new Set(names)], MAX_BOUND).map((part) => {
+			const list = placeholders(part.length)
+			return db
+				.prepare(
+					`SELECT slug AS name, id AS linkId, kind, page_id AS pageId FROM links WHERE slug IN (${list})
+					UNION ALL
+					SELECT handle, NULL, NULL, id FROM pages WHERE handle COLLATE NOCASE IN (${list})`,
+				)
+				.bind(...part)
+		}),
+	)
+	return results.flatMap((result) => result.results)
 }
 
 export async function getLink(db: D1Database, id: string): Promise<LinkRow | null> {
@@ -480,11 +726,6 @@ export async function getLink(db: D1Database, id: string): Promise<LinkRow | nul
 export async function getLinkBySlug(db: D1Database, slug: string): Promise<LinkRow | null> {
 	const row = await db.prepare('SELECT * FROM links WHERE slug = ?1').bind(slug).first<LinkRecordRow>()
 	return row ? toLinkRow(row) : null
-}
-
-export async function countLinks(db: D1Database): Promise<number> {
-	const row = await db.prepare('SELECT COUNT(*) AS n FROM links').first<{ n: number }>()
-	return row?.n ?? 0
 }
 
 export function upsertLinkStatement(db: D1Database, link: LinkRow): D1PreparedStatement {

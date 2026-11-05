@@ -274,7 +274,6 @@
 	"已撤銷「{name}」": "Se revocó “{name}”",
 	"已發布": "Publicado",
 	"已發布，訪客現在看到的是新版本": "Publicado. Los visitantes ya ven la nueva versión",
-	"已經有 {count} 個頁面，到上限了": "Ya tienes {count} páginas, el máximo de esta instalación",
 	"已經複製到剪貼簿，可以直接貼上。": "Ya está en el portapapeles, listo para pegar.",
 	"已自動儲存": "Guardado automáticamente",
 	"已複製": "Copiado",
@@ -375,7 +374,6 @@
 	"書": "Libro",
 	"最多 10 張圖": "Hasta 10 fotos",
 	"最多 50 個 token": "Máximo 50 tokens",
-	"最多 {count} 個頁面": "Máximo {count} páginas",
 	"最多 {limit} 個，兩個一排。點商品會算進數據。": "Hasta {limit}, dos por fila. Los clics en productos se cuentan en las estadísticas.",
 	"最多 {limit} 張。": "Máximo {limit} fotos.",
 	"最多人點：{time}": "Hora pico: {time}",
@@ -491,8 +489,6 @@
 	"開始用短網址": "Empezar con enlaces cortos",
 	"短網址代稱": "Alias del enlace corto",
 	"短網址列表": "Lista de enlaces cortos",
-	"最多 {count} 個短網址": "Máximo {count} enlaces cortos",
-	"最多 {count} 個短網址，請先封存一些再發布": "Máximo {count} enlaces cortos. Archiva algunos antes de publicar",
 	"短網址設定": "Configuración del enlace corto",
 	"短網址詳情": "Detalles del enlace corto",
 	"確定刪除": "Sí, eliminar",
@@ -626,8 +622,6 @@
 	"這個代稱是系統保留字，請換一個": "Este alias está reservado por el sistema. Elige otro",
 	"這個商品": "este producto",
 	"這個月哪個連結最多人點？跟上個月比呢？": "¿Qué enlace tuvo más clics este mes? ¿Y comparado con el mes pasado?",
-	"這個網站最多 {count} 個短網址": "Esta instalación admite hasta {count} enlaces cortos",
-	"這個網站最多 {count} 個頁面": "Esta instalación admite hasta {count} páginas",
 	"這個頁面的網址代稱": "Dirección de esta página",
 	"這個頁面還沒發布，先到 {link} 按「發布」。": "Esta página aún no está publicada. Ve a {link} y presiona “Publicar”.",
 	"這張圖": "esta imagen",
@@ -907,5 +901,7 @@
 	"LINE 按鈕": "Botón de LINE",
 	"頁面連結的網址、標題、開放時間和到期日，請到「內容」修改後發布": "La URL, el título y las fechas de los enlaces de la bio se cambian en “Contenido” y después se publican.",
 	"載入得比平常久，可能是網路或伺服器的問題。": "Está tardando más de lo normal. Puede ser la red o el servidor.",
-	"重新整理": "Recargar"
+	"重新整理": "Recargar",
+	"載入更多": "Cargar más",
+	"查詢參數不正確": "Los parámetros de la consulta no son válidos"
 }

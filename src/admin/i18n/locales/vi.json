@@ -274,7 +274,6 @@
 	"已撤銷「{name}」": "Đã thu hồi “{name}”",
 	"已發布": "Đã xuất bản",
 	"已發布，訪客現在看到的是新版本": "Đã xuất bản, khách giờ sẽ thấy phiên bản mới",
-	"已經有 {count} 個頁面，到上限了": "Đã có {count} trang, đạt giới hạn của bản triển khai này",
 	"已經複製到剪貼簿，可以直接貼上。": "Đã sao chép vào bộ nhớ tạm, có thể dán ngay.",
 	"已自動儲存": "Đã tự động lưu",
 	"已複製": "Đã sao chép",
@@ -375,7 +374,6 @@
 	"書": "Sách",
 	"最多 10 張圖": "Tối đa 10 ảnh",
 	"最多 50 個 token": "Tối đa 50 token",
-	"最多 {count} 個頁面": "Tối đa {count} trang",
 	"最多 {limit} 個，兩個一排。點商品會算進數據。": "Tối đa {limit} sản phẩm, hai cái một hàng. Lượt nhấp vào sản phẩm được tính vào thống kê.",
 	"最多 {limit} 張。": "Tối đa {limit} ảnh.",
 	"最多人點：{time}": "Nhiều lượt nhấp nhất: {time}",
@@ -491,8 +489,6 @@
 	"開始用短網址": "Bắt đầu với liên kết rút gọn",
 	"短網址代稱": "Slug liên kết rút gọn",
 	"短網址列表": "Danh sách liên kết rút gọn",
-	"最多 {count} 個短網址": "Tối đa {count} liên kết rút gọn",
-	"最多 {count} 個短網址，請先封存一些再發布": "Tối đa {count} liên kết rút gọn, hãy lưu trữ bớt rồi xuất bản",
 	"短網址設定": "Cài đặt liên kết rút gọn",
 	"短網址詳情": "Chi tiết liên kết rút gọn",
 	"確定刪除": "Xác nhận xóa",
@@ -626,8 +622,6 @@
 	"這個代稱是系統保留字，請換一個": "Slug này là từ dành riêng của hệ thống, hãy chọn slug khác",
 	"這個商品": "sản phẩm này",
 	"這個月哪個連結最多人點？跟上個月比呢？": "Tháng này liên kết nào được nhấp nhiều nhất? So với tháng trước thì sao?",
-	"這個網站最多 {count} 個短網址": "Bản triển khai này tối đa {count} liên kết rút gọn",
-	"這個網站最多 {count} 個頁面": "Bản triển khai này tối đa {count} trang",
 	"這個頁面的網址代稱": "Địa chỉ của trang này",
 	"這個頁面還沒發布，先到 {link} 按「發布」。": "Trang này chưa được xuất bản, hãy vào {link} và bấm “Xuất bản”.",
 	"這張圖": "ảnh này",
@@ -907,5 +901,7 @@
 	"LINE 按鈕": "Nút LINE",
 	"頁面連結的網址、標題、開放時間和到期日，請到「內容」修改後發布": "URL, tiêu đề và lịch hiện/ẩn của liên kết bio cần sửa ở “Nội dung” rồi xuất bản",
 	"載入得比平常久，可能是網路或伺服器的問題。": "Lâu hơn bình thường. Có thể do mạng hoặc máy chủ.",
-	"重新整理": "Tải lại"
+	"重新整理": "Tải lại",
+	"載入更多": "Tải thêm",
+	"查詢參數不正確": "Tham số truy vấn không hợp lệ"
 }

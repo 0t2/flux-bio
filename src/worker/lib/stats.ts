@@ -2,7 +2,7 @@ import { isbot } from 'isbot'
 import { addDays, dayIn, hourIn, lastDays } from '../../shared/time'
 import type { UtmTags } from '../../shared/api'
 import { writeEvent } from './analytics'
-import { ensureSchema } from './db'
+import { chunks, ensureSchema } from './db'
 
 /**
  * Exact counts live in D1: one row per day × target × kind × source, kept
@@ -99,21 +99,31 @@ export function emptyLinkStats(days: number): LinkStats {
 	return { series: Array.from({ length: days }, () => 0), total: 0, sources: [] }
 }
 
-/** Clicks per target over the last `days` days. */
+/**
+ * Clicks per target over the last `days` days. Given `targets`, only theirs, through the target index, so a screenful of
+ * links reads as many rows as its own clicks; without, the whole period of every target.
+ */
 export async function linkStats(
 	db: D1Database,
 	timeZone: string,
 	days = 7,
+	targets?: readonly string[],
 ): Promise<{ days: string[]; byLink: Map<string, LinkStats> }> {
 	const range = lastDays(timeZone, days)
 	const index = new Map(range.map((day, i) => [day, i]))
-	const { results } = await db
-		.prepare(
-			`SELECT target, day, value, SUM(count) AS n FROM stats
-			WHERE kind = 'click' AND dim = 'source' AND day >= ?1 GROUP BY target, day, value`,
+	const columns = (from: string) => `SELECT target, day, value, SUM(count) AS n FROM ${from} WHERE kind = 'click' AND dim = 'source' AND day >= ?1`
+	type Row = { target: string; day: string; value: string; n: number }
+	let results: Row[] = []
+	if (!targets) {
+		results = (await db.prepare(`${columns('stats')} GROUP BY target, day, value`).bind(range[0]).all<Row>()).results
+	} else if (targets.length) {
+		const parts = await db.batch<Row>(
+			chunks([...new Set(targets)], 90).map((part) =>
+				db.prepare(`${columns('stats INDEXED BY stats_target_day')} AND target IN (${part.map((_, i) => `?${i + 2}`).join(', ')}) GROUP BY target, day, value`).bind(range[0], ...part),
+			),
 		)
-		.bind(range[0])
-		.all<{ target: string; day: string; value: string; n: number }>()
+		results = parts.flatMap((part) => part.results)
+	}
 
 	const byLink = new Map<string, LinkStats>()
 	const sources = new Map<string, Map<string, number>>()
@@ -138,6 +148,50 @@ export async function linkStats(
 	return { days: range, byLink }
 }
 
+/**
+ * Each page's clicks in the last 7 days. Only targets clicked in that time are looked up, so a site's
+ * size matters less than how many of its links people use. A target can be a link, or a block, a social
+ * icon or the page's own button under "<id>.<part>".
+ */
+export async function clicksByPage(db: D1Database, timeZone: string): Promise<Map<string, number>> {
+	const since = lastDays(timeZone, 7)[0]
+	const { results } = await db
+		.prepare("SELECT target, SUM(count) AS n FROM stats WHERE kind = 'click' AND dim = 'source' AND day >= ?1 GROUP BY target")
+		.bind(since)
+		.all<{ target: string; n: number }>()
+	const totals = new Map<string, number>()
+	if (!results.length) return totals
+	const idOf = (target: string) => target.split('.')[0] ?? ''
+	const ids = [...new Set(results.map((row) => idOf(row.target)))]
+	type Owner = { id: string; page: string }
+	const direct = await db.batch<Owner>(
+		chunks(ids, 90).map((part) => {
+			const list = part.map((_, i) => `?${i + 1}`).join(', ')
+			return db.prepare(`SELECT id, page_id AS page FROM links WHERE kind = 'bio' AND page_id IS NOT NULL AND id IN (${list}) UNION SELECT id, id FROM pages WHERE id IN (${list})`).bind(...part)
+		}),
+	)
+	const owners = direct.flatMap((part) => part.results)
+	// What's left is blocks and social icons, which only a page's content knows about. Once, not per id.
+	const found = new Set(owners.map((owner) => owner.id))
+	if (ids.some((id) => !found.has(id))) {
+		const inside = (column: string, path: string) => `SELECT json_extract(entry.value, '$.id') AS id, pages.id AS page FROM pages, json_each(pages.${column}, '${path}') AS entry`
+		// D1 allows five terms in a compound SELECT.
+		const { results: blocks } = await db.prepare(`${inside('draft', '$.items')} UNION ${inside('published', '$.items')} UNION ${inside('draft', '$.socials')} UNION ${inside('published', '$.socials')}`).all<Owner>()
+		owners.push(...blocks)
+	}
+	const pagesOf = new Map<string, Set<string>>()
+	for (const { id, page } of owners) {
+		const pages = pagesOf.get(id) ?? new Set<string>()
+		pages.add(page)
+		pagesOf.set(id, pages)
+	}
+	for (const row of results) {
+		const pages = pagesOf.get(idOf(row.target))
+		if (pages) for (const page of pages) totals.set(page, (totals.get(page) ?? 0) + row.n)
+	}
+	return totals
+}
+
 export interface Ranked {
 	value: string
 	count: number
@@ -159,32 +213,48 @@ export interface Overview {
 
 /**
  * One page's numbers over the last `days` days, plus the period before for
- * comparison. `isClick` decides which click targets belong to the page.
+ * comparison. `blocks` are what's on the page, whose clicks can also be under "<id>.<part>", and `links` its other
+ * short links. Their targets are read through the target index, so this costs as many rows as the page has clicks,
+ * however big the site.
+ * `isClick` then decides exactly which of them belong to the page.
  */
 export async function overview(
 	db: D1Database,
 	timeZone: string,
 	days: number,
 	pageId: string,
+	{ blocks, links }: { blocks: readonly string[]; links: readonly string[] },
 	isClick: (target: string) => boolean,
 ): Promise<Overview> {
 	const range = lastDays(timeZone, days)
 	const index = new Map(range.map((day, i) => [day, i]))
 	const since = range[0]!
 	const previousSince = addDays(since, -days)
-	const [views, clicks] = await db.batch([
+	const [views, ...clickParts] = await db.batch([
 		db
 			.prepare(
-				`SELECT day, value, SUM(count) AS n FROM stats WHERE target = ?1 AND kind = 'view' AND dim = 'source' AND day >= ?2
+				`SELECT day, value, SUM(count) AS n FROM stats INDEXED BY stats_target_day WHERE target = ?1 AND kind = 'view' AND dim = 'source' AND day >= ?2
 				GROUP BY day, value`,
 			)
 			.bind(pageId, previousSince),
-		db
-			.prepare(
-				`SELECT day, target, value, SUM(count) AS n FROM stats WHERE kind = 'click' AND dim = 'source' AND day >= ?1
-				GROUP BY day, target, value`,
-			)
-			.bind(previousSince),
+		// An id and everything under it, "<id>.<part>": "/" comes right after ".". One statement each: with
+		// several ranges in one, SQLite goes through the whole index.
+		...[...new Set(blocks)].map((id) =>
+			db
+				.prepare(
+					`SELECT day, target, value, SUM(count) AS n FROM stats INDEXED BY stats_target_day WHERE kind = 'click' AND dim = 'source' AND day >= ?1
+					AND target >= ?2 AND target < ?3 GROUP BY day, target, value`,
+				)
+				.bind(previousSince, id, `${id}/`),
+		),
+		...chunks([...new Set(links)].filter((id) => !blocks.includes(id)), 90).map((part) =>
+			db
+				.prepare(
+					`SELECT day, target, value, SUM(count) AS n FROM stats INDEXED BY stats_target_day WHERE kind = 'click' AND dim = 'source' AND day >= ?1
+					AND target IN (${part.map((_, i) => `?${i + 2}`).join(', ')}) GROUP BY day, target, value`,
+				)
+				.bind(previousSince, ...part),
+		),
 	])
 
 	const series = { views: range.map(() => 0), clicks: range.map(() => 0) }
@@ -203,7 +273,7 @@ export async function overview(
 		series.views[i] = (series.views[i] ?? 0) + row.n
 		bump(viewSources, row.value, row.n)
 	}
-	for (const row of (clicks?.results ?? []) as { day: string; target: string; value: string; n: number }[]) {
+	for (const row of clickParts.flatMap((part) => part.results) as { day: string; target: string; value: string; n: number }[]) {
 		if (!isClick(row.target)) continue
 		const i = index.get(row.day)
 		if (i === undefined) {
@@ -248,7 +318,7 @@ export async function targetOverview(db: D1Database, timeZone: string, days: num
 	const since = range[0]!
 	const { results } = await db
 		.prepare(
-			`SELECT day, value, SUM(count) AS n FROM stats WHERE target = ?1 AND kind = 'click' AND dim = 'source' AND day >= ?2
+			`SELECT day, value, SUM(count) AS n FROM stats INDEXED BY stats_target_day WHERE target = ?1 AND kind = 'click' AND dim = 'source' AND day >= ?2
 			GROUP BY day, value`,
 		)
 		.bind(target, addDays(since, -days))

@@ -67,7 +67,6 @@ export interface StateResponse {
 	analytics: boolean
 	/** This is the owner's test site, deployed with `--mode staging`, not their live site. */
 	testSite: boolean
-	limits: { pages: number; links: number }
 }
 
 export interface PageJson {
@@ -149,6 +148,8 @@ export interface LinkJson {
 export interface LinksResponse {
 	days: string[]
 	links: LinkJson[]
+	/** Pass as ?cursor= for the next links; null when these are the last. */
+	nextCursor: string | null
 }
 
 /** POST /api/links */

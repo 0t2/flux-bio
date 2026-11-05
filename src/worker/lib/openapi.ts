@@ -173,7 +173,21 @@ export const OPERATIONS: Operation[] = [
 		body: 'image',
 	},
 	{ method: 'put', path: '/api/media/{id}', id: 'putImage', tag: 'Media', summary: 'Upload an image under a given id (used by imports)', body: 'image' },
-	{ method: 'get', path: '/api/links', id: 'listLinks', tag: 'Short links', summary: 'All short links with 7-day clicks' },
+	{
+		method: 'get',
+		path: '/api/links',
+		id: 'listLinks',
+		tag: 'Short links',
+		summary: 'Short links with 7-day clicks, a page at a time',
+		description: 'Live links first, then newest first. If nextCursor is not null, there are more: ask again with ?cursor=<nextCursor>.',
+		query: [
+			{ name: 'limit', description: 'How many, 1000 at most, which is also the default' },
+			{ name: 'cursor', description: 'nextCursor from the page before' },
+			{ name: 'kind', description: 'Only links on pages, or only standalone ones', enum: ['bio', 'solo'] },
+			{ name: 'q', description: 'Part of the slug, the address or the title' },
+		],
+	},
+	{ method: 'get', path: '/api/links/clicked', id: 'listClickedLinks', tag: 'Short links', summary: 'The most clicked short links of the last 7 days, 2000 at most' },
 	{
 		method: 'post',
 		path: '/api/links',

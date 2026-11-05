@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import type { CreateTokenResponse, PageJson, PageVersionJson, PublishResponse } from '../src/shared/api'
 import { emptyContent, emptyLink, type PageContent } from '../src/shared/content'
 import { DEFAULT_QR_STYLE, qrSvg } from '../src/shared/qr'
-import { LIMITS } from '../src/worker/lib/mode'
+import { VERSIONS_KEPT } from '../src/worker/lib/mode'
 import { agentGuide, guideNames } from '../src/worker/lib/agent'
 import { guideTopic } from '../src/worker/lib/agentTopics'
 import { api, apiJson, call, ORIGIN, PASSWORD, visit } from './helpers'
@@ -157,11 +157,11 @@ describe('going back to a published version', () => {
 		expect(back.headers.get('location')).toBe('https://example.com/back')
 	})
 
-	it(`keeps the last ${LIMITS.versions}`, async () => {
+	it(`keeps the last ${VERSIONS_KEPT}`, async () => {
 		const page = await makePage()
-		for (let n = 0; n < LIMITS.versions + 2; n++) await publish(page.id)
+		for (let n = 0; n < VERSIONS_KEPT + 2; n++) await publish(page.id)
 		const list = await versions(page.id)
-		expect(list).toHaveLength(LIMITS.versions)
+		expect(list).toHaveLength(VERSIONS_KEPT)
 		expect(list[0]?.current).toBe(true)
 		expect(list.slice(1).every((version) => !version.current)).toBe(true)
 	})
@@ -284,7 +284,7 @@ describe('the guide', () => {
 	})
 
 	it('tells an agent how to undo a publish and hand over a QR code', () => {
-		for (const part of ['**Undo a publish.**', `last ${LIMITS.versions} published versions`, 'Restoring a published version']) expect(guide).toContain(part)
+		for (const part of ['**Undo a publish.**', `last ${VERSIONS_KEPT} published versions`, 'Restoring a published version']) expect(guide).toContain(part)
 		const links = guideTopic('links', guideNames(ORIGIN, 'flux-bio'))
 		for (const part of ['**Get a QR code.**', 'GET /api/links/{id}/qr']) expect(links).toContain(part)
 		expect(guideTopic('faq', guideNames(ORIGIN, 'flux-bio'))).toContain('a publish can be undone')
