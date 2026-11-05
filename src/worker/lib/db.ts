@@ -685,12 +685,6 @@ export async function getLinksByIds(db: D1Database, ids: readonly string[]): Pro
 	return results.flatMap((result) => result.results.map(toLinkRow))
 }
 
-/** Slugs of live short links, for dropping their KV copies. */
-export async function liveSlugs(db: D1Database, limit: number): Promise<{ slugs: string[]; more: boolean }> {
-	const { results } = await db.prepare("SELECT slug FROM links WHERE status = 'active' ORDER BY status, created_at DESC, id DESC LIMIT ?1").bind(limit + 1).all<{ slug: string }>()
-	return { slugs: results.slice(0, limit).map((row) => row.slug).filter((slug) => !slug.startsWith('~')), more: results.length > limit }
-}
-
 /** Who holds a name in the namespace pages and short links share. */
 export interface NameOwner {
 	name: string

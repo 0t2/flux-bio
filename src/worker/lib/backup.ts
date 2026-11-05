@@ -165,13 +165,12 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 
 	// Every old KV copy goes first, so nothing outdated is left for visitors if a later step fails.
 	// A short link that comes back as it was keeps its copy: on the free plan a delete uses up the same 1,000 a day as a write.
-	const timezone = backup.settings.timezone
-	const incoming = new Map(rows.map((row) => [row.slug, JSON.stringify(toLinkRecord(row, timezone))]))
+	const incoming = new Map(rows.map((row) => [row.slug, JSON.stringify(toLinkRecord(row))]))
 	await dropCopies(
 		env,
 		oldHandles,
 		oldLinks
-			.filter((row) => row.status === 'active' && !row.slug.startsWith('~') && incoming.get(row.slug) !== JSON.stringify(toLinkRecord(row, settings.timezone)))
+			.filter((row) => row.status === 'active' && !row.slug.startsWith('~') && incoming.get(row.slug) !== JSON.stringify(toLinkRecord(row)))
 			.map((row) => row.slug),
 	)
 	await db.batch([

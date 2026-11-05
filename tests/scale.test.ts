@@ -179,13 +179,13 @@ describe(`a site with ${PAGES} pages and ${LINKS} short links`, () => {
 		expect(cost.kv).toBeLessThanOrEqual(4)
 	})
 
-	it('changing the time zone stays within what one request may do, and says when copies are left', async () => {
+	it('changing the time zone rewrites only the site record, however many short links and pages there are', async () => {
 		const cost = await measure('/api/settings', { method: 'PUT', json: { timezone: 'Asia/Tokyo' } })
 		expect(cost.status).toBe(200)
 		expect(cost.queries).toBeLessThanOrEqual(12)
-		expect(cost.kv).toBeLessThanOrEqual(KV_OPS_AT_ONCE + 5)
-		expect(cost.rowsRead).toBeLessThan(2_000)
-		expect((JSON.parse(cost.body) as { copiesLeft?: boolean }).copiesLeft).toBe(true)
+		expect(cost.kv).toBeLessThanOrEqual(2)
+		expect(cost.rowsRead).toBeLessThan(100)
+		expect((JSON.parse(cost.body) as { copiesLeft?: boolean }).copiesLeft).toBeFalsy()
 	})
 
 	it('pages through every short link once, live ones first', async () => {

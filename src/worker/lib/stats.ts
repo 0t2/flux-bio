@@ -45,7 +45,8 @@ export interface Hit {
 	kind: HitKind
 	target: string
 	source: string
-	timeZone: string
+	/** The site's time zone, or the read that gives it, so a redirect needn't wait for it. */
+	timeZone: string | Promise<string>
 	/** The page handle for views, the short link slug for clicks. */
 	slug: string
 	/** Where a click was sent; empty for page views. */
@@ -62,29 +63,35 @@ export interface WaitUntil {
 }
 
 export function recordHit(env: Env, ctx: WaitUntil, request: Request, hit: Hit): void {
-	if (!isCountable(request)) return
+	if (!isCountable(request)) {
+		// Nothing to count, but a read already under way mustn't fail unnoticed.
+		void Promise.resolve(hit.timeZone).catch(() => undefined)
+		return
+	}
 	const db = env.DB
 	const now = Date.now()
-	const day = dayIn(hit.timeZone, now)
+	const timeZone = Promise.resolve(hit.timeZone)
 	// One D1 row write per hit keeps the exact daily counts within the free plan;
 	// countries, devices and the rest come from Analytics Engine.
 	ctx.waitUntil(
-		ensureSchema(db)
-			.then(() => db.prepare(UPSERT).bind(day, hit.target, hit.kind, 'source', hit.source, SOURCE_LIMIT).run())
+		Promise.all([timeZone, ensureSchema(db)])
+			.then(([zone]) => db.prepare(UPSERT).bind(dayIn(zone, now), hit.target, hit.kind, 'source', hit.source, SOURCE_LIMIT).run())
 			.catch((error: unknown) => console.error('Could not count a hit', error)),
 	)
 	ctx.waitUntil(
-		writeEvent(env, request, {
-			kind: hit.kind,
-			target: hit.target,
-			source: hit.source,
-			day,
-			hour: hourIn(hit.timeZone, now),
-			slug: hit.slug,
-			url: hit.url,
-			page: hit.page,
-			utm: hit.utm,
-		}).catch((error: unknown) => console.error('Could not write an analytics event', error)),
+		timeZone.then((zone) =>
+			writeEvent(env, request, {
+				kind: hit.kind,
+				target: hit.target,
+				source: hit.source,
+				day: dayIn(zone, now),
+				hour: hourIn(zone, now),
+				slug: hit.slug,
+				url: hit.url,
+				page: hit.page,
+				utm: hit.utm,
+			}),
+		).catch((error: unknown) => console.error('Could not write an analytics event', error)),
 	)
 }
 
