@@ -1,0 +1,49 @@
+{
+	"creator": {
+		"bio": "Cuisine, marchés et petites choses du quotidien. Une vidéo chaque vendredi.",
+		"watch": "Voir la vidéo de la semaine",
+		"watchSub": "Un petit-déjeuner en cinq minutes",
+		"recipes": "Recettes gratuites à télécharger",
+		"favorites": "Ce que j’utilise tous les jours",
+		"work": "Travailler avec moi"
+	},
+	"shop": {
+		"bio": "Une petite brûlerie à Dadaocheng. Café frais chaque jeudi.",
+		"order": "Commander en ligne, retirer en boutique",
+		"orderSub": "Prêt en 15 minutes",
+		"menu": "La carte de la semaine",
+		"class": "Réserver un cours de café filtre",
+		"picks": "Sélection de la semaine",
+		"blend": "Mélange maison",
+		"dripper": "Dripper en céramique",
+		"hours": "Horaires",
+		"address": "21 Dihua St, Taipei"
+	},
+	"event": {
+		"bio": "Une petite rencontre tech à Taipei, une fois par mois.",
+		"register": "S’inscrire pour novembre",
+		"registerSub": "Sam. 28 nov. · 40 places",
+		"schedule": "Programme",
+		"venue": "Venir sur place",
+		"slides": "Les slides de la dernière fois",
+		"group": "Rejoindre le groupe"
+	},
+	"pro": {
+		"bio": "Designer produit indépendante. J’aide les petites équipes à sortir leur première version.",
+		"book": "Réserver un appel de 30 minutes",
+		"bookSub": "Gratuit et sans démarchage",
+		"services": "Services et tarifs",
+		"work": "Réalisations",
+		"clients": "Ce que disent les clients",
+		"mail": "M’écrire"
+	},
+	"org": {
+		"bio": "Des voisins près du port. On cultive des légumes et on marche ensemble.",
+		"walk": "Participer à la marche de samedi",
+		"walkSub": "8 h à l’embarcadère",
+		"calendar": "Les activités du mois",
+		"about": "Qui sommes-nous",
+		"volunteer": "Devenir bénévole",
+		"around": "Dans le quartier"
+	}
+}

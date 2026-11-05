@@ -1,0 +1,49 @@
+{
+	"creator": {
+		"bio": "Masakan, pasar, dan hal sehari-hari. Video baru setiap Jumat.",
+		"watch": "Tonton video minggu ini",
+		"watchSub": "Sarapan dalam lima menit",
+		"recipes": "Unduh resep gratis",
+		"favorites": "Barang yang kupakai tiap hari",
+		"work": "Kerja sama"
+	},
+	"shop": {
+		"bio": "Roastery kecil di Dadaocheng. Segar setiap Kamis.",
+		"order": "Pesan online, ambil di toko",
+		"orderSub": "Siap dalam 15 menit",
+		"menu": "Menu minggu ini",
+		"class": "Daftar kelas pour-over",
+		"picks": "Pilihan minggu ini",
+		"blend": "Racikan andalan",
+		"dripper": "Dripper keramik",
+		"hours": "Jam buka",
+		"address": "21 Dihua St, Taipei"
+	},
+	"event": {
+		"bio": "Pertemuan teknologi kecil di Taipei, sebulan sekali.",
+		"register": "Daftar untuk November",
+		"registerSub": "Sabtu, 28 Nov · 40 kursi",
+		"schedule": "Jadwal",
+		"venue": "Cara ke lokasi",
+		"slides": "Slide pertemuan lalu",
+		"group": "Gabung grup"
+	},
+	"pro": {
+		"bio": "Desainer produk lepas. Saya membantu tim kecil merilis versi pertama.",
+		"book": "Pesan konsultasi 30 menit",
+		"bookSub": "Gratis, tanpa jualan",
+		"services": "Layanan dan tarif",
+		"work": "Karya pilihan",
+		"clients": "Kata klien",
+		"mail": "Kirim email"
+	},
+	"org": {
+		"bio": "Tetangga di tepi pelabuhan. Kami berkebun dan berjalan bersama.",
+		"walk": "Ikut jalan pagi hari Sabtu",
+		"walkSub": "Jam 8 di dermaga feri",
+		"calendar": "Kegiatan bulan ini",
+		"about": "Tentang kami",
+		"volunteer": "Jadi relawan",
+		"around": "Di sekitar lingkungan"
+	}
+}

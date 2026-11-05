@@ -1,0 +1,195 @@
+/* ---------- QR Code designer ---------- */
+/* Controls on the left, a sticky live preview on the right; stacked below 900px. */
+
+.qr-designer {
+	--qr-warn: var(--warning);
+	--qr-ok: var(--positive);
+	--qr-note: var(--faint);
+	display: grid;
+	grid-template-columns: minmax(0, 620px) minmax(240px, 380px);
+	align-items: start;
+	gap: 28px;
+}
+.qr-controls {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+/* Colors */
+.qr-swatch-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+.qr-swatch-row > .label {
+	flex: 0 0 48px;
+}
+.qr-swatch-row > .swatches {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+/* A hairline keeps the dark swatches visible on the dark card. */
+.qr-swatch-row .swatch span {
+	box-shadow: inset 0 0 0 1px rgba(19, 20, 22, 0.2);
+}
+.qr-warning {
+	margin: 0;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--qr-warn);
+}
+
+/* Shape and logo */
+.qr-subtitle {
+	margin-top: 6px;
+}
+.qr-choices {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.option.qr-choice {
+	flex-direction: row;
+	min-height: var(--control);
+	padding: 0 16px;
+	border-radius: var(--r-card);
+	font-size: 14px;
+}
+.qr-scope {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+.qr-upload {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+.qr-upload img {
+	flex: 0 0 auto;
+	width: 44px;
+	height: 44px;
+	border-radius: var(--r-control);
+	/* Whole, like in the code: uploaded logos are fitted, not cropped. */
+	object-fit: contain;
+	background: var(--raised-2);
+}
+
+/* Download */
+.option-grid.qr-sizes {
+	grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
+}
+.option.qr-size {
+	align-items: flex-start;
+	gap: 2px;
+	min-height: 56px;
+	padding: 8px 14px;
+	border-radius: var(--r-card);
+	text-align: start;
+}
+.option.qr-size strong {
+	font-size: 14px;
+}
+.option.qr-size small {
+	font-variant-numeric: tabular-nums;
+}
+.qr-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+.qr-actions .btn:not(.primary) {
+	font-weight: 500;
+}
+.qr-status {
+	font-size: 14px;
+	color: var(--qr-ok);
+}
+.qr-status.error {
+	color: var(--danger);
+}
+
+/* Preview */
+.qr-preview {
+	position: sticky;
+	top: 20px;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 12px;
+}
+.qr-preview .preview-head {
+	max-width: 380px;
+}
+.qr-stage {
+	width: 100%;
+	max-width: 380px;
+	padding: 32px;
+	border-radius: var(--r-card);
+	background: var(--raised);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 14px;
+}
+.qr-art {
+	width: 100%;
+	max-width: 280px;
+	border-radius: var(--r-control);
+	overflow: hidden;
+	box-shadow: 0 0 0 1px var(--line-2);
+}
+.qr-art svg {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+.qr-art-error {
+	margin: 0;
+	padding: 24px 0;
+	font-size: 14px;
+	line-height: 1.6;
+	color: var(--danger);
+	text-align: center;
+}
+.qr-caption {
+	margin: 0;
+	max-width: 100%;
+	font-size: 12px;
+	color: var(--muted);
+	text-align: center;
+	overflow-wrap: anywhere;
+	font-variant-numeric: tabular-nums;
+}
+.qr-note {
+	margin: 0;
+	max-width: 380px;
+	font-size: 12px;
+	line-height: 1.6;
+	color: var(--qr-note);
+	text-align: center;
+}
+
+@media (max-width: 899px) {
+	.qr-designer {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	/* Stacked, the code comes first so changes stay in view near the top. */
+	.qr-preview {
+		position: static;
+		order: -1;
+	}
+	.qr-stage {
+		padding: 24px;
+	}
+	.qr-art {
+		max-width: 240px;
+	}
+}

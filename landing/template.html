@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="{{@htmlLang}}"{{@dir}}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{s001}}</title>
+<meta name="description" content="{{s002}}">
+<meta name="theme-color" content="#F4F6EE">
+<meta property="og:title" content="{{s003}}">
+<meta property="og:description" content="{{s004}}">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+{{@head}}
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Sans+Arabic:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Noto+Sans+TC:wght@400;500;600&amp;display=swap"><!-- taste-skill-ignore -->
+<script src="/motion.js"></script>
+<style>
+/* The dashboard's palette and type on a page (tasteskill direction "The product performs", seed 529908807).
+   Scripts are files only, see the CSP in public/_headers. Never use filter:blur() or backdrop-filter here: tablets flickered with them. */
+*{box-sizing:border-box}
+:root{--ground:#F4F6EE;--sheet:#FFFFFF;--raised:#F6F7F2;--active:#E9EBE3;--ink:#131416;--muted:#5D5F60;--brand:#CCFF4D;--accent:#4F7000;--line:#E8EAE4;--m:clamp(20px,3vw,40px);--sans:'IBM Plex Sans','IBM Plex Sans Arabic','Noto Sans TC','PingFang TC','Microsoft JhengHei',system-ui,sans-serif;--mono:'IBM Plex Mono','IBM Plex Sans Arabic',ui-monospace,'Noto Sans TC',monospace} /* taste-skill-ignore */
+html{background:var(--ground);scroll-behavior:smooth;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+html:lang(zh-Hans){--sans:'IBM Plex Sans','PingFang SC','Microsoft YaHei','Noto Sans SC','Noto Sans TC',system-ui,sans-serif}
+html:lang(ja){--sans:'IBM Plex Sans','Hiragino Sans','Hiragino Kaku Gothic ProN','Yu Gothic UI',Meiryo,system-ui,sans-serif}
+html:lang(ko){--sans:'IBM Plex Sans','Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',system-ui,sans-serif}
+html:lang(th){--sans:'IBM Plex Sans',system-ui,Thonburi,'Leelawadee UI','Noto Sans Thai',sans-serif}
+[dir=rtl] *{letter-spacing:0!important}
+/* Addresses and code read left to right in every language. */
+[dir=rtl] .rows code,[dir=rtl] .rows span,[dir=rtl] .slug-long code,[dir=rtl] .a code{direction:ltr;unicode-bidi:isolate;text-align:end}
+[dir=rtl] .slug-field{direction:ltr;justify-content:flex-end}
+html:lang(ja) h1,html:lang(ja) h2,html:lang(ja) h3,html:lang(ja) .hero .lead,html:lang(ja) .oss-copy,html:lang(ja) .prompt-notes{word-break:auto-phrase}
+/* Chinese and Korean headlines break at punctuation and spaces, never inside a word. */
+html:lang(zh) h1,html:lang(zh) h2,html:lang(zh) h3,html:lang(ko) h1,html:lang(ko) h2,html:lang(ko) h3,html:lang(zh) .hero .lead,html:lang(ko) .hero .lead,html:lang(zh) .oss-copy,html:lang(ko) .oss-copy,html:lang(zh) .prompt-notes,html:lang(ko) .prompt-notes{word-break:keep-all;overflow-wrap:anywhere}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+svg{flex:none}
+img{display:block;max-width:100%;height:auto}
+.vh{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+/* A label gives its hidden radio focus, and the browser scrolls to whatever has focus: fixed in the viewport, it never has to. */
+input.vh{position:fixed;top:50%;left:50%}
+.wrap{max-width:1360px;margin:0 auto;padding-inline:var(--m)}
+.skip{position:absolute;inset-inline-start:16px;top:-120px;z-index:10;display:inline-flex;align-items:center;min-height:44px;padding:0 18px;background:var(--ink);color:var(--sheet);font-weight:500;text-decoration:none}
+.skip:focus{top:16px}
+
+/* Lines marked taste-skill-ignore belong to data-ui fragments, real overlays or code. */
+/* Type: five sizes do the work. */
+h1,h2,h3{margin:0;font-weight:600;text-wrap:balance}
+h1{font-size:clamp(34px,4.7vw,72px);line-height:1.08;letter-spacing:-.025em}
+h2{font-size:clamp(26px,3.7vw,56px);line-height:1.12;letter-spacing:-.02em}
+h3{font-size:clamp(24px,2.2vw,32px);line-height:1.2;letter-spacing:-.01em}
+p{margin:0;text-wrap:pretty}
+.lead{font-size:clamp(17px,1.5vw,20px);line-height:1.55}
+.note{font-size:14px;line-height:1.55;color:var(--muted)}
+
+/* Buttons: one shape, near-black like the dashboard's. */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 20px;border:0;border-radius:6px;background:var(--active);color:var(--ink);font:inherit;font-weight:500;line-height:1.2;text-decoration:none;white-space:nowrap;cursor:pointer;transition:background-color .16s,color .16s,transform .16s}
+.btn:hover{background:#DDDFD6}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--ink);color:var(--sheet)}
+.btn.primary:hover{background:#2A2C2F}
+.ctas{display:flex;flex-wrap:wrap;gap:8px}
+@media (forced-colors:active){.btn{border:1px solid}} /* taste-skill-ignore */
+
+/* Header: a plain bar. */
+.site-header{display:flex;flex-wrap:wrap;align-items:center;gap:0 28px;padding-block:8px}
+.brand{display:flex;align-items:center;gap:8px;min-height:48px;font-size:17px;font-weight:600;text-decoration:none}
+.main-nav{display:flex;flex-wrap:wrap;flex:1 1 auto;gap:0 20px}
+.main-nav a{display:flex;align-items:center;min-height:44px;font-size:14px;text-decoration:none;transition:color .16s}
+.main-nav a:hover{color:var(--accent)}
+.actions{display:flex;align-items:center;gap:4px;margin-inline-start:auto}
+.gh{display:flex;align-items:center;justify-content:center;gap:6px;min-width:44px;min-height:44px;padding:0 10px;border-radius:6px;font-size:14px;text-decoration:none;transition:background-color .16s}
+.gh:hover{background:var(--active)}
+.actions .btn{min-height:40px;padding:0 14px;font-size:14px;margin-inline-start:6px}
+/* Language menu: a <details> dropdown, so it needs no script. */
+.lang-menu{position:relative}
+.lang-menu summary{display:flex;align-items:center;gap:6px;min-width:44px;min-height:44px;padding:0 10px;border-radius:6px;font-size:14px;white-space:nowrap;cursor:pointer;list-style:none;transition:background-color .16s}
+.lang-menu summary::-webkit-details-marker{display:none}
+.lang-menu summary:hover,.lang-menu[open] summary{background:var(--active)}
+.lang-menu .chev{transition:transform .15s}
+.lang-menu[open] .chev{transform:rotate(180deg)}
+.lang-list{position:absolute;top:calc(100% + 6px);inset-inline-end:0;z-index:20;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px;width:max-content;min-width:300px;max-width:calc(100vw - 32px);padding:8px;border-radius:8px;background:var(--sheet);box-shadow:0 8px 24px rgba(19,20,22,.14)} /* taste-skill-ignore */
+.lang-list a{display:flex;align-items:center;min-height:40px;padding:0 12px;border-radius:6px;font-size:14px;text-decoration:none;white-space:nowrap}
+.lang-list a:hover{background:var(--raised)}
+.lang-list a[aria-current]{background:var(--active);font-weight:500}
+@media (max-width:860px){.main-nav{order:3;flex-basis:100%}.main-nav a{font-size:14px}}
+@media (max-width:560px){.site-header{gap:0 8px}.actions .btn{padding:0 10px;margin-inline-start:2px}.lang-menu{position:static}.lang-list{inset-inline-start:16px;inset-inline-end:16px;width:auto;min-width:0}.lang-name,.gh-label{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
+
+/* Hero: the words and the kinds of page on the left, and those pages as phones lying about on the right, the picked one on top.
+   The phones run off the bottom of the section, so their height doesn't decide the hero's. Depth decides what is on top,
+   not z-index, so the phones pass each other partway through the move without a repaint. */
+.hero{--below:clamp(56px,5vw,80px);overflow:hidden;overflow:clip;padding-block:clamp(16px,2vw,28px) var(--below)}
+.hero-row{display:grid;grid-template-columns:minmax(0,6fr) minmax(0,5fr);grid-template-rows:auto auto 1fr;gap:16px clamp(32px,4vw,56px);margin-top:clamp(12px,1.6vw,24px)}
+.hero-copy,.pick,.pick-more{grid-column:1}
+.hero-copy{display:flex;flex-direction:column;gap:16px}
+.hero h1{font-size:clamp(34px,5vw,72px)}
+.hero .lead{font-size:clamp(17px,1.65vw,23px);text-wrap:balance}
+.pick{display:flex;flex-wrap:wrap;gap:8px}
+.pick label{display:flex;align-items:center;gap:8px;padding-block:6px;padding-inline:6px 16px;border:1px solid var(--line);border-radius:999px;font-size:15px;font-weight:600;line-height:1.3;cursor:pointer;transition:background-color .16s} /* taste-skill-ignore */
+.pick label:hover{background:var(--raised)}
+.pick img{flex:none;width:34px;height:34px;border-radius:50%;object-fit:cover}
+.pick-more{display:inline-flex;align-self:start;justify-self:start;align-items:center;gap:8px;min-height:44px;font-size:14px;font-weight:500;text-decoration:none;transition:color .16s}
+.pick-more:hover{color:var(--accent)}
+#u-creator:checked~.pick label[for=u-creator],#u-shop:checked~.pick label[for=u-shop],#u-event:checked~.pick label[for=u-event],#u-pro:checked~.pick label[for=u-pro],#u-org:checked~.pick label[for=u-org]{background:var(--active)}
+#u-creator:focus-visible~.pick label[for=u-creator],#u-shop:focus-visible~.pick label[for=u-shop],#u-event:focus-visible~.pick label[for=u-event],#u-pro:focus-visible~.pick label[for=u-pro],#u-org:focus-visible~.pick label[for=u-org]{outline:2px solid var(--accent);outline-offset:2px}
+.phone{direction:ltr;width:calc(390px*var(--s));height:calc(844px*var(--s));margin:7px;overflow:hidden;border-radius:calc(44px*var(--s));background:var(--raised);box-shadow:0 0 0 7px var(--ink)} /* taste-skill-ignore */
+.phone iframe{display:block;width:390px;height:844px;border:0;transform:scale(var(--s));transform-origin:top left;pointer-events:none}
+.stage{--s:.68;--front:translateX(-50%) translateZ(30px) rotate(-2deg);--r1:translateX(8%) translateY(34px) translateZ(20px) rotate(5deg) scale(.84);--l1:translateX(-108%) translateY(52px) translateZ(20px) rotate(-6deg) scale(.82);--r2:translateX(36%) translateY(112px) translateZ(10px) rotate(11deg) scale(.68);--l2:translateX(-130%) translateY(128px) translateZ(10px) rotate(-12deg) scale(.66);position:relative;grid-column:2;grid-row:1/4;min-height:calc(720px*var(--s));margin-bottom:calc(var(--below)*-1)} /* taste-skill-ignore */
+.phones{position:absolute;inset:0;transform-style:preserve-3d}
+.stage .phone{display:block;position:absolute;top:14px;left:50%;margin:0;cursor:pointer;transform:var(--l1);transform-origin:50% 40%;transition:transform .5s cubic-bezier(.22,.7,.2,1);will-change:transform}
+#u-creator:checked~.stage .p-creator,#u-shop:checked~.stage .p-shop,#u-event:checked~.stage .p-event,#u-pro:checked~.stage .p-pro,#u-org:checked~.stage .p-org{transform:var(--front)}
+#u-creator:checked~.stage .p-shop,#u-shop:checked~.stage .p-event,#u-event:checked~.stage .p-pro,#u-pro:checked~.stage .p-org,#u-org:checked~.stage .p-creator{transform:var(--r1)}
+#u-creator:checked~.stage .p-event,#u-shop:checked~.stage .p-pro,#u-event:checked~.stage .p-org,#u-pro:checked~.stage .p-creator,#u-org:checked~.stage .p-shop{transform:var(--r2)}
+#u-creator:checked~.stage .p-pro,#u-shop:checked~.stage .p-org,#u-event:checked~.stage .p-creator,#u-pro:checked~.stage .p-shop,#u-org:checked~.stage .p-event{transform:var(--l2)}
+@media (prefers-reduced-motion:reduce){.stage .phone{transition:none}}
+@media (max-width:1320px){.stage{--s:.62}}
+@media (max-width:1240px){.stage{--s:.56}}
+@media (max-width:1120px){.stage{--s:.5}}
+@media (max-width:1040px){
+.hero-row{grid-template-columns:minmax(0,1fr);grid-template-rows:none}
+.hero h1{font-size:clamp(34px,6vw,52px)}
+.stage{--s:.66;order:1;grid-column:1;grid-row:auto;min-height:calc(760px*var(--s))}
+}
+/* On a phone the next ones only peek in from the sides. */
+/* On a phone: the headline, the phones cut short, and the pills in one row that scrolls, all on the first screen. Then the rest of the words. */
+@media (max-width:640px){
+.hero{padding-top:0}
+.hero-row{margin-top:0}
+.hero-copy{display:contents}
+.hero h1{order:-3}
+.stage{--s:.62;--l2:translateX(-50%) translateZ(10px) scale(.8);--r2:translateX(-50%) translateZ(10px) scale(.8);order:-2;height:calc(560px*var(--s));min-height:0;margin-bottom:0;overflow:visible clip}
+.pick{order:-1;flex-wrap:nowrap;margin-inline:calc(var(--m)*-1);padding-inline:var(--m);overflow-x:auto;scrollbar-width:none}
+.pick::-webkit-scrollbar{display:none}
+.pick label{flex:none}
+@supports not (overflow:clip){.stage{height:auto;min-height:calc(880px*var(--s));overflow:visible}}
+}
+/* These show one thing at a time, and a finger moves between them. Up and down, and zooming, stay the browser's. */
+.stage{touch-action:pan-y pinch-zoom;transition:translate .25s}
+
+/* Sections */
+.band{padding-block:clamp(72px,8vw,112px)}
+.band.white{background:var(--sheet)}
+.intro{display:flex;flex-direction:column;gap:20px;max-width:860px}
+.intro p{font-size:clamp(17px,1.5vw,20px);line-height:1.55}
+.intro-row{display:grid;grid-template-columns:minmax(0,6fr) minmax(0,6fr);gap:clamp(28px,5vw,80px);align-items:center}
+.web{width:100%;height:auto}
+@media (max-width:860px){.intro-row{grid-template-columns:minmax(0,1fr)}}
+
+/* What it does: statement and fragment, sizes changing down the column. */
+.feats{display:flex;flex-direction:column;gap:clamp(72px,9vw,128px);margin-top:clamp(56px,6vw,88px)}
+.feat{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(28px,5vw,80px);align-items:center}
+.feat.flip{grid-template-columns:minmax(0,7fr) minmax(0,5fr)}
+.feat.flip .feat-copy{order:2}
+.feat-copy{display:flex;flex-direction:column;gap:14px}
+@media (max-width:860px){.feat,.feat.flip{grid-template-columns:minmax(0,1fr)}.feat.flip .feat-copy{order:0}}
+.shot-crop{overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--sheet)} /* taste-skill-ignore */
+.shot-crop img{width:100%}
+.frag{border:1px solid var(--line);border-radius:12px;background:var(--sheet);font-size:14px;line-height:1.4} /* taste-skill-ignore */
+.rows{margin:0;padding:6px 0;list-style:none}
+.rows li{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.3fr) auto;gap:16px;align-items:center;min-height:52px;padding:0 20px}
+.rows li.on{background:var(--raised)}
+.rows code{font-family:var(--mono);font-weight:500} /* taste-skill-ignore */
+.rows span{overflow:hidden;color:var(--muted);text-overflow:ellipsis;white-space:nowrap}
+.rows em{font-style:normal;font-variant-numeric:tabular-nums}
+.src{margin:0;padding:12px 20px 16px;list-style:none}
+.src li{display:grid;grid-template-columns:72px minmax(0,1fr) 48px 44px;gap:12px;align-items:center;min-height:40px}
+.src i{display:block;height:8px;border-radius:999px;background:var(--accent)}
+.src em{font-style:normal;text-align:end;font-variant-numeric:tabular-nums}
+.src small{font-size:14px;text-align:end;color:var(--muted);font-variant-numeric:tabular-nums}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:18px 20px 4px}
+.kpis div{display:flex;flex-direction:column;gap:2px}
+.kpis span{color:var(--muted)}
+.kpis b{font-size:28px;font-weight:400;line-height:1.2;font-variant-numeric:tabular-nums}
+
+/* AI: the conversation, then what you can ask, as big as the page allows. */
+.split{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(28px,5vw,80px);align-items:start}
+@media (max-width:860px){.split{grid-template-columns:minmax(0,1fr)}}
+.chat{display:flex;flex-direction:column;gap:12px;margin:0;padding:24px;list-style:none;border-radius:16px;background:var(--sheet);font-size:15px;line-height:1.55}
+.chat li{max-width:88%;padding:12px 16px;border-radius:12px}
+.chat .me{align-self:flex-end;background:var(--ink);color:var(--sheet)}
+.chat .ai{align-self:flex-start;background:var(--raised)}
+.chat .who{display:block;margin-bottom:2px;font-size:12px;opacity:.72}
+.asks{display:flex;flex-direction:column;margin:clamp(56px,7vw,104px) 0 0;padding:0;list-style:none;font-size:clamp(34px,4.7vw,72px);font-weight:600;line-height:1.16;letter-spacing:-.02em}
+.asks li{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:clamp(24px,4vw,64px);align-items:baseline;padding-block:clamp(8px,1vw,14px)}
+.asks b{font-weight:inherit}
+.asks span{font-size:clamp(16px,1.5vw,20px);font-weight:400;line-height:1.5;letter-spacing:0;color:var(--muted)}
+.asks-note{margin:clamp(24px,3vw,40px) 0 0;max-width:68ch;font-size:14px;line-height:1.6;color:var(--muted)}
+@media (max-width:860px){.asks li{grid-template-columns:minmax(0,1fr);gap:4px;padding-block:12px}}
+
+/* The dashboard: three screens, one slider. */
+/* The dashboard's screens, one after another down a line, all of them in sight. */
+.steps{margin:clamp(48px,6vw,80px) 0 0;padding:0;list-style:none;counter-reset:step}
+.step{--dot:36px;--to-text:clamp(14px,2vw,28px);position:relative;display:grid;grid-template-columns:minmax(0,3fr) minmax(0,9fr);gap:clamp(24px,3vw,48px);padding-inline-start:calc(var(--dot) + var(--to-text));padding-block-end:clamp(48px,6vw,80px);counter-increment:step}
+.step::before{content:counter(step);position:absolute;inset-block-start:0;inset-inline-start:0;z-index:1;display:grid;place-items:center;width:var(--dot);height:var(--dot);border-radius:50%;background:var(--ink);color:var(--sheet);font-size:15px;font-weight:600;line-height:1}
+.step::after{content:'';position:absolute;inset-block:0;inset-inline-start:calc(var(--dot)/2 - 1px);width:2px;background:var(--active)}
+.step:last-child{padding-block-end:0}
+.step:last-child::after{display:none}
+.cap{display:flex;flex-direction:column;gap:10px;margin:0;padding-block-start:2px}
+.cap b{font-size:clamp(24px,2.2vw,32px);font-weight:600;line-height:1.2;letter-spacing:-.01em}
+.shot{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--sheet)} /* taste-skill-ignore */
+.steps+.note{margin:clamp(28px,3vw,40px) 0 0}
+/* A phone needs every pixel for a picture of a whole screen: it takes the line's width too, and the line runs on behind it. */
+@media (max-width:1000px){.step{--dot:32px;grid-template-columns:minmax(0,1fr);gap:20px}.shot{margin-inline-start:calc(-1*(var(--dot) + var(--to-text)))}}
+
+/* Themes: live pages with a label strip attached. */
+.themes-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:20px}
+.tiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-top:clamp(40px,5vw,64px)}
+@media (max-width:1240px){.tiles{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:640px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+figure{margin:0;display:flex;flex-direction:column}
+.tile{--ts:.8;direction:ltr;position:relative;aspect-ratio:4/5;overflow:hidden;background:var(--active)}
+.tile iframe{display:block;width:390px;height:844px;border:0;transform:scale(var(--ts));transform-origin:top left;pointer-events:none}
+figcaption{display:flex;flex-direction:column;gap:2px;padding:8px 10px;background:var(--active);font-size:14px;line-height:1.4}
+.tile-name{display:flex;flex-wrap:wrap;gap:0 8px;align-items:baseline}
+.tile-name b{font-size:16px;font-weight:600}
+.tile-name .mono{color:var(--muted)}
+
+/* Templates: three pages a new owner could start from, live. */
+.tpls{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(20px,3vw,48px);margin-top:clamp(40px,5vw,64px)}
+.tpl{--s:.53;display:flex;flex-direction:column;align-items:center;gap:20px;min-width:0}
+.tpl-cap{display:flex;flex-direction:column;gap:6px;width:calc(390px*var(--s) + 14px)}
+.tpl-pick{display:none}
+.tpl-radio{display:none}
+/* Too narrow for five in a row: three, then two centered under them. */
+@media (max-width:1400px){.tpls{grid-template-columns:repeat(6,minmax(0,1fr))}.tpl{--s:.72;grid-column:span 2}.tpl:nth-child(4){grid-column:2/span 2}.tpl:nth-child(5){grid-column:4/span 2}}
+@media (max-width:1240px){.tpl{--s:.6}}
+@media (max-width:980px){.tpl{--s:.5}.tpl h3{font-size:20px}.tpl p{font-size:14px}}
+@media (max-width:760px){.tpl{--s:.42}}
+/* A phone shows one at a time, chosen with radio buttons, so the page stays short and nothing scrolls sideways. */
+@media (max-width:640px){
+.tpl-radio{display:block}
+.tpl-pick{display:flex;flex-wrap:wrap;gap:6px;margin-top:28px}
+.tpl-pick label{display:flex;align-items:center;min-height:44px;padding:0 14px;border-radius:6px;background:var(--raised);font-size:14px;cursor:pointer;transition:background-color .16s}
+.tpls{display:block;margin-top:20px;touch-action:pan-y pinch-zoom;transition:translate .25s}
+.tpl{--s:.72;display:none}
+#tp-0:checked~.tpls .tpl:nth-child(1),#tp-1:checked~.tpls .tpl:nth-child(2),#tp-2:checked~.tpls .tpl:nth-child(3),#tp-3:checked~.tpls .tpl:nth-child(4),#tp-4:checked~.tpls .tpl:nth-child(5){display:flex}
+#tp-0:checked~.tpl-pick label[for=tp-0],#tp-1:checked~.tpl-pick label[for=tp-1],#tp-2:checked~.tpl-pick label[for=tp-2],#tp-3:checked~.tpl-pick label[for=tp-3],#tp-4:checked~.tpl-pick label[for=tp-4]{background:var(--active);font-weight:500}
+#tp-0:focus-visible~.tpl-pick label[for=tp-0],#tp-1:focus-visible~.tpl-pick label[for=tp-1],#tp-2:focus-visible~.tpl-pick label[for=tp-2],#tp-3:focus-visible~.tpl-pick label[for=tp-3],#tp-4:focus-visible~.tpl-pick label[for=tp-4]{outline:2px solid var(--accent);outline-offset:2px}
+}
+
+/* Short links: the one control, at poster size, on the brand's field. */
+.poster{background:var(--brand);padding-block:clamp(88px,10vw,152px)}
+.poster .intro{max-width:820px}
+.slug{display:flex;flex-direction:column;gap:8px;margin-top:clamp(48px,6vw,88px)}
+.slug-long{display:flex;flex-direction:column;gap:2px;font-size:14px;line-height:1.5}
+.slug-long code{font-family:var(--mono);overflow-wrap:anywhere} /* taste-skill-ignore */
+.slug-label{font-weight:500}
+.slug-field code{font:inherit}
+.slug-field{display:flex;flex-wrap:wrap;align-items:baseline;margin-top:20px;font-family:var(--mono);font-size:clamp(28px,7.4vw,112px);font-weight:500;line-height:1.1;letter-spacing:-.03em} /* taste-skill-ignore */
+.slug-field input{field-sizing:content;min-width:2ch;max-width:100%;margin:0;padding:0 .08em;border:0;border-radius:6px;background:var(--ink);color:var(--brand);font:inherit;letter-spacing:inherit;outline-offset:4px}
+.flags{display:flex;flex-wrap:wrap;gap:8px;margin-top:clamp(24px,3vw,36px);padding:0;list-style:none}
+.flags li{padding:8px 16px;border-radius:999px;background:color-mix(in srgb,var(--ink) 10%,transparent);font-size:15px;font-weight:500;line-height:1.3}
+
+/* Self-hosting: one prompt to paste. */
+.prompt-box{display:flex;flex-direction:column;border-radius:16px;background:var(--raised)}
+.prompt-head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:8px 0 0;padding-inline:24px 12px}
+.prompt-head p{font-size:16px;font-weight:600}
+.copy[hidden]{display:none}
+.copy{min-height:40px;padding:0 14px;font-size:15px}
+.term-lines{display:flex;flex-direction:column;gap:10px;margin:0;padding:12px 24px 24px;list-style:none;font-family:var(--mono);font-size:15px;line-height:1.55;overflow-wrap:anywhere} /* taste-skill-ignore */
+.term-lines code{display:flex;gap:12px;font:inherit}
+.prompt{color:var(--muted);-webkit-user-select:none;user-select:none}
+.prompt-notes{display:flex;flex-direction:column;gap:12px;padding:20px 24px 24px;background:var(--active);border-radius:0 0 16px 16px;font-size:15px;line-height:1.55}
+.oss-row{margin-top:clamp(28px,3vw,48px)}
+.oss-copy{display:flex;flex-direction:column;gap:20px}
+
+/* FAQ: the heading stays while the questions scroll past, and an answer opens under its question. Details, so it needs no script.
+   Several can be open: closing the answer above would pull the one just opened out of place. */
+.faq{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);column-gap:clamp(28px,5vw,80px);align-items:start}
+.faq h2{position:sticky;top:clamp(24px,5vh,56px)}
+.faq-list details{border-block-end:1px solid color-mix(in srgb,var(--ink) 13%,transparent)}
+.faq-list details:first-child{border-block-start:1px solid color-mix(in srgb,var(--ink) 13%,transparent)}
+.faq-list summary{display:flex;justify-content:space-between;gap:24px;padding-block:18px;font-size:clamp(17px,1.4vw,19px);font-weight:500;line-height:1.4;cursor:pointer;list-style:none;transition:color .16s}
+.faq-list summary::-webkit-details-marker{display:none}
+.faq-list summary::after{content:'';flex:none;width:18px;height:18px;margin-top:.2em;color:var(--muted);background-image:linear-gradient(currentColor,currentColor),linear-gradient(currentColor,currentColor);background-position:center;background-repeat:no-repeat;background-size:16px 2px,2px 16px;transition:background-size .18s,color .16s}
+.faq-list details:not([open]) summary{color:color-mix(in srgb,var(--ink) 82%,var(--ground))}
+.faq-list details:not([open]) summary:hover{color:var(--ink)}
+.faq-list details[open] summary::after{color:var(--accent);background-size:16px 2px,2px 0}
+.faq-list summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.a{padding-block-end:24px;padding-inline-end:42px;font-size:17px;line-height:1.65}
+.a p{max-width:64ch}
+.a code{font-family:var(--mono);font-size:.9em} /* taste-skill-ignore */
+@media (max-width:860px){.faq{display:block}.faq h2{position:static;margin-block-end:28px}.faq-list summary{padding-block:16px}.a{padding-inline-end:0}}
+
+/* The close */
+.close{background:var(--ink);color:var(--sheet);padding-block:clamp(96px,11vw,168px)}
+.close-in{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:clamp(28px,5vw,80px);align-items:end}
+.close-side{display:flex;flex-direction:column;gap:24px}
+.close .btn{background:rgba(255,255,255,.14);color:var(--sheet)}
+.close .btn:hover{background:rgba(255,255,255,.24)}
+.close .btn.primary{background:var(--brand);color:var(--ink)}
+.close .btn.primary:hover{background:#BDF02F}
+@media (max-width:860px){.close-in{grid-template-columns:minmax(0,1fr)}}
+
+/* Footer: tiles, every cell used, and the name at full width. */
+.site-footer{padding:clamp(24px,3vw,36px) 0;color:var(--muted);font-size:14px}
+.foot-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 28px}
+.foot-brand{display:flex;align-items:center;gap:8px;margin-inline-end:auto;color:var(--ink);font-weight:600}
+.foot-brand svg{width:20px;height:20px}
+.foot-note{margin-inline-start:6px;color:var(--muted);font-weight:400}
+.foot-links{display:flex;flex-wrap:wrap;gap:0 20px}
+.site-footer a{display:inline-flex;align-items:center;min-height:32px;text-decoration:none;transition:color .16s}
+.site-footer a:hover{color:var(--ink)}
+.foot-langs{flex-basis:100%;display:flex;flex-wrap:wrap;gap:0 14px;font-size:13px}
+.foot-langs a[aria-current]{color:var(--ink);font-weight:600}
+
+/* Each part of a section arrives once. Without the script nothing is hidden. */
+html.js [data-in]{opacity:0;transform:translateY(20px);transition:opacity .6s cubic-bezier(.2,.7,.2,1),transform .6s cubic-bezier(.2,.7,.2,1);transition-delay:calc(var(--i,0)*70ms)}
+html.js [data-in].in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;scroll-behavior:auto!important}html.js [data-in]{opacity:1;transform:none;transition:none}}
+</style>
+</head>
+<body id="top">
+<a class="skip" href="#main">{{s087}}</a>
+
+<header class="site-header wrap">
+<a class="brand" href="#top" aria-label="{{s005}}">{{@logo}}<span>FluxBio</span></a>
+<nav class="main-nav" aria-label="{{s006}}">
+<a href="#ai">AI</a>
+<a href="#dashboard">{{s089}}</a>
+<a href="#themes">{{s090}}</a>
+<a href="#shortener">{{s091}}</a>
+<a href="#faq">{{s093}}</a>
+</nav>
+<div class="actions">
+<details class="lang-menu" data-ui>
+<summary aria-label="{{s107}}: {{@languageName}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9s1.3-6.4 3.8-9z"/></svg><span class="lang-name">{{@languageName}}</span><svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+<nav class="lang-list" aria-label="{{s107}}">{{@languages}}</nav>
+</details>
+<a class="gh" href="https://github.com/0t2/flux-bio"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 7l-5 5 5 5"/><path d="M16 7l5 5-5 5"/><path d="M13.5 4l-3 16"/></svg><span class="gh-label">GitHub</span></a>
+<a class="btn primary" href="#open-source">{{s094}}</a>
+</div>
+</header>
+
+<main id="main">
+
+<section class="hero" aria-labelledby="hero-title">
+<div class="hero-row wrap">
+<div class="hero-copy">
+<h1 id="hero-title">{{s021}}</h1>
+<p class="lead">{{s049}}</p>
+<div class="ctas">
+<a class="btn primary" href="#open-source">{{s095}}</a>
+<a class="btn" href="https://github.com/0t2/flux-bio"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 7l-5 5 5 5"/><path d="M16 7l5 5-5 5"/><path d="M13.5 4l-3 16"/></svg>{{s096}}</a>
+</div>
+<p class="note">{{s050}}</p>
+</div>
+<input class="vh" type="radio" name="use" id="u-creator" checked>
+<input class="vh" type="radio" name="use" id="u-shop">
+<input class="vh" type="radio" name="use" id="u-event">
+<input class="vh" type="radio" name="use" id="u-pro">
+<input class="vh" type="radio" name="use" id="u-org">
+<div class="pick" data-ui>
+<label for="u-creator"><img src="/images/avatar-mika.webp" alt="" width="34" height="34">{{s125}}</label>
+<label for="u-shop"><img src="/images/avatar-island.webp" alt="" width="34" height="34">{{s126}}</label>
+<label for="u-event"><img src="/images/avatar-flux.webp" alt="" width="34" height="34">{{s127}}</label>
+<label for="u-pro"><img src="/images/avatar-wen.webp" alt="" width="34" height="34">{{s134}}</label>
+<label for="u-org"><img src="/images/avatar-harbor.webp" alt="" width="34" height="34">{{s135}}</label>
+</div>
+<div class="stage" data-ui>
+<div class="phones">
+<label class="phone p-creator" for="u-creator"><iframe src="/preview/{{@lang}}/moon" title="{{s131}}" tabindex="-1" scrolling="no"></iframe></label>
+<label class="phone p-shop" for="u-shop"><iframe src="/preview/{{@lang}}/sheet" title="{{s132}}" tabindex="-1" scrolling="no"></iframe></label>
+<label class="phone p-event" for="u-event"><iframe src="/preview/{{@lang}}/obsidian" title="{{s133}}" tabindex="-1" scrolling="no"></iframe></label>
+<label class="phone p-pro" for="u-pro"><iframe src="/preview/{{@lang}}/sky" title="{{s138}}" tabindex="-1" scrolling="no"></iframe></label>
+<label class="phone p-org" for="u-org"><iframe src="/preview/{{@lang}}/duo" title="{{s139}}" tabindex="-1" scrolling="no"></iframe></label>
+</div>
+</div>
+<a class="pick-more" href="#themes">{{s140}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg></a>
+</div>
+</section>
+
+<section class="band white" id="features" aria-labelledby="features-title">
+<div class="wrap">
+<div class="intro-row">
+<div class="intro" data-in>
+<h2 id="features-title">{{s022}}</h2>
+<p>{{s051}}</p>
+</div>
+<img class="web" src="/images/link-web.webp" width="1444" height="912" loading="lazy" decoding="async" alt="" data-in style="--i:1">
+</div>
+<div class="feats">
+<div class="feat flip">
+<div class="feat-copy" data-in><h3>{{s030}}</h3><p>{{s052}}</p></div>
+<div class="shot-crop" data-ui data-in style="--i:1"><img src="/{{@lang}}/dash-appearance.webp" width="1227" height="787" loading="lazy" decoding="async" alt=""></div>
+</div>
+<div class="feat">
+<div class="feat-copy" data-in><h3>{{s031}}</h3><p>{{s053}}</p></div>
+<div class="frag" data-ui data-in style="--i:1"><ul class="rows">
+<li class="on"><code>/order</code><span>island-coffee.example/order</span><em>1,204</em></li>
+<li><code>/menu</code><span>island-coffee.example/menu</span><em>873</em></li>
+<li><code>/class</code><span>tickets.example/pour-over</span><em>412</em></li>
+<li><code>/{{s141}}</code><span>island-coffee.example/spring</span><em>286</em></li>
+<li><code>/map</code><span>maps.example/island-coffee</span><em>97</em></li>
+</ul></div>
+</div>
+<div class="feat flip">
+<div class="feat-copy" data-in><h3>{{s032}}</h3><p>{{s054}}</p></div>
+<div class="frag" data-ui data-in style="--i:1"><ul class="src">
+<li><span>IG</span><i style="width:100%"></i><em>1,328</em><small>46%</small></li>
+<li><span>Threads</span><i style="width:48%"></i><em>635</em><small>22%</small></li>
+<li><span>LINE</span><i style="width:30%"></i><em>404</em><small>14%</small></li>
+<li><span>QR Code</span><i style="width:13%"></i><em>173</em><small>6%</small></li>
+</ul></div>
+</div>
+</div>
+</div>
+</section>
+
+<section class="band" id="ai" aria-labelledby="ai-title">
+<div class="wrap">
+<h2 id="ai-title" data-in>{{s023}}</h2>
+<div class="split oss-row">
+<p class="lead" data-in>{{s055}}</p>
+<ol class="chat" data-ui data-in style="--i:1" role="list" aria-label="{{s010}}">
+<li class="me">{{s077}}</li>
+<li class="ai">{{s078}}</li>
+<li class="me">{{s079}}</li>
+<li class="ai">{{s080}}</li>
+</ol>
+</div>
+<ul class="asks" role="list" aria-label="{{s009}}">
+<li data-in><b>{{s072}}</b><span>{{s142}}</span></li>
+<li data-in style="--i:1"><b>{{s073}}</b><span>{{s143}}</span></li>
+<li data-in style="--i:2"><b>{{s074}}</b><span>{{s144}}</span></li>
+<li data-in style="--i:3"><b>{{s075}}</b><span>{{s145}}</span></li>
+<li data-in style="--i:4"><b>{{s076}}</b><span>{{s146}}</span></li>
+</ul>
+<p class="asks-note" data-in>{{s160}}</p>
+</div>
+</section>
+
+<section class="band white" id="dashboard" aria-labelledby="dashboard-title">
+<div class="wrap">
+<div class="intro" data-in>
+<h2 id="dashboard-title">{{s024}}</h2>
+<p>{{s056}}</p>
+</div>
+<ol class="steps">
+<li class="step" data-in>
+<p class="cap">{{s042}}</p>
+<div class="shot" data-ui><img src="/{{@lang}}/dash-links.webp" width="1920" height="1200" loading="lazy" decoding="async" alt="{{s011}}"></div>
+</li>
+<li class="step" data-in>
+<p class="cap">{{s044}}</p>
+<div class="shot" data-ui><img src="/{{@lang}}/dash-qr.webp" width="1920" height="1200" loading="lazy" decoding="async" alt="{{s013}}"></div>
+</li>
+<li class="step" data-in>
+<p class="cap">{{s043}}</p>
+<div class="shot" data-ui><img src="/{{@lang}}/dash-stats.webp" width="1920" height="1200" loading="lazy" decoding="async" alt="{{s012}}"></div>
+</li>
+</ol>
+<p class="note">{{s057}}</p>
+</div>
+</section>
+
+<section class="band" id="themes" aria-labelledby="themes-title">
+<div class="wrap">
+<div class="themes-head" data-in>
+<h2 id="themes-title">{{s025}}</h2>
+</div>
+<div class="tiles">
+{{@themeTiles}}
+</div>
+</div>
+</section>
+
+<section class="band white" id="templates" aria-labelledby="templates-title">
+<div class="wrap">
+<div class="intro" data-in>
+<h2 id="templates-title">{{s123}}</h2>
+<p>{{s124}}</p>
+</div>
+<input class="vh tpl-radio" type="radio" name="tpl" id="tp-0" checked>
+<input class="vh tpl-radio" type="radio" name="tpl" id="tp-1">
+<input class="vh tpl-radio" type="radio" name="tpl" id="tp-2">
+<input class="vh tpl-radio" type="radio" name="tpl" id="tp-3">
+<input class="vh tpl-radio" type="radio" name="tpl" id="tp-4">
+<div class="tpl-pick"><label for="tp-0">{{s125}}</label><label for="tp-1">{{s126}}</label><label for="tp-2">{{s127}}</label><label for="tp-3">{{s134}}</label><label for="tp-4">{{s135}}</label></div>
+<div class="tpls">
+<div class="tpl" data-in style="--i:0"><div class="phone" data-ui><iframe src="/preview/{{@lang}}/brutal-creator" title="{{s131}}" loading="lazy" tabindex="-1" scrolling="no"></iframe></div><div class="tpl-cap"><h3>{{s125}}</h3><p>{{s128}}</p></div></div>
+<div class="tpl" data-in style="--i:1"><div class="phone" data-ui><iframe src="/preview/{{@lang}}/jelly-shop" title="{{s132}}" loading="lazy" tabindex="-1" scrolling="no"></iframe></div><div class="tpl-cap"><h3>{{s126}}</h3><p>{{s129}}</p></div></div>
+<div class="tpl" data-in style="--i:2"><div class="phone" data-ui><iframe src="/preview/{{@lang}}/aurora-event" title="{{s133}}" loading="lazy" tabindex="-1" scrolling="no"></iframe></div><div class="tpl-cap"><h3>{{s127}}</h3><p>{{s130}}</p></div></div>
+<div class="tpl" data-in style="--i:3"><div class="phone" data-ui><iframe src="/preview/{{@lang}}/notebook-pro" title="{{s138}}" loading="lazy" tabindex="-1" scrolling="no"></iframe></div><div class="tpl-cap"><h3>{{s134}}</h3><p>{{s136}}</p></div></div>
+<div class="tpl" data-in style="--i:4"><div class="phone" data-ui><iframe src="/preview/{{@lang}}/minimal-org" title="{{s139}}" loading="lazy" tabindex="-1" scrolling="no"></iframe></div><div class="tpl-cap"><h3>{{s135}}</h3><p>{{s137}}</p></div></div>
+</div>
+</div>
+</section>
+
+<section class="poster" id="shortener" aria-labelledby="shortener-title">
+<div class="wrap">
+<div class="intro" data-in>
+<h2 id="shortener-title">{{s026}}</h2>
+<p>{{s058}}</p>
+</div>
+<div class="slug" data-ui data-in style="--i:1" role="group" aria-label="{{s019}}">
+<div class="slug-long"><span class="slug-label">{{s104}}</span><code>https://www.youtube.com/playlist?list=PLfluxbio2026&amp;utm_source=instagram&amp;utm_medium=bio&amp;utm_campaign=autumn</code></div>
+<label class="slug-field"><span class="vh">{{s105}}</span><code aria-hidden="true">yourdomain.com/</code><input data-slug type="text" value="yt" size="3" maxlength="24" spellcheck="false" autocomplete="off" autocapitalize="none"></label>
+</div>
+<ul class="flags" data-in style="--i:2" role="list">
+<li>{{s081}}</li>
+<li>QR Code</li>
+<li>{{s082}}</li>
+<li>{{s083}}</li>
+<li>{{s084}}</li>
+</ul>
+</div>
+</section>
+
+<section class="band white" id="open-source" aria-labelledby="oss-title">
+<div class="wrap">
+<h2 id="oss-title" data-in>{{s027}}</h2>
+<div class="split oss-row">
+<div class="oss-copy" data-in>
+<p class="lead">{{s059}}</p>
+<div class="ctas">
+<a class="btn primary" href="https://github.com/0t2/flux-bio"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 7l-5 5 5 5"/><path d="M16 7l5 5-5 5"/><path d="M13.5 4l-3 16"/></svg>{{s098}}</a>
+<a class="btn" href="{{@readme}}">{{s099}}</a>
+</div>
+</div>
+<div class="prompt-box" data-ui data-in style="--i:1">
+<div class="prompt-head">
+<p id="deploy-steps">{{s060}}</p>
+<button type="button" class="btn copy" data-copy="deploy-lines" data-copied="{{s109}}" hidden><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg><span aria-live="polite">{{s108}}</span></button>
+</div>
+<ol class="term-lines" id="deploy-lines" role="list" aria-labelledby="deploy-steps">
+<li><code>{{s085}}</code></li>
+<li><code>{{s111}}</code></li>
+</ol>
+<div class="prompt-notes">
+<p>{{s061}}</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<section class="band" id="faq" aria-labelledby="faq-title">
+<div class="wrap faq">
+<h2 id="faq-title" data-in>{{s028}}</h2>
+<div class="faq-list">
+<details open>
+<summary>{{s033}}</summary>
+<div class="a"><p>{{s062}}</p></div>
+</details>
+<details>
+<summary>{{s161}}</summary>
+<div class="a"><p>{{s162}}</p></div>
+</details>
+<details>
+<summary>{{s158}}</summary>
+<div class="a"><p>{{s159}}</p></div>
+</details>
+<details>
+<summary>{{s148}}</summary>
+<div class="a"><p>{{s149}}</p></div>
+</details>
+<details>
+<summary>{{s150}}</summary>
+<div class="a"><p>{{s151}}</p></div>
+</details>
+<details>
+<summary>{{s152}}</summary>
+<div class="a"><p>{{s153}}</p></div>
+</details>
+<details>
+<summary>{{s154}}</summary>
+<div class="a"><p>{{s155}}</p></div>
+</details>
+<details>
+<summary>{{s156}}</summary>
+<div class="a"><p>{{s157}}</p></div>
+</details>
+<details>
+<summary>{{s034}}</summary>
+<div class="a"><p>{{s063}}</p></div>
+</details>
+<details>
+<summary>{{s035}}</summary>
+<div class="a"><p>{{s064}}</p></div>
+</details>
+<details>
+<summary>{{s036}}</summary>
+<div class="a"><p>{{s065}}</p></div>
+</details>
+<details>
+<summary>{{s037}}</summary>
+<div class="a"><p>{{s066}}</p></div>
+</details>
+<details>
+<summary>{{s038}}</summary>
+<div class="a"><p>{{s067}}</p></div>
+</details>
+<details>
+<summary>{{s039}}</summary>
+<div class="a"><p>{{s068}}</p></div>
+</details>
+<details>
+<summary>{{s040}}</summary>
+<div class="a"><p>{{s069}}</p></div>
+</details>
+<details>
+<summary>{{s041}}</summary>
+<div class="a"><p>{{s070}}</p></div>
+</details>
+</div>
+</div>
+</section>
+
+<section class="close" aria-labelledby="cta-title">
+<div class="wrap close-in">
+<h2 id="cta-title">{{s029}}</h2>
+<div class="close-side">
+<p class="lead">{{s071}}</p>
+<div class="ctas">
+<a class="btn primary" href="{{@readme}}">{{s100}}</a>
+<a class="btn" href="https://github.com/0t2/flux-bio"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 7l-5 5 5 5"/><path d="M16 7l5 5-5 5"/><path d="M13.5 4l-3 16"/></svg>{{s101}}</a>
+</div>
+</div>
+</div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+<div class="wrap foot-row">
+<div class="foot-brand">{{@logo}}<span>FluxBio</span><span class="foot-note">{{s106}}</span></div>
+<nav class="foot-links" aria-label="{{s020}}">
+<a href="https://github.com/0t2/flux-bio">GitHub</a>
+<a href="{{@readme}}">{{s102}}</a>
+<a href="https://github.com/0t2/flux-bio/issues">{{s103}}</a>
+</nav>
+<nav class="foot-langs" aria-label="{{s107}}">{{@languages}}</nav>
+</div>
+</footer>
+
+<script src="/copy.js" defer></script>
+</body>
+</html>

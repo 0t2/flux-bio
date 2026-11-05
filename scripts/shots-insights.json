@@ -1,0 +1,429 @@
+{
+	"visitors": 731,
+	"previousVisitors": 612,
+	"visitorsByDay": {
+		"2026-11-03": 23,
+		"2026-11-02": 20,
+		"2026-11-01": 27,
+		"2026-10-31": 31,
+		"2026-10-30": 18,
+		"2026-10-29": 16,
+		"2026-10-28": 31,
+		"2026-10-27": 24,
+		"2026-10-26": 23,
+		"2026-10-25": 22,
+		"2026-10-24": 31,
+		"2026-10-23": 31,
+		"2026-10-22": 28,
+		"2026-10-21": 20,
+		"2026-10-20": 23,
+		"2026-10-19": 20,
+		"2026-10-18": 32,
+		"2026-10-17": 28,
+		"2026-10-16": 16,
+		"2026-10-15": 18,
+		"2026-10-14": 21,
+		"2026-10-13": 17,
+		"2026-10-12": 25,
+		"2026-10-11": 16,
+		"2026-10-10": 24,
+		"2026-10-09": 31,
+		"2026-10-08": 28,
+		"2026-10-07": 29,
+		"2026-10-06": 28,
+		"2026-10-05": 30
+	},
+	"countries": [
+		{
+			"value": "TW",
+			"count": 612
+		},
+		{
+			"value": "HK",
+			"count": 48
+		},
+		{
+			"value": "JP",
+			"count": 31
+		},
+		{
+			"value": "US",
+			"count": 14
+		}
+	],
+	"cities": [
+		{
+			"value": "TW:Tainan",
+			"count": 288
+		},
+		{
+			"value": "TW:Kaohsiung",
+			"count": 141
+		},
+		{
+			"value": "TW:Taipei",
+			"count": 119
+		},
+		{
+			"value": "HK:Hong Kong",
+			"count": 48
+		},
+		{
+			"value": "JP:Tokyo",
+			"count": 22
+		}
+	],
+	"places": [
+		{
+			"country": "TW",
+			"region": "Tainan City",
+			"count": 288
+		},
+		{
+			"country": "TW",
+			"region": "Kaohsiung City",
+			"count": 141
+		},
+		{
+			"country": "TW",
+			"region": "Taipei City",
+			"count": 119
+		}
+	],
+	"devices": [
+		{
+			"value": "mobile",
+			"count": 612
+		},
+		{
+			"value": "desktop",
+			"count": 83
+		},
+		{
+			"value": "tablet",
+			"count": 10
+		}
+	],
+	"os": [
+		{
+			"value": "iOS",
+			"count": 401
+		},
+		{
+			"value": "Android",
+			"count": 218
+		},
+		{
+			"value": "macOS",
+			"count": 52
+		},
+		{
+			"value": "Windows",
+			"count": 34
+		}
+	],
+	"browsers": [
+		{
+			"value": "Instagram",
+			"count": 281
+		},
+		{
+			"value": "Safari",
+			"count": 197
+		},
+		{
+			"value": "Chrome",
+			"count": 141
+		},
+		{
+			"value": "LINE",
+			"count": 86
+		}
+	],
+	"languages": [
+		{
+			"value": "zh-TW",
+			"count": 603
+		},
+		{
+			"value": "en",
+			"count": 58
+		},
+		{
+			"value": "ja",
+			"count": 31
+		},
+		{
+			"value": "zh-HK",
+			"count": 13
+		}
+	],
+	"referrers": [
+		{
+			"value": "instagram.com",
+			"count": 214
+		},
+		{
+			"value": "threads.net",
+			"count": 96
+		},
+		{
+			"value": "line.me",
+			"count": 41
+		}
+	],
+	"networks": [
+		{
+			"value": "Chunghwa Telecom",
+			"count": 318
+		},
+		{
+			"value": "Taiwan Mobile",
+			"count": 141
+		},
+		{
+			"value": "Far EasTone",
+			"count": 102
+		}
+	],
+	"points": [
+		{
+			"lat": 23.0,
+			"lon": 120.2,
+			"country": "TW",
+			"city": "Tainan",
+			"count": 288
+		},
+		{
+			"lat": 22.6,
+			"lon": 120.3,
+			"country": "TW",
+			"city": "Kaohsiung",
+			"count": 141
+		},
+		{
+			"lat": 25.0,
+			"lon": 121.5,
+			"country": "TW",
+			"city": "Taipei",
+			"count": 119
+		},
+		{
+			"lat": 22.3,
+			"lon": 114.2,
+			"country": "HK",
+			"city": "Hong Kong",
+			"count": 48
+		},
+		{
+			"lat": 35.7,
+			"lon": 139.7,
+			"country": "JP",
+			"city": "Tokyo",
+			"count": 22
+		}
+	],
+	"campaigns": [
+		{
+			"source": "line",
+			"medium": "broadcast",
+			"campaign": "spring",
+			"content": "",
+			"views": 214,
+			"clicks": 88
+		},
+		{
+			"source": "instagram",
+			"medium": "social",
+			"campaign": "spring",
+			"content": "story",
+			"views": 176,
+			"clicks": 61
+		}
+	],
+	"heatmap": [
+		[
+			1,
+			0,
+			0,
+			0,
+			0,
+			0,
+			1,
+			1,
+			1,
+			5,
+			8,
+			6,
+			6,
+			5,
+			4,
+			5,
+			8,
+			3,
+			4,
+			6,
+			7,
+			7,
+			4,
+			0
+		],
+		[
+			0,
+			0,
+			1,
+			1,
+			1,
+			0,
+			0,
+			0,
+			1,
+			5,
+			5,
+			3,
+			8,
+			3,
+			5,
+			5,
+			3,
+			6,
+			7,
+			5,
+			6,
+			6,
+			8,
+			0
+		],
+		[
+			0,
+			0,
+			0,
+			0,
+			0,
+			1,
+			1,
+			0,
+			0,
+			7,
+			8,
+			5,
+			5,
+			3,
+			8,
+			5,
+			8,
+			5,
+			8,
+			7,
+			3,
+			8,
+			7,
+			0
+		],
+		[
+			1,
+			1,
+			1,
+			0,
+			0,
+			0,
+			0,
+			1,
+			1,
+			4,
+			5,
+			6,
+			3,
+			6,
+			4,
+			5,
+			8,
+			6,
+			4,
+			5,
+			6,
+			8,
+			3,
+			0
+		],
+		[
+			1,
+			1,
+			1,
+			0,
+			0,
+			1,
+			1,
+			0,
+			1,
+			5,
+			11,
+			12,
+			9,
+			5,
+			8,
+			9,
+			6,
+			6,
+			9,
+			9,
+			5,
+			9,
+			12,
+			1
+		],
+		[
+			0,
+			1,
+			1,
+			0,
+			1,
+			0,
+			1,
+			0,
+			1,
+			4,
+			12,
+			6,
+			11,
+			9,
+			11,
+			7,
+			11,
+			4,
+			9,
+			9,
+			7,
+			8,
+			11,
+			1
+		],
+		[
+			1,
+			0,
+			1,
+			0,
+			1,
+			0,
+			1,
+			1,
+			1,
+			8,
+			8,
+			12,
+			10,
+			4,
+			8,
+			10,
+			10,
+			12,
+			8,
+			11,
+			11,
+			11,
+			12,
+			0
+		]
+	],
+	"recent": []
+}

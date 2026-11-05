@@ -1,0 +1,497 @@
+/* ---------- 設定, and the profile fields on 連結 ---------- */
+/* This file loads before styles.css, so anything that overrides a global rule is scoped under .set-page to win. */
+
+:root {
+	--set-ok: var(--positive);
+	--set-warn: var(--warning);
+	--set-dim: var(--faint);
+}
+
+/* Touch targets stay at least 44px here, small buttons and dialog close buttons included. */
+.set-page .btn.small {
+	min-height: var(--control);
+}
+.set-page .dialog .icon-btn {
+	width: 44px;
+	height: 44px;
+}
+.set-page .btn[aria-disabled='true'] {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+.prefixed:has(input[aria-invalid='true']) {
+	border-color: var(--danger);
+}
+
+.set-stack {
+	max-width: 880px;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+.set-stack.wide {
+	max-width: none;
+}
+
+.set-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+	gap: 16px;
+}
+
+.set-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+}
+
+.set-page .set-after {
+	margin-top: 12px;
+}
+
+.set-error {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.6;
+	color: var(--danger);
+}
+.set-count {
+	font-size: 12px;
+	color: var(--muted);
+}
+.set-count.over {
+	color: var(--set-warn);
+}
+
+.btn.set-quiet {
+	border-color: transparent;
+	color: var(--muted);
+}
+.btn.set-quiet:hover {
+	color: var(--text);
+}
+
+.set-steps {
+	margin: 0;
+	padding-inline-start: 22px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	font-size: 14px;
+	line-height: 1.7;
+	color: var(--text-3);
+}
+.set-steps li::marker {
+	color: var(--muted);
+}
+
+.set-inline-code {
+	padding: 1px 6px;
+	border-radius: 6px;
+	border: 1px solid var(--line);
+	font-family: var(--mono);
+	font-size: 0.92em;
+	color: var(--text-2);
+	overflow-wrap: anywhere;
+	background: var(--raised);
+}
+
+.avatar-box.set-initials {
+	font-size: 22px;
+	font-weight: 700;
+	background: var(--raised-2);
+	color: var(--text);
+	font-family: var(--sans);
+}
+.set-avatar-field {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+.set-avatar-field .avatar-row {
+	flex-wrap: wrap;
+}
+
+.set-command {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px 12px;
+	padding: 12px 12px 12px 16px;
+	border-radius: var(--r-card);
+	border: 1px solid var(--line);
+	font-family: var(--mono);
+	font-size: 14px;
+	line-height: 1.7;
+	background: var(--raised);
+}
+.set-command code {
+	flex: 1 1 240px;
+	min-width: 0;
+	color: var(--text-2);
+	overflow-wrap: anywhere;
+}
+.set-nowrap {
+	white-space: nowrap;
+}
+/* A word moves to the next line whole, and only breaks if it is wider than the block (a long address on a phone). */
+.set-command code > .set-nowrap {
+	display: inline-block;
+	max-width: 100%;
+	white-space: normal;
+}
+
+.set-page .section.set-danger {
+	border-color: rgba(196, 36, 42, 0.35);
+}
+.set-danger-row,
+.set-backup-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+}
+.set-danger-row > div,
+.set-backup-row > div {
+	flex: 1 1 360px;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.set-bio-row {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+}
+.set-bio-text {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.set-dialog-text {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.7;
+	color: var(--text-3);
+}
+
+.set-footer {
+	margin: 4px 0 0;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 0 8px;
+	font-size: 12px;
+	color: var(--set-dim);
+}
+.set-footer a {
+	display: inline-flex;
+	align-items: center;
+	min-height: var(--control);
+	color: var(--muted);
+}
+.set-footer a:hover {
+	color: var(--text);
+}
+
+/* Choice cards: 依主題自動產生 / 上傳圖片, and the token scopes. */
+.set-home-url {
+	display: flex;
+	gap: 8px;
+	margin-top: 12px;
+}
+.set-home-url .input {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+.set-tool-note {
+	margin: 16px 0 0;
+	font-size: 14px;
+	color: var(--text-3);
+}
+.set-scopes {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.set-choice {
+	flex: 1 1 180px;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	justify-content: center;
+	gap: 2px;
+	min-height: 56px;
+	padding: 8px 14px;
+	border-radius: var(--r-card);
+	background: var(--raised);
+	border: 2px solid var(--line);
+	color: var(--text);
+	text-align: start;
+}
+.set-choice:hover {
+	border-color: var(--line-3);
+}
+.set-choice[aria-pressed='true'] {
+	border-color: var(--accent);
+}
+.set-choice b {
+	font-size: 14px;
+}
+.set-choice small {
+	font-size: 12px;
+	color: var(--muted);
+}
+.set-choice.compact {
+	flex: 0 1 auto;
+	min-height: var(--control);
+	padding: 0 14px;
+	font-size: 14px;
+}
+
+/* ---------- API 與捷徑 ---------- */
+
+.set-table-wrap {
+	border-radius: var(--r-card);
+	border: 1px solid var(--line);
+	overflow: hidden;
+}
+.set-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 14px;
+}
+.set-table th {
+	padding: 10px 14px;
+	color: var(--muted);
+	font-weight: 500;
+	text-align: start;
+	background: none;
+}
+.set-table td {
+	padding: 10px 14px;
+	border-top: 1px solid rgba(19, 20, 22, 0.06);
+	color: var(--text-3);
+	vertical-align: middle;
+}
+.set-table .set-cell-action {
+	width: 1%;
+	text-align: end;
+	white-space: nowrap;
+}
+.set-token-name {
+	display: block;
+	font-weight: 700;
+	color: var(--text);
+	overflow-wrap: anywhere;
+}
+.set-token-mask {
+	display: block;
+	margin-top: 2px;
+	font-family: var(--mono);
+	font-size: 12px;
+	color: var(--set-dim);
+}
+.set-token-meta {
+	display: none;
+	margin-top: 4px;
+	font-size: 12px;
+	color: var(--muted);
+}
+.set-table .set-empty-cell {
+	padding: 20px 14px;
+	color: var(--muted);
+}
+.set-page .btn.set-revoke {
+	color: var(--danger);
+	border-color: rgba(196, 36, 42, 0.4);
+}
+.set-page .btn.set-revoke.danger {
+	background: var(--danger-soft);
+}
+
+.set-token-form {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: 12px;
+}
+.set-token-form .field {
+	flex: 1 1 240px;
+}
+
+.set-new-token {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 14px 16px;
+	border-radius: var(--r-card);
+	background: rgba(79, 112, 0, 0.07);
+	border: 1px solid rgba(79, 112, 0, 0.35);
+}
+.set-new-token strong {
+	font-size: 14px;
+	color: var(--accent);
+}
+.set-new-token-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+}
+.set-new-token code {
+	flex: 1 1 300px;
+	min-width: 0;
+	padding: 10px 12px;
+	border-radius: var(--r-control);
+	font-family: var(--mono);
+	font-size: 14px;
+	color: var(--text);
+	word-break: break-all;
+	background: var(--raised);
+}
+.set-page .btn.set-lime {
+	color: var(--accent);
+	border-color: rgba(79, 112, 0, 0.5);
+	font-weight: 700;
+}
+
+/* ---------- Narrow screens ---------- */
+
+@media (max-width: 640px) {
+	/* The token table drops to two columns; 權限 and 最後使用 move under the name. */
+	.set-table .set-col {
+		display: none;
+	}
+	.set-token-meta {
+		display: block;
+	}
+}
+
+@media (max-width: 760px) {
+	.set-stack {
+		gap: 14px;
+	}
+	.set-page .section {
+		padding: 16px;
+		border-radius: var(--r-card);
+	}
+}
+
+/* Prompts to paste into an AI chat keep their line breaks. */
+.set-command code.set-wrap {
+	white-space: pre-wrap;
+}
+
+.set-examples {
+	margin: 0;
+	padding-inline-start: 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	font-size: 14px;
+	line-height: 1.7;
+	color: var(--text-2);
+}
+
+/* Each section is a row: its title on the left, its controls on the right. */
+@media (min-width: 900px) {
+	.set-stack.wide .section {
+		display: grid;
+		grid-template-columns: 240px minmax(0, 1fr);
+		column-gap: 32px;
+		row-gap: 0;
+		align-items: start;
+		padding: 32px 0;
+		border: 0;
+		border-top: 1px solid var(--line);
+		border-radius: 0;
+		background: none;
+	}
+	.set-stack.wide .section:first-child {
+		border-top: 0;
+		padding-top: 0;
+	}
+	.set-stack.wide .section > * {
+		grid-column: 2;
+		min-width: 0;
+		margin-top: 16px;
+	}
+	.set-stack.wide .section > .section-row + * {
+		margin-top: 0;
+	}
+	.set-stack.wide .section > .section-row {
+		grid-column: 1;
+		grid-row: 1 / span 12;
+		margin-top: 0;
+	}
+}
+@media (min-width: 761px) {
+	.set-head-actions {
+		display: none;
+	}
+}
+
+.set-cover {
+	display: block;
+	width: 100%;
+	max-width: 360px;
+	aspect-ratio: 3 / 2;
+	margin-bottom: 8px;
+	object-fit: cover;
+	border-radius: 6px;
+}
+
+/* QR Code default pictures */
+.set-qr-defaults {
+	display: flex;
+	flex-direction: column;
+	margin: 12px 0 0;
+	padding: 0;
+	list-style: none;
+}
+.set-qr-defaults li {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
+	padding-block: 12px;
+	border-top: 1px solid var(--line);
+}
+.set-qr-defaults li > div:not(.set-qr-actions) {
+	flex: 1 1 200px;
+	min-width: 0;
+}
+.set-qr-defaults .hint {
+	margin: 2px 0 0;
+}
+.set-qr-thumb {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	overflow: hidden;
+	border-radius: var(--r-control);
+	background: var(--raised-2);
+	color: var(--text-2);
+}
+.set-qr-thumb img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+.set-qr-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}

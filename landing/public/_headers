@@ -1,0 +1,14 @@
+# Headers for the landing page.
+# https://developers.cloudflare.com/workers/static-assets/headers/
+/*
+  X-Content-Type-Options: nosniff
+
+/
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; base-uri 'none'; frame-ancestors 'none'
+
+/:language/
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; base-uri 'none'; frame-ancestors 'none'
+
+# The sample pages in the phones: plain HTML, framed only by this site.
+/preview/*
+  Content-Security-Policy: default-src 'none'; script-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; base-uri 'none'; frame-ancestors 'self'

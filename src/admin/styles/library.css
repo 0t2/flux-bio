@@ -1,0 +1,742 @@
+/* ---------- Pages, first-run setup and login ---------- */
+
+/* Shared bits */
+
+.lib-form {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+.lib-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+.btn.lib-compact {
+	padding: 0 14px;
+	font-size: 14px;
+}
+.btn.lib-icon {
+	width: 44px;
+	padding: 0;
+	color: var(--text-3);
+}
+
+.tag.lib-amber {
+	background: rgba(146, 64, 14, 0.12);
+	color: var(--warning);
+}
+.lib-outline-tag {
+	flex: 0 0 auto;
+	display: inline-block;
+	padding: 2px 9px;
+	border: 1px solid var(--line-3);
+	color: var(--text-3);
+	font-size: 12px;
+	border-radius: var(--r-chip);
+}
+
+/* A bio page in miniature: the real page at 390 × 844 in a shadow root, scaled down (MiniBio.tsx). */
+.lib-mini {
+	--lib-scale: 0.3;
+	position: relative;
+	flex: 0 0 auto;
+	width: calc(390px * var(--lib-scale));
+	height: calc(844px * var(--lib-scale));
+	overflow: hidden;
+	border-radius: var(--r-card);
+	background: #000;
+	border: 1px solid var(--line);
+	content-visibility: auto;
+	contain-intrinsic-size: calc(390px * var(--lib-scale)) calc(844px * var(--lib-scale));
+}
+.lib-mini.medium {
+	--lib-scale: 0.39;
+	border-radius: var(--r-card);
+}
+.lib-bio {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 390px;
+	height: 844px;
+	overflow: hidden;
+	transform: scale(var(--lib-scale));
+	transform-origin: 0 0;
+	pointer-events: none;
+}
+
+/* Base-theme chips: 新增頁面 and 首次設定 */
+.lib-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.lib-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	min-height: var(--control);
+	padding: 0 14px 0 8px;
+	background: var(--raised);
+	border: 2px solid var(--line);
+	color: var(--text);
+	font-size: 14px;
+	border-radius: var(--r-control);
+}
+.lib-chip:hover {
+	border-color: var(--line-3);
+}
+.lib-chip[aria-pressed='true'] {
+	border-color: var(--accent);
+}
+.lib-chip span {
+	flex: 0 0 auto;
+	width: 26px;
+	height: 26px;
+	border-radius: 999px;
+	border: 3px solid;
+}
+
+.lib-theme-title {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+.lib-theme-title h3,
+.lib-theme-title h4 {
+	margin: 0;
+	font-size: 16px;
+	font-weight: 700;
+	overflow-wrap: anywhere;
+}
+
+/* ---------- 頁面 ---------- */
+.lib-page-custom {
+	display: grid;
+	place-items: center;
+	flex: none;
+	width: 150px;
+	min-height: 160px;
+	padding: 12px;
+	text-align: center;
+	border: 1px dashed var(--line-3);
+	border-radius: var(--r-card);
+	background: var(--raised);
+	color: var(--text-3);
+	font-size: 14px;
+}
+
+.lib-pages {
+	display: grid;
+	gap: 16px;
+	grid-template-columns: repeat(auto-fill, minmax(min(520px, 100%), 1fr));
+}
+.lib-page-card {
+	min-width: 0;
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	grid-template-rows: auto auto 1fr;
+	grid-template-areas:
+		'preview head'
+		'preview facts'
+		'preview actions';
+	gap: 12px 20px;
+	padding: 20px;
+	border-radius: var(--r-card);
+	background: var(--card);
+	border: 1px solid var(--line);
+}
+.lib-page-card.current {
+	border-color: var(--line-3);
+}
+.lib-page-card > .lib-mini {
+	grid-area: preview;
+}
+.lib-page-head {
+	grid-area: head;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+.lib-page-head h2 {
+	margin: 0;
+	font-size: 16px;
+	font-weight: 700;
+	overflow-wrap: anywhere;
+}
+.lib-page-url {
+	margin: 0;
+	font-family: var(--mono);
+	font-size: 14px;
+	color: var(--accent);
+	word-break: break-all;
+}
+.lib-facts {
+	grid-area: facts;
+	margin: 0;
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	align-content: start;
+	gap: 6px 14px;
+	font-size: 14px;
+}
+.lib-facts dt {
+	color: var(--muted);
+}
+.lib-facts dd {
+	margin: 0;
+	font-variant-numeric: tabular-nums;
+	overflow-wrap: anywhere;
+}
+.lib-page-card > .lib-actions {
+	grid-area: actions;
+	align-self: end;
+}
+.lib-more {
+	margin-inline-start: auto;
+}
+.lib-more .popover {
+	min-width: 220px;
+	padding: 6px;
+}
+.lib-menu {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.lib-menu-item {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-height: var(--control);
+	padding: 0 12px;
+	border: 0;
+	border-radius: var(--r-control);
+	background: transparent;
+	color: var(--text);
+	font-size: 14px;
+	text-align: start;
+}
+.lib-menu-item:hover {
+	background: var(--row-on);
+}
+.lib-menu-item.danger {
+	background: var(--danger-soft);
+	color: var(--danger);
+	font-weight: 700;
+}
+.lib-add-card {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	min-height: 240px;
+	padding: 24px;
+	border-radius: var(--r-card);
+	border: 1.5px dashed rgba(19, 20, 22, 0.2);
+	background: transparent;
+	color: var(--text-3);
+	text-align: center;
+}
+.lib-add-card:hover:not(:disabled) {
+	border-color: rgba(79, 112, 0, 0.45);
+	color: var(--text);
+}
+.lib-add-card strong {
+	font-size: 14px;
+}
+.lib-add-card small {
+	font-size: 14px;
+	color: var(--muted);
+}
+.lib-add-icon {
+	width: 48px;
+	height: 48px;
+	border-radius: 999px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--raised);
+	color: var(--accent);
+}
+.lib-choices {
+	display: grid;
+	gap: 8px;
+	grid-template-columns: repeat(auto-fill, minmax(min(130px, 100%), 1fr));
+}
+.option.lib-choice {
+	align-items: flex-start;
+	justify-content: flex-start;
+	gap: 4px;
+	min-height: 64px;
+	padding: 12px;
+	text-align: start;
+}
+.option.lib-choice strong {
+	font-size: 14px;
+}
+.option.lib-choice small {
+	line-height: 1.5;
+}
+
+/* ---------- 首次設定 ---------- */
+
+.lib-setup {
+	--lib-ok: var(--positive);
+	position: relative;
+	min-height: 100vh;
+	min-height: 100dvh;
+	overflow: hidden;
+}
+.lib-setup-head {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px 12px;
+	padding: 16px 24px;
+	border-bottom: 1px solid var(--line);
+}
+/* Not .brand: on phones the dashboard hides the text in .brand. */
+.lib-brand {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-height: var(--control);
+}
+.lib-brand strong {
+	font-family: var(--display);
+	font-size: 16px;
+	font-weight: 600;
+}
+.lib-brand-note {
+	font-size: 14px;
+	color: var(--muted);
+}
+.lib-progress {
+	font-size: 14px;
+	color: var(--muted);
+	font-variant-numeric: tabular-nums;
+}
+.lib-setup-main {
+	position: relative;
+	z-index: 1;
+	margin: 0 auto;
+	padding: 48px 24px 72px;
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+	max-width: 1200px;
+}
+.lib-setup-intro h1 {
+	margin: 0;
+	line-height: 1.25;
+	font-size: 28px;
+	font-weight: 600;
+}
+.lib-setup-intro p {
+	margin: 10px 0 0;
+	line-height: 1.7;
+	font-size: 14px;
+	color: var(--muted);
+}
+.lib-steps {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+.lib-step {
+	display: flex;
+	gap: 16px;
+	padding: 20px;
+	border-radius: var(--r-card);
+	background: var(--card);
+	border: 1px solid var(--line);
+}
+.lib-step.active {
+	border-color: rgba(79, 112, 0, 0.4);
+}
+.lib-step-icon {
+	flex: 0 0 auto;
+	width: 36px;
+	height: 36px;
+	border-radius: 999px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(19, 20, 22, 0.07);
+	color: var(--muted);
+}
+.lib-step-icon.done {
+	background: rgba(79, 112, 0, 0.14);
+	color: var(--lib-ok);
+}
+.lib-step-icon.next {
+	font-size: 14px;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	background: var(--text);
+	color: var(--card);
+}
+.lib-step-body {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.lib-step-body h2 {
+	margin: 0;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	font-size: 16px;
+	font-weight: 700;
+}
+.lib-step-state {
+	font-size: 12px;
+	font-weight: 700;
+	color: var(--muted);
+}
+.lib-step-state.done {
+	color: var(--lib-ok);
+}
+.lib-step-body > p {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.6;
+	color: var(--muted);
+}
+.lib-step code {
+	font-family: var(--mono);
+	color: var(--text-2);
+	overflow-wrap: anywhere;
+}
+.lib-setup-form {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	margin-top: 10px;
+}
+.lib-setup-fields {
+	display: grid;
+	gap: 12px;
+	grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+}
+.lib-setup-fields .input {
+	min-height: 48px;
+	padding: 0 14px;
+	font-size: 14px;
+}
+.btn.primary.lib-setup-submit {
+	align-self: flex-start;
+	padding: 0 24px;
+	font-size: 16px;
+	min-height: var(--control);
+}
+
+/* ---------- 登入 ---------- */
+
+/* .login centers the card; here it also holds a header above it. */
+.login.lib-login {
+	flex-direction: column;
+	align-items: stretch;
+	justify-content: flex-start;
+	padding: 0;
+	min-height: 100dvh;
+}
+.lib-login-head {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 16px 24px;
+}
+.lib-home-link {
+	display: inline-flex;
+	align-items: center;
+	min-height: var(--control);
+	color: var(--text-3);
+	font-size: 14px;
+	text-decoration: none;
+}
+.lib-home-link:hover {
+	color: var(--text);
+}
+.lib-login-main {
+	position: relative;
+	z-index: 1;
+	flex: 1 1 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px 20px 64px;
+}
+.lib-login .login-card > p {
+	margin: -10px 0 0;
+	font-size: 14px;
+	line-height: 1.7;
+	color: var(--muted);
+}
+.lib-login .banner {
+	margin: 0;
+	line-height: 1.6;
+}
+.lib-field {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+.lib-field > label {
+	font-size: 14px;
+	font-weight: 700;
+}
+.lib-password {
+	display: flex;
+	align-items: center;
+	min-height: 52px;
+	padding-inline-start: 16px;
+	border-radius: var(--r-card);
+	border: 1px solid var(--line-3);
+	background: var(--card);
+}
+.lib-password:focus-within {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+.lib-password.invalid {
+	border-color: var(--danger);
+}
+.lib-password input {
+	flex: 1 1 auto;
+	min-width: 0;
+	height: 48px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--text);
+	font-family: var(--mono);
+	font-size: 16px;
+}
+.lib-password input:focus-visible {
+	outline: none;
+}
+.lib-eye {
+	flex: 0 0 auto;
+	width: 48px;
+	height: 48px;
+	padding: 0;
+	border: 0;
+	border-radius: var(--r-card);
+	background: transparent;
+	color: var(--muted);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.lib-eye:hover {
+	color: var(--text);
+}
+.lib-eye:focus-visible {
+	outline-offset: -4px;
+}
+.lib-field-error {
+	margin: 0;
+	display: flex;
+	align-items: flex-start;
+	gap: 6px;
+	font-size: 14px;
+	font-weight: 700;
+	line-height: 1.5;
+	color: var(--danger);
+}
+.lib-field-error svg {
+	margin-top: 2px;
+}
+.btn.primary.lib-login-submit {
+	width: 100%;
+	min-height: 52px;
+	font-size: 16px;
+}
+.lib-forgot {
+	padding-top: 4px;
+	border-top: 1px solid var(--line);
+}
+.lib-forgot summary {
+	padding: 12px 0;
+	line-height: 20px;
+	font-size: 14px;
+	color: var(--text-3);
+	cursor: pointer;
+}
+.lib-forgot summary:hover {
+	color: var(--text);
+}
+.lib-forgot-body {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding-bottom: 4px;
+}
+.lib-forgot-body p {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.7;
+	color: var(--muted);
+}
+.lib-cmd {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	padding: 10px 10px 10px 14px;
+	border-radius: var(--r-card);
+	border: 1px solid var(--line);
+	background: var(--raised);
+}
+.lib-cmd code {
+	flex: 1 1 auto;
+	min-width: 0;
+	padding: 3px 0;
+	font-family: var(--mono);
+	font-size: 14px;
+	line-height: 1.6;
+	color: var(--text-2);
+	overflow-wrap: anywhere;
+}
+.lib-cmd code span {
+	color: var(--accent);
+	user-select: none;
+}
+
+/* ---------- Phones ---------- */
+
+@media (max-width: 760px) {
+	.lib-add-card {
+		min-height: 140px;
+	}
+}
+
+@media (max-width: 560px) {
+	.lib-page-card {
+		grid-template-rows: auto auto auto;
+		grid-template-areas:
+			'preview head'
+			'preview facts'
+			'actions actions';
+		gap: 14px;
+		padding: 16px;
+	}
+	.lib-page-card > .lib-mini {
+		--lib-scale: 0.2;
+		border-radius: var(--r-card);
+	}
+}
+
+@media (max-width: 640px) {
+	.lib-setup-head,
+	.lib-login-head {
+		padding: 12px 16px;
+	}
+	.lib-setup-main {
+		padding: 32px 16px 56px;
+	}
+	.lib-step {
+		gap: 12px;
+		padding: 16px;
+	}
+	.lib-login-main {
+		padding: 8px 16px 48px;
+	}
+	.lib-login .login-card {
+		padding: 24px 20px;
+	}
+}
+
+/* The last setup step holds the 設定 page's AI connection. */
+
+.lib-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.lib-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: var(--control);
+	padding: 0 14px;
+	border: 1px solid var(--line-3);
+	border-radius: 999px;
+	background: none;
+	color: var(--muted);
+	font-size: 14px;
+}
+.lib-chip:hover {
+	color: var(--text);
+}
+.lib-chip[aria-pressed='true'] {
+	border-color: var(--accent);
+	background: var(--accent-soft);
+	color: var(--text);
+}
+/* A little room after the sentence, which in some languages ends without a space. */
+
+.lib-more {
+	margin-top: 16px;
+	align-self: flex-start;
+}
+
+/* The wizard's phone shows what the choices above add up to. */
+.lib-setup-body {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 24px;
+}
+.lib-setup-column {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+}
+.lib-setup .preview-col {
+	position: static;
+	height: auto;
+	min-width: 0;
+	padding: 0;
+	background: none;
+	border: 0;
+	justify-self: center;
+}
+.lib-setup-starts {
+	max-width: none;
+	grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
+@media (min-width: 1100px) {
+	.lib-setup-body {
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: start;
+		gap: 40px;
+	}
+	.lib-setup .preview-col {
+		position: sticky;
+		top: 16px;
+		/* Room for the header and the page's top padding, so the whole phone shows before scrolling. */
+		padding-block: 0 132px;
+	}
+}
+

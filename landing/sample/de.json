@@ -1,0 +1,49 @@
+{
+	"creator": {
+		"bio": "Kochen, Märkte und der Alltag. Jeden Freitag ein neues Video.",
+		"watch": "Das Video dieser Woche ansehen",
+		"watchSub": "Frühstück in fünf Minuten",
+		"recipes": "Kostenlose Rezepte herunterladen",
+		"favorites": "Was ich jeden Tag benutze",
+		"work": "Zusammenarbeit anfragen"
+	},
+	"shop": {
+		"bio": "Eine kleine Rösterei in Dadaocheng. Jeden Donnerstag frisch.",
+		"order": "Online bestellen, im Laden abholen",
+		"orderSub": "In 15 Minuten fertig",
+		"menu": "Karte dieser Woche",
+		"class": "Filterkaffee-Kurs buchen",
+		"picks": "Tipps der Woche",
+		"blend": "Hausmischung",
+		"dripper": "Keramikfilter",
+		"hours": "Öffnungszeiten",
+		"address": "21 Dihua St, Taipeh"
+	},
+	"event": {
+		"bio": "Ein kleines Tech-Treffen in Taipeh, einmal im Monat.",
+		"register": "Für November anmelden",
+		"registerSub": "Sa., 28. Nov. · 40 Plätze",
+		"schedule": "Programm",
+		"venue": "Anfahrt",
+		"slides": "Folien vom letzten Mal",
+		"group": "Der Gruppe beitreten"
+	},
+	"pro": {
+		"bio": "Freie Produktdesignerin. Ich helfe kleinen Teams, ihre erste Version zu bauen.",
+		"book": "30-Minuten-Gespräch buchen",
+		"bookSub": "Kostenlos und ohne Verkauf",
+		"services": "Leistungen und Preise",
+		"work": "Arbeiten",
+		"clients": "Was Kunden sagen",
+		"mail": "Mail schreiben"
+	},
+	"org": {
+		"bio": "Nachbarn am Hafen. Wir bauen Gemüse an und gehen zusammen spazieren.",
+		"walk": "Beim Morgenspaziergang am Samstag dabei sein",
+		"walkSub": "8 Uhr am Fähranleger",
+		"calendar": "Termine in diesem Monat",
+		"about": "Über uns",
+		"volunteer": "Mithelfen",
+		"around": "Aus der Nachbarschaft"
+	}
+}
