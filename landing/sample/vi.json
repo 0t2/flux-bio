@@ -1,0 +1,49 @@
+{
+	"creator": {
+		"bio": "Nấu ăn, đi chợ và chuyện thường ngày. Video mới mỗi thứ Sáu.",
+		"watch": "Xem video tuần này",
+		"watchSub": "Bữa sáng trong năm phút",
+		"recipes": "Tải công thức miễn phí",
+		"favorites": "Những thứ mình dùng mỗi ngày",
+		"work": "Hợp tác với mình"
+	},
+	"shop": {
+		"bio": "Xưởng rang nhỏ ở Đại Đạo Trình. Mẻ mới mỗi thứ Năm.",
+		"order": "Đặt online, lấy tại quán",
+		"orderSub": "Có sau 15 phút",
+		"menu": "Thực đơn tuần này",
+		"class": "Đăng ký lớp pha phin giấy",
+		"picks": "Gợi ý tuần này",
+		"blend": "Hạt phối của quán",
+		"dripper": "Phễu lọc gốm",
+		"hours": "Giờ mở cửa",
+		"address": "21 Dihua St, Đài Bắc"
+	},
+	"event": {
+		"bio": "Buổi gặp gỡ công nghệ nhỏ ở Đài Bắc, mỗi tháng một lần.",
+		"register": "Đăng ký buổi tháng 11",
+		"registerSub": "Thứ Bảy 28/11 · 40 chỗ",
+		"schedule": "Chương trình",
+		"venue": "Đường đi",
+		"slides": "Slide buổi trước",
+		"group": "Vào nhóm trò chuyện"
+	},
+	"pro": {
+		"bio": "Nhà thiết kế sản phẩm tự do. Giúp nhóm nhỏ làm ra phiên bản đầu tiên.",
+		"book": "Đặt lịch tư vấn 30 phút",
+		"bookSub": "Miễn phí, không chào hàng",
+		"services": "Dịch vụ và giá",
+		"work": "Dự án tiêu biểu",
+		"clients": "Khách hàng nói gì",
+		"mail": "Gửi email cho mình"
+	},
+	"org": {
+		"bio": "Hàng xóm bên bến cảng. Cùng trồng rau, cùng đi bộ.",
+		"walk": "Tham gia đi bộ sáng thứ Bảy",
+		"walkSub": "8 giờ sáng tại bến phà",
+		"calendar": "Hoạt động tháng này",
+		"about": "Về chúng tôi",
+		"volunteer": "Làm tình nguyện viên",
+		"around": "Quanh khu phố"
+	}
+}

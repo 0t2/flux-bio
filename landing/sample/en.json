@@ -1,0 +1,49 @@
+{
+	"creator": {
+		"bio": "Cooking, markets and everyday things. A new video every Friday.",
+		"watch": "Watch this week’s video",
+		"watchSub": "Breakfast in five minutes",
+		"recipes": "Free recipe downloads",
+		"favorites": "Things I use every day",
+		"work": "Work with me"
+	},
+	"shop": {
+		"bio": "A small roastery in Dadaocheng. Fresh every Thursday.",
+		"order": "Order online, pick up in store",
+		"orderSub": "Ready in 15 minutes",
+		"menu": "This week’s menu",
+		"class": "Book a pour-over class",
+		"picks": "This week’s picks",
+		"blend": "House blend",
+		"dripper": "Ceramic dripper",
+		"hours": "Opening hours",
+		"address": "21 Dihua St, Taipei"
+	},
+	"event": {
+		"bio": "A small tech meetup in Taipei, once a month.",
+		"register": "Sign up for November",
+		"registerSub": "Sat, Nov 28 · 40 seats",
+		"schedule": "Schedule",
+		"venue": "Getting there",
+		"slides": "Slides from last time",
+		"group": "Join the group chat"
+	},
+	"pro": {
+		"bio": "Freelance product designer. I help small teams ship their first version.",
+		"book": "Book a 30-minute call",
+		"bookSub": "Free, and no sales pitch",
+		"services": "Services and rates",
+		"work": "Selected work",
+		"clients": "What clients say",
+		"mail": "Email me"
+	},
+	"org": {
+		"bio": "Neighbours by the harbour. We grow vegetables and walk together.",
+		"walk": "Join Saturday’s morning walk",
+		"walkSub": "8 am at the ferry pier",
+		"calendar": "This month’s events",
+		"about": "About us",
+		"volunteer": "Volunteer with us",
+		"around": "Around the neighbourhood"
+	}
+}

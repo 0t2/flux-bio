@@ -1,0 +1,1022 @@
+/* ---------- 數據: analytics and per-link stats ---------- */
+/* styles.css lands after this file in the bundle, so rules that adjust its
+   classes use a compound selector and win on specificity, not on order. */
+
+:root {
+	--st-up: var(--positive);
+	--st-down: var(--danger);
+	--st-axis: var(--faint);
+	--st-grid: rgba(19, 20, 22, 0.06);
+	--st-base: rgba(19, 20, 22, 0.18);
+	--st-tip: #131416;
+	/* Heatmap steps: --line for no clicks, then one lime ramp up to --lime. */
+	--st-heat-1: #e3edc2;
+	--st-heat-2: #bcd378;
+	--st-heat-3: #8fb034;
+	--st-heat-4: #6a8d12;
+}
+
+.st-page,
+.st-content {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+.st-page > .page-head {
+	margin-bottom: 0;
+}
+.st-page > .breadcrumb {
+	margin-bottom: -8px;
+}
+.st-content {
+	transition: opacity 0.15s;
+}
+/* A refetch keeps the last numbers on screen, dimmed, instead of flashing a spinner. */
+.st-content[aria-busy='true'] {
+	opacity: 0.55;
+}
+
+.st-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+/* Segmented controls: 期間, 圖表／表格 */
+.st-seg .tabs {
+	flex-wrap: nowrap;
+	gap: 4px;
+	padding: 4px;
+	border-radius: var(--r-card);
+	background: var(--card);
+	border: 1px solid var(--line);
+}
+.st-panel .st-seg .tabs {
+	background: var(--card);
+}
+.st-seg .tab {
+	justify-content: center;
+	padding: 0 16px;
+	border-radius: var(--r-control);
+}
+.st-seg .tab[aria-pressed='true'] {
+	background: var(--raised-2);
+}
+
+.banner.st-info {
+	flex-direction: row;
+	align-items: flex-start;
+	gap: 10px;
+	margin-bottom: 0;
+	background: var(--info-soft);
+	color: var(--text-2);
+	line-height: 1.6;
+	border-color: transparent;
+}
+.banner.st-info svg {
+	margin-top: 3px;
+	color: var(--info);
+}
+.banner.st-info p {
+	margin: 0;
+}
+.banner.st-error {
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 0;
+}
+
+/* ---------- KPI tiles ---------- */
+
+.st-kpis {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+	gap: 12px;
+}
+.st-kpi {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 8px;
+	padding: 18px 20px;
+	border-radius: var(--r-card);
+	background: var(--card);
+	border: 1px solid var(--line);
+	color: var(--text);
+	text-align: start;
+}
+/* The 數據 tiles are buttons that pick the chart; the thicker border carries the selection. */
+button.st-kpi {
+	padding: 17px 19px;
+	border-width: 2px;
+}
+button.st-kpi:hover {
+	border-color: var(--line-3);
+}
+button.st-kpi[aria-pressed='true'] {
+	border-color: var(--accent);
+}
+.st-kpi-label {
+	font-size: 14px;
+	color: var(--muted);
+}
+.st-kpi-value {
+	max-width: 100%;
+	font-size: 28px;
+	font-weight: 700;
+	line-height: 1.1;
+	letter-spacing: -0.01em;
+	overflow-wrap: anywhere;
+}
+.st-kpi-note,
+.st-change {
+	font-size: 14px;
+	line-height: 1.5;
+	color: var(--muted);
+}
+.st-change {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 2px 6px;
+}
+.st-delta {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+.st-change.up .st-delta {
+	color: var(--st-up);
+}
+.st-change.down .st-delta {
+	color: var(--st-down);
+}
+.st-change.flat .st-delta {
+	color: var(--text-3);
+}
+
+/* ---------- Panels ---------- */
+
+.section.st-panel {
+	gap: 14px;
+	padding: 20px 24px;
+}
+.st-panel-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 8px 16px;
+}
+.st-panel-titles {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.st-panel .section-title {
+	font-size: 16px;
+}
+.st-head-link {
+	display: inline-flex;
+	align-items: center;
+	min-height: var(--control);
+	margin: -10px 0;
+	font-size: 14px;
+	text-decoration: none;
+}
+.st-head-link:hover {
+	text-decoration: underline;
+}
+.st-sub {
+	margin: 4px 0 -2px;
+	font-size: 12px;
+	font-weight: 500;
+	letter-spacing: 0.04em;
+	color: var(--st-axis);
+}
+
+.st-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: stretch;
+	gap: 20px;
+}
+.st-row > * {
+	min-width: 0;
+}
+.st-wide {
+	flex: 999 1 560px;
+}
+.st-narrow {
+	flex: 1 1 340px;
+}
+.st-half {
+	flex: 1 1 420px;
+}
+
+/* ---------- Bars ---------- */
+
+.st-bars {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+.st-bar-row {
+	display: grid;
+	grid-template-columns: minmax(72px, 96px) minmax(48px, 1fr) 48px 36px;
+	align-items: center;
+	gap: 8px;
+	font-size: 14px;
+}
+.st-bar-label {
+	min-width: 0;
+	line-height: 1.35;
+	color: var(--text-3);
+	overflow-wrap: anywhere;
+}
+.st-bar,
+.st-meter-bar,
+.st-top-bar {
+	display: flex;
+	height: 10px;
+}
+.st-bar i,
+.st-meter-bar i,
+.st-top-bar i {
+	display: block;
+	min-width: 2px;
+	height: 100%;
+	/* Square at the baseline, rounded at the value end. */
+	border-radius: 0 4px 4px 0;
+	background: var(--accent);
+}
+.st-bar-count,
+.st-bar-share {
+	text-align: end;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+.st-bar-share {
+	color: var(--muted);
+}
+.st-meter {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+.st-meter-bar {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+.st-meter .st-num {
+	flex: 0 0 auto;
+	min-width: 48px;
+	text-align: end;
+	font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Tables ---------- */
+
+.st-table-wrap {
+	overflow-x: auto;
+}
+.st-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 14px;
+}
+.st-table th {
+	padding: 0 12px 10px 0;
+	font-size: 12px;
+	font-weight: 500;
+	text-align: start;
+	vertical-align: bottom;
+	color: var(--muted);
+}
+.st-table td {
+	padding: 12px 12px 12px 0;
+	border-top: 1px solid var(--st-grid);
+	vertical-align: middle;
+}
+.st-table :is(th, td):last-child {
+	padding-inline-end: 0;
+}
+.st-table .st-num {
+	text-align: end;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+.st-soft {
+	color: var(--text-3);
+}
+
+/* 熱門連結 */
+.st-top .st-rank {
+	width: 28px;
+	font-size: 12px;
+	color: var(--st-axis);
+	font-variant-numeric: tabular-nums;
+}
+.st-top-label {
+	display: block;
+	font-weight: 700;
+	overflow-wrap: anywhere;
+}
+.st-top-label a {
+	color: var(--text);
+	text-decoration: underline;
+	text-decoration-color: var(--line-3);
+	text-underline-offset: 4px;
+}
+.st-top-label a:hover {
+	color: var(--accent);
+	text-decoration-color: currentColor;
+}
+/* The whole cell is the tap target, not just the line of text. */
+.st-top .st-top-name {
+	position: relative;
+}
+.st-top-label a::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+}
+.st-top-url {
+	display: block;
+	margin-top: 2px;
+	font-family: var(--mono);
+	font-size: 12px;
+	color: var(--muted);
+	overflow-wrap: anywhere;
+}
+.st-top .st-top-clicks {
+	width: 42%;
+}
+.st-top-bar {
+	display: none;
+}
+.st-panel .btn.st-more {
+	align-self: flex-start;
+	min-height: var(--control);
+}
+
+/* UTM 活動 */
+.st-utm .st-utm-tag {
+	font-family: var(--mono);
+	font-size: 14px;
+	overflow-wrap: anywhere;
+}
+.st-utm .st-utm-count {
+	width: 38%;
+}
+
+/* 每日數據 (the table view of the trend) */
+.st-daily {
+	max-height: 320px;
+	overflow: auto;
+	border-radius: var(--r-card);
+	border: 1px solid var(--line);
+}
+.st-daily .st-table {
+	font-size: 14px;
+}
+.st-daily .st-table :is(th, td) {
+	padding: 9px 14px;
+}
+.st-daily thead th {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	background: var(--raised);
+	white-space: nowrap;
+}
+.st-daily tbody th {
+	font-weight: 400;
+	vertical-align: middle;
+	white-space: nowrap;
+	color: var(--text-3);
+	border-top: 1px solid var(--st-grid);
+}
+
+/* 最近的點擊 */
+.st-recent {
+	font-size: 14px;
+}
+.st-recent td {
+	padding: 10px 12px 10px 0;
+}
+.st-recent .st-when {
+	white-space: nowrap;
+	color: var(--text-3);
+	font-variant-numeric: tabular-nums;
+}
+.st-recent .st-device {
+	color: var(--text-3);
+}
+
+/* ---------- Trend chart ---------- */
+
+.st-plot {
+	position: relative;
+	height: 240px;
+	margin: 30px 8px 0 56px;
+	/* Vertical swipes still scroll the page; horizontal ones scrub the chart. */
+	touch-action: pan-y;
+}
+.st-gridlines,
+.st-marks,
+.st-hits {
+	position: absolute;
+	inset: 0;
+}
+.st-marks {
+	pointer-events: none;
+}
+.st-gridline {
+	position: absolute;
+	inset-inline-start: 0;
+	inset-inline-end: 0;
+	border-top: 1px solid var(--st-grid);
+}
+.st-gridline.base {
+	border-top-color: var(--st-base);
+}
+.st-gridline span {
+	position: absolute;
+	inset-inline-end: calc(100% + 10px);
+	top: -8px;
+	font-size: 12px;
+	line-height: 16px;
+	white-space: nowrap;
+	color: var(--st-axis);
+	font-variant-numeric: tabular-nums;
+}
+.st-lines {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+}
+.st-line {
+	fill: none;
+	stroke: var(--accent);
+	stroke-width: 2;
+	stroke-linejoin: round;
+	stroke-linecap: round;
+	vector-effect: non-scaling-stroke;
+}
+.st-area {
+	fill: var(--accent);
+	fill-opacity: 0.1;
+}
+.st-dot {
+	position: absolute;
+	width: 10px;
+	height: 10px;
+	margin: -5px 0 0 -5px;
+	border-radius: 999px;
+	background: var(--accent);
+	box-shadow: 0 0 0 2px var(--card);
+}
+.st-dot.small {
+	width: 6px;
+	height: 6px;
+	margin: -3px 0 0 -3px;
+}
+.st-end {
+	position: absolute;
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	white-space: nowrap;
+	font-size: 12px;
+	color: var(--muted);
+	transform: translate(var(--st-x, -100%), var(--st-y, -34px));
+}
+.st-end.start {
+	--st-x: 0;
+}
+.st-end.below {
+	--st-y: 14px;
+}
+.st-end b {
+	font-size: 14px;
+	color: var(--text);
+}
+/* A halo in the card color keeps the label readable where the line runs behind it. */
+.st-end > * {
+}
+.st-cross {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 1px;
+	background: rgba(19, 20, 22, 0.35);
+}
+.st-tip {
+	position: absolute;
+	top: 4px;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 8px 12px;
+	border-radius: var(--r-control);
+	background: var(--st-tip);
+	border: 1px solid var(--line-2);
+	white-space: nowrap;
+	transform: translateX(12px);
+	box-shadow: 0 8px 24px rgba(19, 20, 22, 0.12);
+}
+.st-tip.flip {
+	transform: translateX(calc(-100% - 12px));
+}
+.st-tip strong {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 16px;
+}
+.st-tip strong i {
+	width: 12px;
+	height: 2px;
+	border-radius: 2px;
+	background: var(--accent);
+}
+.st-tip span {
+	font-size: 12px;
+	color: var(--muted);
+}
+.st-hits {
+	border-radius: 6px;
+}
+.st-hit {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+}
+.st-hit:focus-visible {
+	outline: none;
+	background: rgba(79, 112, 0, 0.06);
+}
+.st-hits:has(:focus-visible) {
+	outline: 2px solid var(--accent);
+	outline-offset: 6px;
+}
+.st-xaxis {
+	position: relative;
+	height: 18px;
+	margin: 10px 8px 0 56px;
+	font-size: 12px;
+	color: var(--st-axis);
+	font-variant-numeric: tabular-nums;
+}
+.st-xaxis span {
+	position: absolute;
+	top: 0;
+	white-space: nowrap;
+	transform: translateX(-50%);
+}
+.st-xaxis span.start {
+	transform: none;
+}
+.st-xaxis span.end {
+	transform: translateX(-100%);
+}
+
+/* ---------- Heatmap ---------- */
+
+.st-heat-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px 16px;
+}
+.st-heat-readout {
+	min-height: 1.6em;
+}
+.st-legend {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	color: var(--muted);
+}
+.st-legend i {
+	width: 16px;
+	height: 12px;
+	border-radius: 3px;
+}
+.st-heatmap [data-level='0'] {
+	background: var(--raised);
+}
+.st-heatmap [data-level='1'] {
+	background: var(--st-heat-1);
+}
+.st-heatmap [data-level='2'] {
+	background: var(--st-heat-2);
+}
+.st-heatmap [data-level='3'] {
+	background: var(--st-heat-3);
+}
+.st-heatmap [data-level='4'] {
+	background: var(--st-heat-4);
+}
+.st-heatmap [data-level='5'] {
+	background: var(--accent);
+}
+.st-heat-scroll {
+	overflow-x: auto;
+	/* Room for the focus ring of the edge cells. */
+	padding: 4px;
+	margin: -4px;
+}
+/* The whole day stays in view, even on phones: the evening is usually the busy part. */
+.st-heat-board {
+	position: relative;
+	min-width: 280px;
+}
+.st-heat-grid {
+	display: grid;
+	grid-template-columns: 40px repeat(24, minmax(0, 1fr));
+	grid-template-rows: repeat(7, 24px) auto;
+	gap: 2px;
+}
+.st-heat-hits {
+	position: absolute;
+	inset: 0;
+	/* Sideways drags scrub across the hours; vertical ones still scroll the page. */
+	touch-action: pan-y;
+}
+.st-heat-day {
+	display: flex;
+	align-items: center;
+	font-size: 12px;
+	white-space: nowrap;
+	color: var(--muted);
+}
+.st-heat-cell {
+	border-radius: 3px;
+}
+/* The cell under the pointer or keyboard focus: a dark gap, then a light ring, so it shows on any step. */
+.st-heat-cell[data-on] {
+	z-index: 1;
+	box-shadow:
+		0 0 0 2px var(--card),
+		0 0 0 4px var(--text);
+}
+.st-heat-hit {
+	border-radius: 3px;
+}
+.st-heat-hit:focus-visible {
+	outline: none;
+}
+.st-heat-hour {
+	padding-top: 6px;
+	font-size: 12px;
+	color: var(--st-axis);
+	font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Empty state ---------- */
+
+.empty-state.st-empty {
+	gap: 16px;
+	padding: 36px 24px 28px;
+}
+.st-empty-art {
+	position: relative;
+	width: 240px;
+	max-width: 100%;
+}
+.st-empty-art svg {
+	position: relative;
+	display: block;
+	width: 100%;
+	height: auto;
+}
+.st-empty-art .axis {
+	stroke: rgba(19, 20, 22, 0.2);
+}
+.st-empty-art .grid {
+	stroke: rgba(19, 20, 22, 0.06);
+}
+.st-empty-art .curve {
+	stroke: var(--accent);
+	opacity: 0.35;
+}
+.st-empty-art circle {
+	fill: var(--accent);
+	stroke: var(--card);
+}
+.st-empty .st-empty-url {
+	font-family: var(--mono);
+	color: var(--text);
+	overflow-wrap: anywhere;
+}
+.st-empty p {
+	text-wrap: balance;
+}
+.st-empty-actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 8px;
+}
+.empty-state .st-empty-foot {
+	font-size: 12px;
+	color: var(--st-axis);
+}
+
+/* ---------- Per-link header ---------- */
+
+.st-link-titles {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.page-head .st-link-title {
+	font-family: var(--mono);
+	line-height: 1.25;
+	letter-spacing: 0;
+	overflow-wrap: anywhere;
+	font-size: 22px;
+	font-weight: 500;
+}
+.st-link-title span {
+	color: var(--muted);
+}
+.st-link-title b {
+	color: var(--text);
+	font-weight: 500;
+}
+.page-head .st-link-sub {
+	margin: 0;
+	color: var(--text-3);
+	overflow-wrap: anywhere;
+}
+.st-head-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+/* ---------- Phones: one column under the bottom tab bar ---------- */
+
+@media (max-width: 760px) {
+	.st-page,
+	.st-content {
+		gap: 14px;
+	}
+	.st-page .page-head h1 {
+		font-size: 22px;
+	}
+	.st-row {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 14px;
+	}
+	.section.st-panel {
+		padding: 16px;
+		border-radius: var(--r-card);
+	}
+	.st-period {
+		flex: 1 1 100%;
+	}
+	.st-period .tabs {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+	.st-period .tab {
+		padding: 0 6px;
+	}
+	.st-kpis {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 8px;
+	}
+	.st-kpi {
+		gap: 4px;
+		padding: 14px;
+		border-radius: var(--r-card);
+	}
+	button.st-kpi {
+		padding: 13px;
+	}
+	.st-kpi-value {
+		font-size: 22px;
+	}
+	.st-kpi-label,
+	.st-kpi-note,
+	.st-change {
+		font-size: 12px;
+	}
+	.st-plot {
+		height: 168px;
+		margin: 28px 6px 0 44px;
+	}
+	.st-xaxis {
+		margin: 8px 6px 0 44px;
+		font-size: 12px;
+	}
+	.st-gridline span {
+		inset-inline-end: calc(100% + 8px);
+		font-size: 12px;
+	}
+	.st-top .st-top-clicks,
+	.st-utm .st-utm-count {
+		width: auto;
+		text-align: end;
+	}
+	.st-top .st-meter-bar,
+	.st-utm .st-meter-bar {
+		display: none;
+	}
+	.st-top .st-meter,
+	.st-utm .st-meter {
+		justify-content: flex-end;
+	}
+	.st-top-bar {
+		display: flex;
+		height: 8px;
+		margin-top: 8px;
+	}
+	.st-daily .st-table :is(th, td) {
+		padding: 9px 10px;
+	}
+	.st-heat-grid {
+		grid-template-columns: 30px repeat(24, minmax(0, 1fr));
+		grid-template-rows: repeat(7, 20px) auto;
+	}
+	.st-heat-hour {
+		font-size: 12px;
+	}
+
+	/* 最近的點擊 turns each row into a small card; the header stays for screen readers. */
+	.st-stack thead {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
+	}
+	.st-stack,
+	.st-stack tbody {
+		display: block;
+	}
+	.st-stack tbody tr {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr) auto;
+		grid-template-areas:
+			'when when way'
+			'where from from'
+			'device device device';
+		align-items: center;
+		gap: 4px 12px;
+		padding: 12px 0;
+		border-top: 1px solid var(--st-grid);
+	}
+	.st-stack tbody td {
+		padding: 0;
+		border: 0;
+	}
+	.st-stack .st-when {
+		grid-area: when;
+	}
+	.st-stack .st-where {
+		grid-area: where;
+	}
+	.st-stack .st-from {
+		grid-area: from;
+		color: var(--text-3);
+	}
+	.st-stack .st-device {
+		grid-area: device;
+	}
+	.st-stack .st-way {
+		grid-area: way;
+	}
+}
+
+/* Windows high contrast and similar: keep the bars and heat steps visible. */
+@media (forced-colors: active) {
+	.st-bar i,
+	.st-meter-bar i,
+	.st-top-bar i {
+		forced-color-adjust: none;
+		background: CanvasText;
+	}
+	.st-heatmap [data-level] {
+		forced-color-adjust: none;
+	}
+}
+
+/* ---------- Visitor map ---------- */
+
+.st-map {
+	position: relative;
+	aspect-ratio: 2 / 1;
+	overflow: hidden;
+	border-radius: var(--r-card);
+	background: var(--raised);
+}
+.st-map svg {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	display: block;
+}
+.st-map path {
+	fill: rgba(19, 20, 22, 0.07);
+	stroke: rgba(19, 20, 22, 0.16);
+	stroke-width: 1;
+	stroke-linejoin: round;
+	vector-effect: non-scaling-stroke;
+}
+.st-map-dot {
+	position: absolute;
+	transform: translate(-50%, -50%);
+	border: 1.5px solid var(--accent);
+	border-radius: 50%;
+	background: rgba(79, 112, 0, 0.28);
+}
+.st-map-dot:hover {
+	background: rgba(79, 112, 0, 0.6);
+}
+
+/* 來源平台: long column names (e.g. "Click-through rate") wrap instead of widening the table. */
+.st-sources th.st-num {
+	white-space: normal;
+}
+
+/* No cards here: space, a heading and one sentence carry each section. */
+.st-page .st-content {
+	gap: 40px;
+}
+.st-page .section.st-panel {
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: none;
+}
+.st-page .st-row {
+	gap: 40px;
+}
+/* One strip of figures; the one the chart shows carries the rule. */
+.st-page .st-kpis {
+	gap: 0;
+	border-bottom: 1px solid var(--line);
+}
+.st-page .st-kpi,
+.st-page button.st-kpi {
+	gap: 4px;
+	padding: 0 16px 14px 0;
+	border: 0;
+	border-radius: 0;
+	background: none;
+}
+.st-page button.st-kpi[aria-pressed='true'] {
+	box-shadow: inset 0 -2px 0 var(--accent);
+}
+.st-page .st-kpi-label {
+	font-weight: 500;
+}
+.st-page button.st-kpi[aria-pressed='true'] .st-kpi-label {
+	color: var(--text);
+}
+.st-page .st-kpi-value {
+	font-weight: 400;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0;
+}
+
+@media (max-width: 1180px) {
+	.st-page .st-kpis {
+		gap: 12px 0;
+		border-bottom: 0;
+	}
+	.st-page .st-kpi,
+	.st-page button.st-kpi {
+		padding: 10px 12px;
+		border-radius: var(--r-control);
+	}
+	.st-page button.st-kpi[aria-pressed='true'] {
+		background: var(--raised-2);
+		box-shadow: none;
+	}
+}

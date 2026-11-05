@@ -1,0 +1,49 @@
+{
+	"creator": {
+		"bio": "Comida, feiras e coisas do dia a dia. Vídeo novo toda sexta.",
+		"watch": "Ver o vídeo da semana",
+		"watchSub": "Café da manhã em cinco minutos",
+		"recipes": "Receitas grátis para baixar",
+		"favorites": "O que uso todo dia",
+		"work": "Trabalhe comigo"
+	},
+	"shop": {
+		"bio": "Uma pequena torrefação em Dadaocheng. Café fresco toda quinta.",
+		"order": "Peça on-line e retire na loja",
+		"orderSub": "Pronto em 15 minutos",
+		"menu": "Cardápio da semana",
+		"class": "Agende uma aula de café coado",
+		"picks": "Destaques da semana",
+		"blend": "Blend da casa",
+		"dripper": "Coador de cerâmica",
+		"hours": "Horário",
+		"address": "21 Dihua St, Taipé"
+	},
+	"event": {
+		"bio": "Um pequeno encontro de tecnologia em Taipé, uma vez por mês.",
+		"register": "Inscreva-se para novembro",
+		"registerSub": "Sáb, 28/11 · 40 vagas",
+		"schedule": "Programação",
+		"venue": "Como chegar",
+		"slides": "Slides da última edição",
+		"group": "Entre no grupo"
+	},
+	"pro": {
+		"bio": "Designer de produto freelancer. Ajudo times pequenos a lançar a primeira versão.",
+		"book": "Agende uma conversa de 30 minutos",
+		"bookSub": "Grátis e sem vendas",
+		"services": "Serviços e preços",
+		"work": "Trabalhos",
+		"clients": "O que dizem os clientes",
+		"mail": "Me mande um e-mail"
+	},
+	"org": {
+		"bio": "Vizinhos do porto. Plantamos verduras e caminhamos juntos.",
+		"walk": "Participe da caminhada de sábado",
+		"walkSub": "8h no píer da balsa",
+		"calendar": "Eventos do mês",
+		"about": "Quem somos",
+		"volunteer": "Seja voluntário",
+		"around": "Pelo bairro"
+	}
+}

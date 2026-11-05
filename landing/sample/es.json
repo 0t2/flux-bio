@@ -1,0 +1,49 @@
+{
+	"creator": {
+		"bio": "Cocina, mercados y cosas de cada día. Un vídeo nuevo cada viernes.",
+		"watch": "Ver el vídeo de esta semana",
+		"watchSub": "Desayuno en cinco minutos",
+		"recipes": "Recetas gratis para descargar",
+		"favorites": "Lo que uso cada día",
+		"work": "Trabaja conmigo"
+	},
+	"shop": {
+		"bio": "Un pequeño tostador en Dadaocheng. Café fresco cada jueves.",
+		"order": "Pide en línea y recoge en tienda",
+		"orderSub": "Listo en 15 minutos",
+		"menu": "Carta de esta semana",
+		"class": "Reserva una clase de café filtrado",
+		"picks": "Recomendados de la semana",
+		"blend": "Mezcla de la casa",
+		"dripper": "Gotero de cerámica",
+		"hours": "Horario",
+		"address": "21 Dihua St, Taipéi"
+	},
+	"event": {
+		"bio": "Un pequeño encuentro de tecnología en Taipéi, una vez al mes.",
+		"register": "Apúntate al de noviembre",
+		"registerSub": "Sáb 28 nov · 40 plazas",
+		"schedule": "Programa",
+		"venue": "Cómo llegar",
+		"slides": "Diapositivas de la última vez",
+		"group": "Únete al grupo"
+	},
+	"pro": {
+		"bio": "Diseñadora de producto freelance. Ayudo a equipos pequeños a lanzar su primera versión.",
+		"book": "Reserva una llamada de 30 minutos",
+		"bookSub": "Gratis y sin venta",
+		"services": "Servicios y tarifas",
+		"work": "Trabajos",
+		"clients": "Qué dicen los clientes",
+		"mail": "Escríbeme"
+	},
+	"org": {
+		"bio": "Vecinos junto al puerto. Cultivamos verduras y caminamos juntos.",
+		"walk": "Apúntate al paseo del sábado",
+		"walkSub": "8:00 en el muelle del ferri",
+		"calendar": "Actividades de este mes",
+		"about": "Quiénes somos",
+		"volunteer": "Hazte voluntario",
+		"around": "En el barrio"
+	}
+}
