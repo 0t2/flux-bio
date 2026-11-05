@@ -274,7 +274,6 @@
 	"已撤銷「{name}」": "“{name}” dicabut",
 	"已發布": "Diterbitkan",
 	"已發布，訪客現在看到的是新版本": "Diterbitkan. Pengunjung kini melihat versi baru",
-	"已經有 {count} 個頁面，到上限了": "Sudah ada {count} halaman, batas maksimal instalasi ini",
 	"已經複製到剪貼簿，可以直接貼上。": "Sudah disalin ke papan klip, tinggal tempel.",
 	"已自動儲存": "Tersimpan otomatis",
 	"已複製": "Disalin",
@@ -375,7 +374,6 @@
 	"書": "Buku",
 	"最多 10 張圖": "Maksimal 10 gambar",
 	"最多 50 個 token": "Maksimal 50 token",
-	"最多 {count} 個頁面": "Maksimal {count} halaman",
 	"最多 {limit} 個，兩個一排。點商品會算進數據。": "Maksimal {limit}, dua per baris. Klik pada produk ikut dihitung di statistik.",
 	"最多 {limit} 張。": "Maksimal {limit} gambar.",
 	"最多人點：{time}": "Klik terbanyak: {time}",
@@ -491,8 +489,6 @@
 	"開始用短網址": "Mulai dengan tautan pendek",
 	"短網址代稱": "Slug tautan pendek",
 	"短網址列表": "Daftar tautan pendek",
-	"最多 {count} 個短網址": "Maksimal {count} tautan pendek",
-	"最多 {count} 個短網址，請先封存一些再發布": "Maksimal {count} tautan pendek. Arsipkan beberapa dulu sebelum menerbitkan",
 	"短網址設定": "Pengaturan tautan pendek",
 	"短網址詳情": "Detail tautan pendek",
 	"確定刪除": "Ya, hapus",
@@ -626,8 +622,6 @@
 	"這個代稱是系統保留字，請換一個": "Slug ini kata yang dicadangkan sistem, pilih yang lain",
 	"這個商品": "produk ini",
 	"這個月哪個連結最多人點？跟上個月比呢？": "Tautan mana yang paling banyak diklik bulan ini? Bagaimana dibanding bulan lalu?",
-	"這個網站最多 {count} 個短網址": "Instalasi ini maksimal {count} tautan pendek",
-	"這個網站最多 {count} 個頁面": "Instalasi ini maksimal {count} halaman",
 	"這個頁面的網址代稱": "Alamat halaman ini",
 	"這個頁面還沒發布，先到 {link} 按「發布」。": "Halaman ini belum diterbitkan. Buka {link} dan tekan “Terbitkan”.",
 	"這張圖": "gambar ini",
@@ -907,5 +901,7 @@
 	"LINE 按鈕": "Tombol LINE",
 	"頁面連結的網址、標題、開放時間和到期日，請到「內容」修改後發布": "URL, judul, dan jadwal tayang tautan bio diubah di “Konten”, lalu diterbitkan",
 	"載入得比平常久，可能是網路或伺服器的問題。": "Ini lebih lama dari biasanya. Mungkin ada masalah jaringan atau server.",
-	"重新整理": "Muat ulang"
+	"重新整理": "Muat ulang",
+	"載入更多": "Muat lainnya",
+	"查詢參數不正確": "Parameter kueri tidak valid"
 }

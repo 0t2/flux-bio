@@ -254,7 +254,6 @@ function PageSwitcher() {
 						<button
 							type="button"
 							className="btn small"
-							disabled={app.pages.length >= app.limits.pages}
 							onClick={() => {
 								close()
 								navigate('/pages?new=1')

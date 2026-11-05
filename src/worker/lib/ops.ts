@@ -15,7 +15,7 @@ import { untranslated, usedTranslations } from '../../shared/translations'
 import { problemMessage, publishProblems, type Problem } from '../../shared/validate'
 import { fill, msg } from '../../templates/msg'
 import { ApiError } from '../types'
-import { deleteFontFiles, hostFonts, unusedFontFiles } from './fonts'
+import { deleteFontFiles, hostFonts, parseHostedFonts, unusedFontFiles } from './fonts'
 import {
 	deleteLinkRecord,
 	deleteSnapshot,
@@ -30,25 +30,33 @@ import {
 	type Snapshot,
 } from './cache'
 import {
-	countLinks,
 	ensureSchema,
+	firstPublishedPages,
+	forgetPublicNames,
 	getLink,
 	getLinkBySlug,
+	getLinksByIds,
 	getPage,
+	getPagesByIds,
+	hasOtherPage,
+	lastPosition,
+	listOwnLinks,
 	listPageLinks,
+	liveSlugs,
 	getPageByHandle,
 	insertPageStatement,
-	listHandles,
-	listLinks,
-	listPages,
 	loadSettings,
+	ownersOf,
+	pageExists,
+	publishedHandles,
+	recentlyPublishedPages,
 	saveSettingsStatement,
 	upsertLinkStatement,
 	type LinkRow,
 	type PageRow,
 	pageVersionStatements,
 } from './db'
-import { LIMITS } from './mode'
+import { FONT_PAGES_AT_ONCE, KV_OPS_AT_ONCE, VERSIONS_KEPT } from './mode'
 import { hashLinkPassword } from './password'
 
 function blankLink(now: number): Omit<LinkRow, 'id' | 'slug' | 'url' | 'title' | 'kind' | 'pageId'> {
@@ -72,12 +80,41 @@ function blankLink(now: number): Omit<LinkRow, 'id' | 'slug' | 'url' | 'title' |
 }
 
 /** Page handles and short link slugs share one namespace: the first path segment. */
-async function takenNames(db: D1Database, except: { pageId?: string; linkId?: string } = {}): Promise<Set<string>> {
-	const [pages, rows] = await Promise.all([listHandles(db), listLinks(db)])
-	return new Set([
-		...pages.filter((page) => page.id !== except.pageId).map((page) => normalizeSlug(page.handle)),
-		...rows.filter((row) => row.id !== except.linkId).map((row) => row.slug),
-	])
+async function takenAmong(db: D1Database, names: readonly string[], except: { pageId?: string; linkId?: string } = {}): Promise<Set<string>> {
+	const owners = await ownersOf(db, names.filter(Boolean))
+	return new Set(
+		owners
+			.filter((owner) => (owner.linkId ? owner.linkId !== except.linkId : owner.pageId !== except.pageId))
+			.map((owner) => normalizeSlug(owner.name)),
+	)
+}
+
+/** What uniqueSlug tries for a base, after the base itself. */
+const numberedSlugs = (base: string) => Array.from({ length: 98 }, (_, i) => `${base}-${i + 2}`)
+
+/** Which names are taken among what uniqueSlug would try for these bases: the numbered ones only for bases already taken. */
+async function takenForBases(db: D1Database, bases: readonly string[], except: { pageId?: string; linkId?: string } = {}): Promise<Set<string>> {
+	const unique = [...new Set(bases.filter(Boolean))]
+	const taken = await takenAmong(db, unique, except)
+	const numbered = unique.filter((base) => taken.has(base)).flatMap(numberedSlugs)
+	return new Set([...taken, ...(await takenAmong(db, numbered, except))])
+}
+
+/**
+ * uniqueSlug only knows the names it was given, which leaves its random last resort unchecked. With any number
+ * of short links that can collide, so this checks what was picked and draws again for any that are taken.
+ */
+async function settleSlugs(db: D1Database, picks: { slug: string }[], taken: Set<string>, except: { pageId?: string; linkId?: string } = {}): Promise<void> {
+	for (;;) {
+		const clashes = await takenAmong(db, picks.map((pick) => pick.slug), except)
+		const redraw = picks.filter((pick) => clashes.has(pick.slug))
+		if (!redraw.length) return
+		for (const name of clashes) taken.add(name)
+		for (const pick of redraw) {
+			pick.slug = uniqueSlug('', taken)
+			taken.add(pick.slug)
+		}
+	}
 }
 
 function assertNameFree(name: string, taken: Set<string>, label: string): void {
@@ -143,10 +180,19 @@ export async function putCopies(writes: (Promise<unknown> | null)[]): Promise<vo
 
 /** Rewrites the "site" record: which page is at "/" and how system pages look. */
 export async function writeSite(env: Env, settings: Settings, pages?: PageRow[]): Promise<SiteRecord> {
-	const site = siteRecord(settings, pages ?? (await listPages(env.DB)))
+	const site = siteRecord(settings, pages ?? (await sitePages(env.DB, settings)))
 	await putSite(env, site)
 	return site
 }
+
+/** The pages the "site" record is made from: the home page and the first few published ones, whatever the site's size. */
+async function sitePages(db: D1Database, settings: Settings): Promise<PageRow[]> {
+	const [home, published] = await Promise.all([settings.home ? getPage(db, settings.home) : null, firstPublishedPages(db, SITE_RECORD_PAGES)])
+	return home && !published.some((page) => page.id === home.id) ? [...published, home] : published
+}
+
+/** How many published pages "/" offers when no page is home. */
+const SITE_RECORD_PAGES = 10
 
 function siteRecord(settings: Settings, pages: PageRow[]): SiteRecord {
 	const home = pages.find((page) => page.id === settings.home)
@@ -158,7 +204,7 @@ function siteRecord(settings: Settings, pages: PageRow[]): SiteRecord {
 		locale: settings.locale,
 		languages: settings.languages,
 		look,
-		published: settings.bio ? pages.filter((page) => page.published).map((page) => page.handle).slice(0, 10) : [],
+		published: settings.bio ? pages.filter((page) => page.published).map((page) => page.handle).slice(0, SITE_RECORD_PAGES) : [],
 		bio: settings.bio,
 		homeUrl: settings.homeUrl,
 	}
@@ -167,8 +213,8 @@ function siteRecord(settings: Settings, pages: PageRow[]): SiteRecord {
 /** Builds the "site" record from D1 when KV doesn't have it yet, e.g. right after upgrading from v0.1. */
 export async function siteFromDb(env: Env): Promise<SiteRecord> {
 	await ensureSchema(env.DB)
-	const [settings, pages] = await Promise.all([loadSettings(env.DB), listPages(env.DB)])
-	const site = siteRecord(settings, pages)
+	const settings = await loadSettings(env.DB)
+	const site = siteRecord(settings, await sitePages(env.DB, settings))
 	await putCopies([putSite(env, site)])
 	return site
 }
@@ -191,7 +237,7 @@ export const draftChanged = (): ApiError => new ApiError(409, 'draft-changed', m
  */
 export async function publishPage(env: Env, pageId: string, { by = null, seen }: { by?: string | null; seen?: number } = {}): Promise<PublishResponse> {
 	const db = env.DB
-	const [page, pages, settings, rows] = await Promise.all([getPage(db, pageId), listHandles(db), loadSettings(db), listLinks(db)])
+	const [page, settings, ownRows] = await Promise.all([getPage(db, pageId), loadSettings(db), listOwnLinks(db, pageId)])
 	if (!page) throw new ApiError(404, 'not-found', msg('找不到這個頁面'))
 	if (seen !== undefined && seen !== page.draftUpdatedAt) throw draftChanged()
 	const content = structuredClone(page.draft)
@@ -199,23 +245,34 @@ export async function publishPage(env: Env, pageId: string, { by = null, seen }:
 	const problems = publishProblems(content, page.handle)
 	if (problems.length) throw new ApiError(400, 'invalid', problemMessage(problems[0]!), problems)
 
-	const byId = new Map(rows.map((row) => [row.id, row]))
-	const ownRows = rows.filter((row) => row.kind === 'bio' && row.pageId === pageId)
-	// Names this page can't take: page handles and every other link's slug.
-	const blocked = new Map<string, string>()
-	for (const other of pages) blocked.set(normalizeSlug(other.handle), other.id === pageId ? msg('這個頁面的網址代稱') : msg('其他頁面的網址代稱'))
-	for (const row of rows) {
-		if (row.kind === 'solo') blocked.set(row.slug, msg('[owner]獨立短網址'))
-		else if (row.pageId !== pageId) blocked.set(row.slug, msg('其他頁面的連結'))
-	}
-
 	const links = linkItems(content)
+	const own = new Set(ownRows.map((row) => row.id))
+	const others = await getLinksByIds(db, links.map((link) => link.id).filter((id) => !own.has(id)))
+	const byId = new Map([...ownRows, ...others].map((row) => [row.id, row]))
 	// An id that belongs to another page's link (say, pasted through the API) gets a fresh one,
 	// so publishing never takes over a link that isn't this page's.
 	for (const link of links) {
 		const owner = byId.get(link.id)
 		if (owner && (owner.kind === 'solo' || owner.pageId !== pageId)) link.id = newId()
 	}
+
+	// Names this page can't take: page handles and every other link's slug. Only the names it might use are looked up.
+	const blocked = new Map<string, string>()
+	const block = async (names: string[]) => {
+		for (const owner of await ownersOf(db, names.filter(Boolean))) {
+			if (!owner.linkId) blocked.set(normalizeSlug(owner.name), owner.pageId === pageId ? msg('這個頁面的網址代稱') : msg('其他頁面的網址代稱'))
+			else if (owner.kind === 'solo') blocked.set(owner.name, msg('[owner]獨立短網址'))
+			else if (owner.pageId !== pageId) blocked.set(owner.name, msg('其他頁面的連結'))
+		}
+	}
+	const baseOf = (link: { title: string; url: string }) => slugFromText(link.title.trim()) || slugFromUrl(link.url.trim())
+	const unnamed = links.filter((link) => link.url.trim() && !normalizeSlug(link.slug))
+	await block([
+		normalizeSlug(page.handle),
+		...links.map((link) => normalizeSlug(link.slug)),
+		...unnamed.map((link) => byId.get(link.id)?.slug ?? '').filter((slug) => !slug.startsWith('~')),
+		...unnamed.map(baseOf),
+	])
 
 	const used = new Set(blocked.keys())
 	const conflicts: Problem[] = []
@@ -237,21 +294,35 @@ export async function publishPage(env: Env, pageId: string, { by = null, seen }:
 	if (conflicts.length) throw new ApiError(409, 'slug-taken', problemMessage(conflicts[0]!), conflicts)
 
 	// Links without a slug keep the one they were published with, or get a new one.
+	const generated: typeof links = []
+	const busyBases = unnamed.map(baseOf).filter((base) => used.has(base))
+	if (busyBases.length) {
+		await block(busyBases.flatMap(numberedSlugs))
+		for (const name of blocked.keys()) used.add(name)
+	}
 	for (const link of links) {
 		if (!link.url || link.slug) continue
 		const previous = byId.get(link.id)
-		link.slug =
-			previous?.kind === 'bio' && previous.pageId === pageId && !previous.slug.startsWith('~') && !used.has(previous.slug)
-				? previous.slug
-				: uniqueSlug(slugFromText(link.title) || slugFromUrl(link.url), used)
+		if (previous?.kind === 'bio' && previous.pageId === pageId && !previous.slug.startsWith('~') && !used.has(previous.slug)) {
+			link.slug = previous.slug
+		} else {
+			link.slug = uniqueSlug(baseOf(link), used)
+			generated.push(link)
+		}
 		used.add(link.slug)
+	}
+	// uniqueSlug's random last resort knows only the names looked up so far.
+	for (let clash = generated; clash.length; ) {
+		await block(clash.map((link) => link.slug))
+		clash = clash.filter((link) => blocked.has(link.slug))
+		for (const link of clash) {
+			used.add(link.slug)
+			link.slug = uniqueSlug('', used)
+			used.add(link.slug)
+		}
 	}
 
 	const live = new Map(links.filter((link) => link.url).map((link) => [link.id, link]))
-	const added = [...live.keys()].filter((id) => !byId.has(id)).length
-	if (added && rows.length + added > LIMITS.links) {
-		throw new ApiError(409, 'limit', { key: msg('最多 {count} 個短網址，請先封存一些再發布'), params: { count: LIMITS.links } })
-	}
 
 	const translations = usedTranslations(content)
 	if (translations) content.translations = translations
@@ -303,7 +374,7 @@ export async function publishPage(env: Env, pageId: string, { by = null, seen }:
 			statements.push(db.prepare("UPDATE links SET status = 'archived', updated_at = ?1 WHERE id = ?2").bind(now, row.id))
 		}
 	}
-	statements.push(...pageVersionStatements(db, pageId, content, now, by, LIMITS.versions))
+	statements.push(...pageVersionStatements(db, pageId, content, now, by, VERSIONS_KEPT))
 	// Fonts can take seconds to copy. A draft saved meanwhile stays: it is newer than what is going live.
 	const draftUpdatedAt = Math.max(now, page.draftUpdatedAt + 1)
 	statements.push(
@@ -320,6 +391,7 @@ export async function publishPage(env: Env, pageId: string, { by = null, seen }:
 	const replaced = ownRows.filter((row) => row.status === 'active' && !row.slug.startsWith('~') && !unchanged.has(row.slug))
 	await dropCopies(env, [page.handle], replaced.map((row) => row.slug))
 	await db.batch(statements)
+	forgetPublicNames()
 
 	// With pages off, the published version waits in D1 until they are on again.
 	const snapshot = await snapshotOf(db, { ...page, published: content, publishedAt: now, draft: content, fonts }, settings)
@@ -346,10 +418,9 @@ export interface NewPage {
 
 export async function createPage(env: Env, input: NewPage): Promise<PageRow> {
 	const db = env.DB
-	const pages = await listHandles(db)
-	if (pages.length >= LIMITS.pages) throw new ApiError(409, 'limit', { key: msg('最多 {count} 個頁面'), params: { count: LIMITS.pages } })
+	const last = await lastPosition(db)
 	const handle = normalizeSlug(input.handle)
-	assertNameFree(handle, await takenNames(db), msg('網址代稱'))
+	assertNameFree(handle, await takenAmong(db, [handle]), msg('網址代稱'))
 
 	const name = input.name.trim().slice(0, 60)
 	let draft: PageContent
@@ -369,7 +440,7 @@ export async function createPage(env: Env, input: NewPage): Promise<PageRow> {
 	const page: PageRow = {
 		id: newId(),
 		handle,
-		position: Math.max(-1, ...pages.map((p) => p.position)) + 1,
+		position: (last ?? -1) + 1,
 		draft,
 		published: null,
 		draftUpdatedAt: now,
@@ -381,7 +452,7 @@ export async function createPage(env: Env, input: NewPage): Promise<PageRow> {
 	const statements = [insertPageStatement(db, page)]
 	// The first page is also the home page, as in v0.1.
 	const settings = await loadSettings(db)
-	const first = pages.length === 0
+	const first = last === null
 	if (first) statements.push(saveSettingsStatement(db, { ...settings, home: page.id }))
 	await db.batch(statements)
 	if (first) await putCopies([writeSite(env, { ...settings, home: page.id }, [page])])
@@ -394,12 +465,13 @@ export async function renamePage(env: Env, id: string, input: string): Promise<P
 	if (!page) throw new ApiError(404, 'not-found', msg('找不到這個頁面'))
 	const handle = normalizeSlug(input)
 	if (handle === page.handle) return page
-	assertNameFree(handle, await takenNames(db, { pageId: id }), msg('網址代稱'))
+	assertNameFree(handle, await takenAmong(db, [handle], { pageId: id }), msg('網址代稱'))
 	for (const link of linkItems(page.draft)) {
 		if (normalizeSlug(link.slug) === handle) throw new ApiError(409, 'slug-taken', { key: msg('「{handle}」是這一頁某個連結的代稱，請換一個'), params: { handle } })
 	}
 	await dropCopies(env, [page.handle, handle], [])
 	await db.prepare('UPDATE pages SET handle = ?1 WHERE id = ?2').bind(handle, id).run()
+	forgetPublicNames()
 	const renamed = { ...page, handle }
 	const settings = await loadSettings(db)
 	const snapshot = await snapshotOf(env.DB, renamed, settings)
@@ -418,10 +490,9 @@ export async function setPageQrLogo(env: Env, id: string, qrLogo: string | null 
 
 export async function deletePage(env: Env, id: string): Promise<void> {
 	const db = env.DB
-	const [page, pages, rows, settings] = await Promise.all([getPage(db, id), listHandles(db), listLinks(db), loadSettings(db)])
+	const [page, another, own, settings] = await Promise.all([getPage(db, id), hasOtherPage(db, id), listOwnLinks(db, id), loadSettings(db)])
 	if (!page) throw new ApiError(404, 'not-found', msg('找不到這個頁面'))
-	if (pages.length <= 1) throw new ApiError(409, 'last-page', msg('至少要留一個頁面'))
-	const own = rows.filter((row) => row.kind === 'bio' && row.pageId === id)
+	if (!another) throw new ApiError(409, 'last-page', msg('至少要留一個頁面'))
 	const nextSettings = settings.home === id ? { ...settings, home: '' } : settings
 	await dropCopies(
 		env,
@@ -436,6 +507,7 @@ export async function deletePage(env: Env, id: string): Promise<void> {
 		db.prepare('DELETE FROM pages WHERE id = ?1').bind(id),
 		saveSettingsStatement(db, nextSettings),
 	])
+	forgetPublicNames()
 	await putCopies([settings.home === id ? writeSite(env, nextSettings) : null])
 	await deleteFontFiles(env, unusedFontFiles(page.fonts, null))
 }
@@ -462,11 +534,10 @@ export type SettingsInput = Omit<Settings, 'languages' | 'hostFonts' | 'bio' | '
 	homeUrl?: string
 }
 
-export async function updateSettings(env: Env, input: SettingsInput): Promise<Settings> {
+export async function updateSettings(env: Env, input: SettingsInput): Promise<{ settings: Settings; copiesLeft: boolean }> {
 	const db = env.DB
 	if (!isValidTimeZone(input.timezone)) throw new ApiError(400, 'invalid', msg('時區格式不正確'))
-	const pages = await listPages(db)
-	if (input.home && !pages.some((page) => page.id === input.home)) throw new ApiError(400, 'invalid', msg('找不到要放在首頁的頁面'))
+	if (input.home && !(await pageExists(db, input.home))) throw new ApiError(400, 'invalid', msg('找不到要放在首頁的頁面'))
 
 	const previous = await loadSettings(db)
 	const next: Settings = {
@@ -479,64 +550,90 @@ export async function updateSettings(env: Env, input: SettingsInput): Promise<Se
 		qrLogo: input.qrLogo ?? previous.qrLogo,
 	}
 	await saveSettingsStatement(db, next).run()
+	forgetPublicNames()
 	const bioChanged = previous.bio !== next.bio
-	if (bioChanged) await switchBio(env, pages, previous, next)
+	if (bioChanged) await switchBio(env, previous, next)
 
-	const writes: Promise<unknown>[] = []
 	const languagesChanged = previous.locale !== next.locale || previous.languages.join() !== next.languages.join()
 	const hostingChanged = previous.hostFonts !== next.hostFonts
+	const timezoneChanged = previous.timezone !== next.timezone
 	// Copying fonts turned on or off, or another language with its own built-in text: published pages' fonts change.
-	const fonts = languagesChanged || hostingChanged ? await refreshFonts(env, pages, next) : { pages, unused: [] }
-	const everyPage = previous.home !== next.home || languagesChanged || hostingChanged || previous.timezone !== next.timezone
-	if (everyPage || bioChanged) {
-		// snapshotOf has none while pages are off.
-		for (const page of fonts.pages) {
-			const snapshot = await snapshotOf(env.DB, page, next)
-			if (snapshot) writes.push(putSnapshot(env, snapshot))
+	const unusedFonts = languagesChanged || hostingChanged ? await refreshFonts(env, previous, next) : []
+	const homeChanged = previous.home !== next.home
+
+	// Every snapshot carries these, so each has to go. Dropping one takes no parsing and no D1 read per page, and
+	// the page's next visit rebuilds it from D1, so pages nobody visits never cost a write. Going on or off has dealt with them.
+	const everyPage = languagesChanged || hostingChanged || timezoneChanged
+	let copiesLeft = false
+	const drop = async (keys: string[], dropOne: (key: string) => Promise<void>) => {
+		for (const result of await Promise.allSettled(keys.map(dropOne))) {
+			if (result.status === 'rejected') {
+				copiesLeft = true
+				console.error('KV kept a copy after a settings change', result.reason)
+			}
 		}
 	}
-	if (everyPage || previous.homeUrl !== next.homeUrl) writes.push(writeSite(env, next, fonts.pages))
-	if (previous.timezone !== next.timezone) {
-		for (const row of await listLinks(db)) {
-			if (row.status === 'active') writes.push(putLinkRecord(env, row.slug, toLinkRecord(row, next.timezone)))
-		}
+	let budget = KV_OPS_AT_ONCE
+	if (next.bio && !bioChanged && everyPage) {
+		const handles = await publishedHandles(db)
+		if (handles.length > budget) copiesLeft = true
+		const dropped = handles.slice(0, budget)
+		budget -= dropped.length
+		await drop(dropped, (handle) => deleteSnapshot(env, handle))
+	} else if (next.bio && !bioChanged && homeChanged) {
+		// Only the two pages that stop or start being the home page say so in their snapshot.
+		const pages = await getPagesByIds(db, [previous.home, next.home].filter(Boolean))
+		const snapshots = await Promise.all(pages.map((page) => snapshotOf(db, page, next)))
+		await putCopies(snapshots.map((snapshot) => (snapshot ? putSnapshot(env, snapshot) : null)))
 	}
-	await Promise.all(writes)
-	await deleteFontFiles(env, fonts.unused)
-	return next
+	if (timezoneChanged) {
+		// A link's copy carries the time zone its clicks are counted in.
+		const { slugs, more } = await liveSlugs(db, budget)
+		if (more) copiesLeft = true
+		await drop(slugs, (slug) => deleteLinkRecord(env, slug))
+	}
+	if (!bioChanged && (everyPage || homeChanged || previous.homeUrl !== next.homeUrl)) await writeSite(env, next)
+	await deleteFontFiles(env, unusedFonts.slice(0, KV_OPS_AT_ONCE))
+	return { settings: next, copiesLeft }
 }
 
 /**
- * Tells KV that pages went off or came back; their snapshots come back with the
- * other writes in updateSettings. Unlike other changes (see dropCopies) D1 has to
- * go first when pages go off: until it says so, a visit that misses KV would put
- * a deleted snapshot back, and the page would stay public. If KV refuses, the
- * setting goes back too, so the owner can try again and nothing is half done.
+ * Tells KV that pages went off or came back. Their snapshots are deleted when going off, and a visit
+ * rebuilds each when they come back. Unlike other changes (see dropCopies) D1 has to go first when pages go off:
+ * until it says so, a visit that misses KV would put a deleted snapshot back, and the page would stay public. If
+ * KV refuses, the setting goes back too, so the owner can try again and nothing is half done.
  */
-async function switchBio(env: Env, pages: PageRow[], previous: Settings, next: Settings): Promise<void> {
-	const stale = next.bio ? [] : pages.filter((page) => page.published)
+async function switchBio(env: Env, previous: Settings, next: Settings): Promise<void> {
+	const stale = next.bio ? [] : await publishedHandles(env.DB)
 	try {
-		await Promise.all([putSite(env, siteRecord(next, pages)), ...stale.map((page) => deleteSnapshot(env, page.handle))])
+		await Promise.all([putSite(env, siteRecord(next, await sitePages(env.DB, next))), ...stale.map((handle) => deleteSnapshot(env, handle))])
 	} catch (error) {
 		console.error('KV refused the bio switch', error)
 		await saveSettingsStatement(env.DB, previous).run()
-		await putCopies([putSite(env, siteRecord(previous, pages))])
+		await putCopies([putSite(env, siteRecord(previous, await sitePages(env.DB, previous)))])
 		throw new ApiError(503, 'kv', msg('Cloudflare KV 暫時寫不進去，這次的修改沒有儲存，請稍後再試。'))
 	}
 }
 
-/** Copies the fonts published pages need under new settings; returns the pages with them and the files they no longer use. */
-async function refreshFonts(env: Env, pages: PageRow[], settings: Settings): Promise<{ pages: PageRow[]; unused: string[] }> {
-	const next = await Promise.all(
-		pages.map(async (page) => (page.published ? { ...page, fonts: await hostFonts(env, { ...page, published: page.published }, settings) } : page)),
-	)
-	const changed = next.filter((page, i) => page.fonts !== pages[i]?.fonts)
-	if (changed.length) {
-		await env.DB.batch(
-			changed.map((page) => env.DB.prepare('UPDATE pages SET fonts = ?1 WHERE id = ?2').bind(page.fonts ? JSON.stringify(page.fonts) : null, page.id)),
-		)
+/**
+ * Brings copied fonts in line with new settings, and returns the files no longer used. Turning hosting off needs no
+ * page read. With it on, the most recent pages are copied now; the others use the visitor's own fonts, as any page
+ * whose fonts aren't copied does, until they are next published.
+ */
+async function refreshFonts(env: Env, previous: Settings, next: Settings): Promise<string[]> {
+	if (!next.hostFonts) {
+		if (!previous.hostFonts) return []
+		const { results } = await env.DB.prepare('SELECT fonts FROM pages WHERE fonts IS NOT NULL').all<{ fonts: string }>()
+		await env.DB.prepare('UPDATE pages SET fonts = NULL WHERE fonts IS NOT NULL').run()
+		return results.flatMap((row) => unusedFontFiles(parseHostedFonts(row.fonts), null))
 	}
-	return { pages: next, unused: pages.flatMap((page, i) => unusedFontFiles(page.fonts, next[i]?.fonts ?? null)) }
+	const pages = await recentlyPublishedPages(env.DB, FONT_PAGES_AT_ONCE)
+	const refreshed = await Promise.all(pages.map(async (page) => ({ ...page, fonts: page.published ? await hostFonts(env, { ...page, published: page.published }, next) : page.fonts })))
+	const changed = refreshed.filter((page, i) => page.fonts !== pages[i]?.fonts)
+	if (changed.length) {
+		await env.DB.batch(changed.map((page) => env.DB.prepare('UPDATE pages SET fonts = ?1 WHERE id = ?2').bind(page.fonts ? JSON.stringify(page.fonts) : null, page.id)))
+	}
+	return pages.flatMap((page, i) => unusedFontFiles(page.fonts, refreshed[i]?.fonts ?? null))
 }
 
 // ---------------------------------------------------------------- short links
@@ -580,24 +677,30 @@ export async function createSoloLinks(
 	inputs: NewLink[],
 ): Promise<{ created: LinkRow[]; errors: { index: number; error: ApiError }[] }> {
 	const db = env.DB
-	const [taken, settings, count] = await Promise.all([takenNames(db), loadSettings(db), countLinks(db)])
+	const wanted = inputs.map((input) => normalizeSlug(input.slug ?? ''))
+	const bases = inputs.map((input, i) => (wanted[i] || !isHttpUrl(input.url.trim()) ? '' : slugFromUrl(input.url.trim())))
+	const [named, settings] = await Promise.all([takenAmong(db, wanted), loadSettings(db)])
+	const taken = new Set([...named, ...(await takenForBases(db, bases))])
 	const now = Date.now()
 	const created: LinkRow[] = []
+	const generated: LinkRow[] = []
 	const errors: { index: number; error: ApiError }[] = []
 	inputs.forEach((input, index) => {
 		try {
 			if (!isHttpUrl(input.url.trim())) throw new ApiError(400, 'invalid', msg('網址要以 http:// 或 https:// 開頭'))
-			if (count + created.length >= LIMITS.links) throw new ApiError(409, 'limit', { key: msg('最多 {count} 個短網址'), params: { count: LIMITS.links } })
-			let slug = normalizeSlug(input.slug ?? '')
+			let slug = wanted[index]!
 			if (slug) assertNameFree(slug, taken, msg('代稱'))
-			else slug = uniqueSlug(slugFromUrl(input.url.trim()), taken)
+			else slug = uniqueSlug(bases[index]!, taken)
 			taken.add(slug)
-			created.push(soloRow(input, slug, now))
+			const row = soloRow(input, slug, now)
+			created.push(row)
+			if (!wanted[index]) generated.push(row)
 		} catch (error) {
 			errors.push({ index, error: error instanceof ApiError ? error : new ApiError(400, 'invalid', msg('這一筆資料有問題，已略過')) })
 		}
 	})
 	if (created.length) {
+		await settleSlugs(db, generated, taken)
 		await db.batch(created.map((row) => upsertLinkStatement(db, row)))
 		await putCopies(created.map((row) => putLinkRecord(env, row.slug, toLinkRecord(row, settings.timezone))))
 	}
@@ -639,23 +742,30 @@ export async function setPageLinkSlug(
 	{ slug: wanted, seen }: { slug?: string; seen?: number },
 ): Promise<{ row: LinkRow; draftUpdatedAt: number }> {
 	const db = env.DB
-	const [page, settings, rows, taken] = await Promise.all([getPage(db, pageId), loadSettings(db), listLinks(db), takenNames(db, { linkId: itemId })])
+	const [page, settings, row] = await Promise.all([getPage(db, pageId), loadSettings(db), getLink(db, itemId)])
 	if (!page) throw new ApiError(404, 'not-found', msg('找不到這個頁面'))
 	if (seen !== undefined && seen !== page.draftUpdatedAt) throw draftChanged()
 	const inDraft = linkItems(page.draft).find((link) => link.id === itemId)
 	const inPublished = page.published ? linkItems(page.published).find((link) => link.id === itemId) : undefined
-	const row = rows.find((entry) => entry.id === itemId)
 	if ((row && (row.kind !== 'bio' || row.pageId !== pageId)) || (!row && !inDraft)) throw new ApiError(404, 'not-found', msg('找不到這個短網址'))
 	const active = row?.status === 'active' ? row : undefined
 	if (active && wanted === undefined) return { row: active, draftUpdatedAt: page.draftUpdatedAt }
 
 	const url = active ? active.url : (inDraft?.url.trim() ?? '')
 	if (!isHttpUrl(url)) throw new ApiError(400, 'invalid', msg('網址要以 http:// 或 https:// 開頭'))
-	if (!row && rows.length >= LIMITS.links) throw new ApiError(409, 'limit', { key: msg('最多 {count} 個短網址，請先封存一些再發布'), params: { count: LIMITS.links } })
 	const title = inDraft?.title.trim() ?? ''
-	const slug = normalizeSlug(wanted ?? inDraft?.slug ?? '') || uniqueSlug(slugFromText(title) || slugFromUrl(url), taken)
+	const except = { linkId: itemId }
+	let slug = normalizeSlug(wanted ?? inDraft?.slug ?? '')
+	if (slug) {
+		if (active?.slug !== slug) assertNameFree(slug, await takenAmong(db, [slug], except), msg('代稱'))
+	} else {
+		const base = slugFromText(title) || slugFromUrl(url)
+		const taken = await takenForBases(db, [base], except)
+		const pick = { slug: uniqueSlug(base, taken) }
+		await settleSlugs(db, [pick], taken, except)
+		slug = pick.slug
+	}
 	const unchanged = active?.slug === slug
-	if (!unchanged) assertNameFree(slug, taken, msg('代稱'))
 	const everywhere = [inDraft, inPublished].every((link) => !link || link.slug === slug)
 	if (active && unchanged && everywhere) return { row: active, draftUpdatedAt: page.draftUpdatedAt }
 
@@ -680,6 +790,7 @@ export async function setPageLinkSlug(
 		.run()
 	if (!saved.meta.changes) throw draftChanged()
 	await upsertLinkStatement(db, next).run()
+	forgetPublicNames()
 	const snapshot = inPublished ? await snapshotOf(db, { ...page, draft, published, draftUpdatedAt }, settings) : null
 	await putCopies([putLinkRecord(env, slug, toLinkRecord(next, settings.timezone)), snapshot ? putSnapshot(env, snapshot) : null])
 	return { row: next, draftUpdatedAt }
@@ -709,7 +820,7 @@ export async function updateLink(env: Env, id: string, patch: LinkPatch): Promis
 	if (patch.slug !== undefined) {
 		const slug = normalizeSlug(patch.slug)
 		if (slug !== row.slug) {
-			assertNameFree(slug, await takenNames(db, { linkId: id }), msg('代稱'))
+			assertNameFree(slug, await takenAmong(db, [slug], { linkId: id }), msg('代稱'))
 			next.slug = slug
 		}
 	}
@@ -775,16 +886,11 @@ export async function findLinkRecord(env: Env, slug: string): Promise<LinkRecord
 	return (await getLinkRecord(env, slug)) ?? (await linkRecordFromDb(env, slug))
 }
 
-/** Rebuilds every KV entry from D1, e.g. after an import. */
+/**
+ * After an import. The old copies are gone (dropCopies), so a visit rebuilds each page and short link from D1
+ * as it is asked for. Writing them all here could use a whole day's free KV writes on addresses nobody visits.
+ */
 export async function rebuildCache(env: Env): Promise<void> {
-	const [pages, rows, settings] = await Promise.all([listPages(env.DB), listLinks(env.DB), loadSettings(env.DB)])
-	const writes: Promise<unknown>[] = [writeSite(env, settings, pages)]
-	for (const page of pages) {
-		const snapshot = await snapshotOf(env.DB, page, settings)
-		if (snapshot) writes.push(putSnapshot(env, snapshot))
-	}
-	for (const row of rows) {
-		if (row.status === 'active') writes.push(putLinkRecord(env, row.slug, toLinkRecord(row, settings.timezone)))
-	}
-	await putCopies(writes)
+	forgetPublicNames()
+	await putCopies([writeSite(env, await loadSettings(env.DB))])
 }

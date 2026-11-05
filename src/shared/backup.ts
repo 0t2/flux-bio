@@ -67,11 +67,11 @@ export const BackupSchema = z.object({
 		qrLogo: SettingsSchema.shape.qrLogo.optional(),
 	}),
 	// A site with only short links has no pages.
-	pages: z.array(PageBackupSchema).max(50),
-	shortLinks: z.array(ShortLinkBackupSchema).max(5000),
+	pages: z.array(PageBackupSchema),
+	shortLinks: z.array(ShortLinkBackupSchema),
 	themes: z.array(SavedThemeSchema).max(100),
 	/** Ids of the uploaded images the pages use. */
-	media: z.array(z.string().regex(MEDIA_ID)).max(2000),
+	media: z.array(z.string().regex(MEDIA_ID)),
 })
 export type Backup = z.infer<typeof BackupSchema>
 

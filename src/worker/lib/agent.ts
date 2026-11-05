@@ -1,7 +1,7 @@
 import document from 'virtual:fluxbio-openapi'
 import { BUTTON_IDS, FONT_IDS, ITEM_KINDS, LOCALES, newItem, SOCIAL_PLATFORMS, THEME_IDS } from '../../shared/content'
 import { RESERVED_SLUGS } from '../../shared/slug'
-import { LIMITS } from './mode'
+import { VERSIONS_KEPT } from './mode'
 import { OPERATIONS } from './openapi'
 import { GUIDE_TOPICS } from './agentTopics'
 import { VERSION } from './version'
@@ -180,7 +180,7 @@ Pick what fits; never more than two at a time.
 
 **Someone else changed the draft.** The owner may be editing in the dashboard, or another AI may be at work. A 409 \`draft-changed\` means the draft isn't the one you read. Read it again, make your change to what is there now, and tell the owner if you both changed the same thing. Never send your old copy again with the new version: that throws away their work. Sending \`If-Match\` when you publish means you never publish edits you haven't seen. If that is where the 409 comes from, someone is working on that page right now: read it again, say what they changed, and ask before you publish their unfinished text, even if the owner said to publish straight away.
 
-**Undo a publish.** \`GET /api/pages/{id}/versions\` lists the last ${LIMITS.versions} published versions, newest first: \`publishedAt\`, who published it (\`by\` is \`owner\` or \`token\`, with \`tokenName\`, or null if not known) and which is \`current\`. \`GET /api/pages/{id}/versions/{versionId}\` has its \`content\`, so you can say what differs. \`POST /api/pages/{id}/versions/{versionId}/restore\` with \`If-Match\` puts it in the draft, then publish as usual. Links removed since then come back as they were, stats included. Only that page goes back: not settings, standalone short links or images. Backups don't hold these versions, and importing a backup clears them.
+**Undo a publish.** \`GET /api/pages/{id}/versions\` lists the last ${VERSIONS_KEPT} published versions, newest first: \`publishedAt\`, who published it (\`by\` is \`owner\` or \`token\`, with \`tokenName\`, or null if not known) and which is \`current\`. \`GET /api/pages/{id}/versions/{versionId}\` has its \`content\`, so you can say what differs. \`POST /api/pages/{id}/versions/{versionId}/restore\` with \`If-Match\` puts it in the draft, then publish as usual. Links removed since then come back as they were, stats included. Only that page goes back: not settings, standalone short links or images. Backups don't hold these versions, and importing a backup clears them.
 
 **Make short links.** \`POST /api/links\` with \`{ "url": "https://…", "slug": "spring-sale" }\` returns \`short\`, the URL to share. Give the owner the short URLs as a list they can copy.
 
@@ -192,7 +192,7 @@ Pick what fits; never more than two at a time.
 
 **Help a new owner choose.** If they aren't sure what to put on a page, create it with a \`starter\` that fits (\`creator\`, \`shop\`, \`event\`, \`pro\` for freelancers, consultants and teachers, or \`org\` for clubs and organizations), send a preview link, and let them react before you fill in the real links. Links with no address yet show dashed in previews and are left out of the public page.
 
-**Add a page.** The text of a \`starter\` comes in the site's page language, or in the language you name with \`locale\`. \`POST /api/pages\` with \`{ "handle": "shop", "name": "My Shop" }\` (optionally \`starter\`: \`creator\`, \`shop\`, \`event\`, \`pro\` for freelancers, consultants and teachers, or \`org\` for clubs and organizations) → edit and publish it like any page. At most ${LIMITS.pages} pages and ${LIMITS.links} short links.
+**Add a page.** The text of a \`starter\` comes in the site's page language, or in the language you name with \`locale\`. \`POST /api/pages\` with \`{ "handle": "shop", "name": "My Shop" }\` (optionally \`starter\`: \`creator\`, \`shop\`, \`event\`, \`pro\` for freelancers, consultants and teachers, or \`org\` for clubs and organizations) → edit and publish it like any page.
 
 **Back up.** Save it on the owner's computer, in \`~/FluxBio-backups/<this site's host>/\` unless they want it elsewhere. Keep it out of any git repository and never send it anywhere: it holds unpublished drafts and the password hashes of short links.
 1. \`GET /api/export\` returns every page, short link and saved theme, plus \`media\`: the ids of the images they use. Save it as \`<YYYY-MM-DD-HHmm>.json\`.

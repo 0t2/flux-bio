@@ -4,6 +4,7 @@ import { z } from 'zod'
 import type {
 	AuthInfo,
 	BulkLinksResponse,
+	LinksResponse,
 	CommunityThemesResponse,
 	CreateLinkResponse,
 	CreateTokenResponse,
@@ -29,8 +30,10 @@ import {
 	SOCIAL_PART,
 	randomString,
 	ThemePresetSchema,
+	THEME_IDS,
 	type PageContent,
 	type Settings,
+	type ThemeId,
 } from '../../shared/content'
 import { FONT_CATEGORIES, FONT_SCRIPTS, searchFonts } from '../../shared/fonts'
 import { requestedLocale } from '../../shared/locale'
@@ -69,8 +72,13 @@ import {
 	getPageVersion,
 	listPageVersions,
 	insertToken,
-	listLinks,
-	listPages,
+	firstPage,
+	getLinksByIds,
+	getPagesByIds,
+	listLinkPage,
+	listOwnLinks,
+	listPageRows,
+	type PageListRow,
 	listTokens,
 	loadSettings,
 	loadThemes,
@@ -82,7 +90,7 @@ import {
 	type PageVersionRow,
 } from '../lib/db'
 import { verifyDomain } from '../lib/domain'
-import { adminPassword, isTestSite, LIMITS } from '../lib/mode'
+import { adminPassword, isTestSite } from '../lib/mode'
 import {
 	createPage,
 	createSoloLinks,
@@ -98,6 +106,9 @@ import {
 } from '../lib/ops'
 import {
 	BulkLinksInput,
+	CLICKED_LINKS,
+	LINKS_PER_PAGE,
+	LinkListQuery,
 	DomainInput,
 	LinkPatchInput,
 	LinkShortInput,
@@ -112,7 +123,7 @@ import {
 	WipeInput,
 } from '../lib/schemas'
 import { VERSION } from '../lib/version'
-import { emptyLinkStats, linkStats, overview, targetOverview, type LinkStats } from '../lib/stats'
+import { clicksByPage, emptyLinkStats, linkStats, overview, targetOverview, type LinkStats } from '../lib/stats'
 import { ApiError, type AppEnv, type Auth } from '../types'
 import { customPageResponse, PREVIEW_CSP } from './site'
 
@@ -195,32 +206,66 @@ function pageJson(page: PageRow): PageJson {
 /** Which click targets belong to a page: its short links, and the parts of its blocks ("<item id>.<part>"). */
 function pageTargets(page: PageRow, rows: LinkRow[]): (target: string) => boolean {
 	const links = new Set(rows.filter((row) => row.kind === 'bio' && row.pageId === page.id).map((row) => row.id))
-	const items = new Set([page, ...page.draft.items, ...(page.published?.items ?? []), ...page.draft.socials, ...(page.published?.socials ?? [])].map((entry) => entry.id))
+	const items = pageItemIds(page)
 	return (target) => links.has(target) || items.has(target.split('.')[0] ?? '')
 }
 
-function pageSummary(page: PageRow, settings: Settings, rows: LinkRow[], clicks: Map<string, LinkStats>): PageSummary {
-	const belongs = pageTargets(page, rows)
-	let clicks7d = 0
-	for (const [target, stats] of clicks) if (belongs(target)) clicks7d += stats.total
-	const content = page.published ?? page.draft
-	return {
-		id: page.id,
-		handle: page.handle,
-		qrLogo: page.qrLogo,
-		name: page.draft.profile.name,
-		avatar: page.draft.profile.avatar,
-		theme: content.appearance.theme,
-		kind: page.draft.custom?.kind ?? 'links',
-		home: settings.home === page.id,
-		publishedAt: page.publishedAt,
-		draftUpdatedAt: page.draftUpdatedAt,
-		dirty: !page.published || JSON.stringify(page.published) !== JSON.stringify(page.draft),
-		items: page.draft.items.length,
-		links: linkItems(page.draft).filter((link) => link.url.trim()).length,
-		clicks7d,
-		untranslated: Object.values(untranslated(page.draft, settings.languages)).reduce((sum, texts) => sum + texts.length, 0),
-	}
+const pageItemIds = (page: PageRow) =>
+	new Set([page, ...page.draft.items, ...(page.published?.items ?? []), ...page.draft.socials, ...(page.published?.socials ?? [])].map((entry) => entry.id))
+
+/** The pages' lines in a list. D1 works them out, so the Worker only reads a page in full if its draft is in an older shape, or to count what's untranslated. */
+async function pageSummaries(db: D1Database, settings: Settings): Promise<PageSummary[]> {
+	const [rows, clicks] = await Promise.all([listPageRows(db), clicksByPage(db, settings.timezone)])
+	const current = (row: PageListRow) => row.items !== null && THEME_IDS.includes(row.theme as ThemeId) && row.name !== null
+	const needed = settings.languages.length ? rows : rows.filter((row) => !current(row))
+	const full = new Map((await getPagesByIds(db, needed.map((row) => row.id))).map((page) => [page.id, page]))
+	return rows.flatMap((row) => {
+		const page = full.get(row.id)
+		const clicks7d = clicks.get(row.id) ?? 0
+		const untranslatedCount = page ? Object.values(untranslated(page.draft, settings.languages)).reduce((sum, texts) => sum + texts.length, 0) : 0
+		if (current(row)) {
+			return [
+				{
+					id: row.id,
+					handle: row.handle,
+					qrLogo: row.qrLogo,
+					name: row.name ?? '',
+					avatar: row.avatar ?? '',
+					theme: row.theme as ThemeId,
+					kind: (row.customKind as PageSummary['kind'] | null) ?? 'links',
+					home: settings.home === row.id,
+					publishedAt: row.publishedAt,
+					draftUpdatedAt: row.draftUpdatedAt,
+					dirty: !row.hasPublished || !row.sameAsPublished,
+					items: row.items ?? 0,
+					links: row.links,
+					clicks7d,
+					untranslated: untranslatedCount,
+				} satisfies PageSummary,
+			]
+		}
+		if (!page) return []
+		const content = page.published ?? page.draft
+		return [
+			{
+				id: page.id,
+				handle: page.handle,
+				qrLogo: page.qrLogo,
+				name: page.draft.profile.name,
+				avatar: page.draft.profile.avatar,
+				theme: content.appearance.theme,
+				kind: page.draft.custom?.kind ?? 'links',
+				home: settings.home === page.id,
+				publishedAt: page.publishedAt,
+				draftUpdatedAt: page.draftUpdatedAt,
+				dirty: !page.published || JSON.stringify(page.published) !== JSON.stringify(page.draft),
+				items: page.draft.items.length,
+				links: linkItems(page.draft).filter((link) => link.url.trim()).length,
+				clicks7d,
+				untranslated: untranslatedCount,
+			} satisfies PageSummary,
+		]
+	})
 }
 
 type Label = Pick<TopTargetJson, 'label' | 'labelKey' | 'labelParams'>
@@ -363,17 +408,15 @@ api.get('/auth/me', (c) => c.json({ ok: true, role: c.get('auth').role }))
 
 api.get('/state', async (c) => {
 	const db = c.env.DB
-	const [pages, settings, rows] = await Promise.all([listPages(db), loadSettings(db), listLinks(db)])
-	const { byLink } = await linkStats(db, settings.timezone, 7)
+	const settings = await loadSettings(db)
 	const body: StateResponse = {
 		version: VERSION,
 		origin: publicOrigin(c, settings),
 		role: c.get('auth').role,
 		settings,
-		pages: pages.map((page) => pageSummary(page, settings, rows, byLink)),
+		pages: await pageSummaries(db, settings),
 		analytics: Boolean((c.env as { ANALYTICS_SQL?: unknown }).ANALYTICS_SQL),
 		testSite: isTestSite(c.env),
-		limits: LIMITS,
 	}
 	return c.json(body)
 })
@@ -388,9 +431,7 @@ async function loadPage(c: Context<AppEnv>): Promise<PageRow> {
 
 api.get('/pages', async (c) => {
 	const db = c.env.DB
-	const [pages, settings, rows] = await Promise.all([listPages(db), loadSettings(db), listLinks(db)])
-	const { byLink } = await linkStats(db, settings.timezone, 7)
-	return c.json({ pages: pages.map((page) => pageSummary(page, settings, rows, byLink)) })
+	return c.json({ pages: await pageSummaries(db, await loadSettings(db)) })
 })
 
 api.post('/pages', async (c) => {
@@ -521,7 +562,8 @@ api.put('/settings', async (c) => {
 		}
 	}
 	const { home = current.home, timezone = current.timezone, locale = current.locale } = input
-	return c.json({ settings: await updateSettings(c.env, { ...input, home, timezone, locale, domain }) })
+	const { settings, copiesLeft } = await updateSettings(c.env, { ...input, home, timezone, locale, domain })
+	return c.json({ settings, ...(copiesLeft ? { copiesLeft } : {}) })
 })
 
 api.post('/settings/verify-domain', async (c) => {
@@ -572,10 +614,30 @@ api.put('/media/:id', async (c) => {
 // ---------------------------------------------------------------- short links
 
 api.get('/links', async (c) => {
-	const [rows, settings] = await Promise.all([listLinks(c.env.DB), loadSettings(c.env.DB)])
-	const { days, byLink } = await linkStats(c.env.DB, settings.timezone, 7)
+	const query = LinkListQuery.safeParse(c.req.query())
+	if (!query.success) throw new ApiError(400, 'invalid', msg('查詢參數不正確'))
+	const { limit = LINKS_PER_PAGE, cursor, kind, q } = query.data
+	const [{ rows, nextCursor }, settings] = await Promise.all([listLinkPage(c.env.DB, { limit, cursor, kind, q }), loadSettings(c.env.DB)])
+	const { days, byLink } = await linkStats(c.env.DB, settings.timezone, 7, rows.map((row) => row.id))
 	const origin = publicOrigin(c, settings)
-	return c.json({ days, links: rows.map((row) => linkJson(row, origin, byLink.get(row.id) ?? emptyLinkStats(days.length))) })
+	const body: LinksResponse = { days, links: rows.map((row) => linkJson(row, origin, byLink.get(row.id) ?? emptyLinkStats(days.length))), nextCursor }
+	return c.json(body)
+})
+
+// Before /links/:id. For adding up a whole site without paging through links nobody clicked.
+api.get('/links/clicked', async (c) => {
+	const settings = await loadSettings(c.env.DB)
+	const { days, byLink } = await linkStats(c.env.DB, settings.timezone, 7)
+	const top = [...byLink].sort((a, b) => b[1].total - a[1].total).slice(0, CLICKED_LINKS)
+	const rows = await getLinksByIds(c.env.DB, top.map(([id]) => id))
+	const byId = new Map(rows.map((row) => [row.id, row]))
+	const origin = publicOrigin(c, settings)
+	const links = top.flatMap(([id, stats]) => {
+		const row = byId.get(id)
+		return row ? [linkJson(row, origin, stats)] : []
+	})
+	const body: LinksResponse = { days, links, nextCursor: null }
+	return c.json(body)
 })
 
 api.post('/links', async (c) => {
@@ -687,12 +749,14 @@ api.get('/links/:id/stats', async (c) => {
 api.get('/stats', async (c) => {
 	const db = c.env.DB
 	const days = rangeOf(c.req.query('days'))
-	const [pages, settings, rows] = await Promise.all([listPages(db), loadSettings(db), listLinks(db)])
-	const page = pages.find((entry) => entry.id === c.req.query('page')) ?? pages.find((entry) => entry.id === settings.home) ?? pages[0]
+	const settings = await loadSettings(db)
+	const asked = c.req.query('page')
+	const page = (asked ? await getPage(db, asked) : null) ?? (settings.home ? await getPage(db, settings.home) : null) ?? (await firstPage(db))
+	const rows = page ? await listOwnLinks(db, page.id) : []
 	const byId = new Map(rows.map((row) => [row.id, row]))
 	const data = page
-		? await overview(db, settings.timezone, days, page.id, pageTargets(page, rows))
-		: await overview(db, settings.timezone, days, '', () => false)
+		? await overview(db, settings.timezone, days, page.id, { blocks: [...pageItemIds(page)], links: rows.map((row) => row.id) }, pageTargets(page, rows))
+		: await overview(db, settings.timezone, days, '', { blocks: [], links: [] }, () => false)
 	const from = data.days[0]!
 	const details = page ? await insights(c.env, { page: page.id }, { from, to: data.days.at(-1)!, previousFrom: addDays(from, -days) }) : null
 	const content = page ? (page.published ?? page.draft) : null

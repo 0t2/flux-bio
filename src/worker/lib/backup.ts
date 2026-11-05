@@ -10,6 +10,7 @@ import {
 	insertPageStatement,
 	listLinks,
 	listPages,
+	publishedHandles,
 	loadSettings,
 	loadThemes,
 	migrate,
@@ -18,7 +19,7 @@ import {
 	upsertLinkStatement,
 	type LinkRow,
 } from './db'
-import { LIMITS } from './mode'
+import { toLinkRecord } from './cache'
 import { dropCopies, rebuildCache } from './ops'
 
 export async function exportData(env: Env): Promise<Backup> {
@@ -98,10 +99,6 @@ export async function exportData(env: Env): Promise<Backup> {
  */
 export async function importData(env: Env, backup: Backup): Promise<{ pages: number; shortLinks: number }> {
 	const db = env.DB
-	const cap = LIMITS
-	if (backup.pages.length > cap.pages) throw new ApiError(409, 'limit', { key: msg('這個網站最多 {count} 個頁面'), params: { count: cap.pages } })
-	if (backup.shortLinks.length > cap.links) throw new ApiError(409, 'limit', { key: msg('這個網站最多 {count} 個短網址'), params: { count: cap.links } })
-
 	const names = new Set<string>()
 	const claim = (name: string, label: string) => {
 		if (names.has(name)) throw new ApiError(400, 'invalid', { key: msg('備份檔裡的「{name}」重複了（{label}）'), params: { name, label: { key: label } } })
@@ -139,7 +136,7 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 		claim(slug, msg('短網址代稱'))
 	}
 
-	const [oldPages, oldLinks, settings] = await Promise.all([listPages(db), listLinks(db), loadSettings(db)])
+	const [oldHandles, oldLinks, settings] = await Promise.all([publishedHandles(db), listLinks(db), loadSettings(db)])
 	const now = Date.now()
 	const rows: LinkRow[] = backup.shortLinks.map((link) => ({
 		id: link.id,
@@ -167,10 +164,15 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 	const home = pageIds.has(backup.settings.home) ? backup.settings.home : ''
 
 	// Every old KV copy goes first, so nothing outdated is left for visitors if a later step fails.
+	// A short link that comes back as it was keeps its copy: on the free plan a delete uses up the same 1,000 a day as a write.
+	const timezone = backup.settings.timezone
+	const incoming = new Map(rows.map((row) => [row.slug, JSON.stringify(toLinkRecord(row, timezone))]))
 	await dropCopies(
 		env,
-		oldPages.map((page) => page.handle),
-		oldLinks.filter((row) => row.status === 'active' && !row.slug.startsWith('~')).map((row) => row.slug),
+		oldHandles,
+		oldLinks
+			.filter((row) => row.status === 'active' && !row.slug.startsWith('~') && incoming.get(row.slug) !== JSON.stringify(toLinkRecord(row, settings.timezone)))
+			.map((row) => row.slug),
 	)
 	await db.batch([
 		db.prepare('DELETE FROM page_versions'),

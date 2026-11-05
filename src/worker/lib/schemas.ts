@@ -55,6 +55,18 @@ export const NewLinkInput = z.object({
 	expiresAt: time.optional().describe('Epoch milliseconds'),
 })
 
+/** GET /api/links */
+export const LINKS_PER_PAGE = 1000
+export const LinkListQuery = z.object({
+	limit: z.coerce.number().int().min(1).max(LINKS_PER_PAGE).optional().describe(`How many, ${LINKS_PER_PAGE} at most, which is also the default`),
+	cursor: z.string().max(200).optional().describe('nextCursor from the page before'),
+	kind: z.enum(['bio', 'solo']).optional().describe('Only links on pages, or only standalone ones'),
+	q: z.string().trim().max(100).optional().describe('Part of the slug, the address or the title'),
+})
+
+/** GET /api/links/clicked */
+export const CLICKED_LINKS = 2000
+
 export const BulkLinksInput = z.object({ links: z.array(NewLinkInput).min(1).max(100) })
 
 export const LinkPatchInput = z.object({

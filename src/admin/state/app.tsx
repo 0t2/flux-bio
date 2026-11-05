@@ -27,7 +27,6 @@ interface AppStore {
 	/** e.g. "links.example.com/mei". */
 	pageDisplay: (page: Pick<PageSummary, 'handle' | 'id'>) => string
 	analytics: boolean
-	limits: { pages: number; links: number }
 }
 
 const AppContext = createContext<AppStore | null>(null)
@@ -96,7 +95,6 @@ export function AppProvider({ initial, children }: { initial: StateResponse; chi
 			pageUrl: (page) => (isHome(page) ? `${state.origin}/` : `${state.origin}/${encodeURIComponent(page.handle)}`),
 			pageDisplay: (page) => pageDisplayUrl(host, { handle: page.handle, home: isHome(page) }),
 			analytics: state.analytics,
-			limits: state.limits,
 		}
 	}, [state, currentId, refresh, selectPage, setSettings])
 

@@ -117,8 +117,8 @@ export function StatsPage() {
 
 /**
  * 數據 while pages are off. GET /api/stats is about one page and has nothing to
- * say without one, so this adds up GET /api/links, which gives every short link's
- * last 7 days. Longer periods, places and devices are on each link's own stats page.
+ * say without one, so this adds up GET /api/links/clicked, which gives the last 7 days
+ * of every short link someone clicked. Longer periods, places and devices are on each link's own stats page.
  */
 export function ShortLinksStats() {
 	const app = useApp()
@@ -129,7 +129,7 @@ export function ShortLinksStats() {
 	useEffect(() => {
 		let cancelled = false
 		setError(null)
-		request<LinksResponse>('/links')
+		request<LinksResponse>('/links/clicked')
 			.then((result) => {
 				if (!cancelled) setData(result)
 			})

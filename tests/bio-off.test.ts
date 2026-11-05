@@ -268,11 +268,12 @@ describe('switching back on', () => {
 	})
 
 	it('restores every published page at once, with what was published while off', async () => {
-		expect(await env.KV.get('page:shop')).not.toBeNull()
-		expect(await env.KV.get('page:clubhouse')).not.toBeNull()
+		// Nothing is written ahead: a visit rebuilds a page's copy, so pages nobody visits cost no KV writes.
+		expect(await env.KV.get('page:clubhouse')).toBeNull()
 		const page = await visit('/shop')
 		expect(page.status).toBe(200)
 		expect(await page.text()).toContain('Buy today')
+		expect(await env.KV.get('page:shop')).not.toBeNull()
 		expect((await visit('/clubhouse')).status).toBe(200)
 		expect(await (await visit('/')).text()).toContain('The Shop')
 		expect(await (await visit('/shoq')).text()).toContain('Did you mean')
