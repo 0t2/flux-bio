@@ -423,7 +423,7 @@ tests/                  Vitest tests (run in workerd)
 - **KV holds what visitors read.** Each published page's snapshot (`page:<handle>`), the `site`
   record (which page is home, the look of system pages), one record per short link, and uploaded
   images, and the font files of published pages. A redirect or a tap on a button costs one KV read and a page view two: `/` reads `site` and
-  then the page, and `/<handle>` first looks for a short link with that name (`tests/kv-cost.test.ts` checks this). Any change to D1 that visitors would see
+  then the page, and `/<handle>` first looks for a short link with that name (`tests/kv-cost.test.ts` checks this). The site's time zone is only in `site`: a copy of the Worker reads it from there at most once in 5 minutes, when a visit comes in (`siteTimeZone`), so changing it rewrites no page or short link. Any change to D1 that visitors would see
   must also rewrite KV; follow the patterns in `lib/ops.ts`. A missing KV entry is rebuilt from D1
   on the next visit, so KV can be treated as a cache.
 - **With `bio` off, KV holds no pages.** So a redirect needs no extra read to know the setting: switching

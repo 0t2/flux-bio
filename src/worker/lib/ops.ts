@@ -1,11 +1,14 @@
 import {
+	DEFAULT_SETTINGS,
 	emptyContent,
 	isHttpUrl,
 	linkItems,
 	newId,
 	type PageContent,
 	type Settings,
-	type ThemeId, type Locale } from '../../shared/content'
+	type ThemeId,
+	type Locale,
+} from '../../shared/content'
 import type { PublishResponse } from '../../shared/api'
 import { otherLanguages, pageLanguages } from '../../shared/locale'
 import { normalizeSlug, SLUG_PROBLEM_TEXT, slugFromText, slugFromUrl, slugProblem, uniqueSlug } from '../../shared/slug'
@@ -42,7 +45,6 @@ import {
 	lastPosition,
 	listOwnLinks,
 	listPageLinks,
-	liveSlugs,
 	getPageByHandle,
 	insertPageStatement,
 	loadSettings,
@@ -142,7 +144,6 @@ export async function snapshotOf(db: D1Database, page: PageRow, settings: Settin
 		handle: page.handle,
 		content: page.published,
 		publishedAt: page.publishedAt,
-		timezone: settings.timezone,
 		locale: settings.locale,
 		languages: settings.languages,
 		home: settings.home === page.id,
@@ -181,6 +182,7 @@ export async function putCopies(writes: (Promise<unknown> | null)[]): Promise<vo
 /** Rewrites the "site" record: which page is at "/" and how system pages look. */
 export async function writeSite(env: Env, settings: Settings, pages?: PageRow[]): Promise<SiteRecord> {
 	const site = siteRecord(settings, pages ?? (await sitePages(env.DB, settings)))
+	rememberTimeZone(settings.timezone)
 	await putSite(env, site)
 	return site
 }
@@ -207,6 +209,7 @@ function siteRecord(settings: Settings, pages: PageRow[]): SiteRecord {
 		published: settings.bio ? pages.filter((page) => page.published).map((page) => page.handle).slice(0, SITE_RECORD_PAGES) : [],
 		bio: settings.bio,
 		homeUrl: settings.homeUrl,
+		timezone: settings.timezone,
 	}
 }
 
@@ -215,13 +218,33 @@ export async function siteFromDb(env: Env): Promise<SiteRecord> {
 	await ensureSchema(env.DB)
 	const settings = await loadSettings(env.DB)
 	const site = siteRecord(settings, await sitePages(env.DB, settings))
+	rememberTimeZone(settings.timezone)
 	await putCopies([putSite(env, site)])
 	return site
 }
 
-/** The "site" record: KV first, then D1. */
+/** The "site" record: KV first, then D1. A copy from before it carried the time zone is rebuilt. */
 export async function findSite(env: Env): Promise<SiteRecord> {
-	return (await getSite(env)) ?? (await siteFromDb(env))
+	const site = await getSite(env)
+	if (!site?.timezone) return siteFromDb(env)
+	rememberTimeZone(site.timezone)
+	return site
+}
+
+let timeZoneMemo: { timeZone: string; until: number } | null = null
+
+function rememberTimeZone(timeZone: string): void {
+	timeZoneMemo = { timeZone, until: Date.now() + 5 * 60 * 1000 }
+}
+
+/**
+ * The site's time zone for a visit. Short links and page copies don't carry it, so changing it rewrites
+ * none of them: a copy of the Worker reads the "site" record at most once in 5 minutes for it, and only
+ * when a visit comes in. The copy that saved the change knows at once; the others catch up within 5 minutes.
+ */
+export async function siteTimeZone(env: Env): Promise<string> {
+	if (timeZoneMemo && timeZoneMemo.until > Date.now()) return timeZoneMemo.timeZone
+	return (await findSite(env)).timezone ?? DEFAULT_SETTINGS.timezone
 }
 
 // ---------------------------------------------------------------- pages
@@ -397,7 +420,7 @@ export async function publishPage(env: Env, pageId: string, { by = null, seen }:
 	const snapshot = await snapshotOf(db, { ...page, published: content, publishedAt: now, draft: content, fonts }, settings)
 	await putCopies([
 		snapshot ? putSnapshot(env, snapshot) : null,
-		...freshLinks.map((row) => putLinkRecord(env, row.slug, toLinkRecord(row, settings.timezone))),
+		...freshLinks.map((row) => putLinkRecord(env, row.slug, toLinkRecord(row))),
 		settings.home === pageId ? writeSite(env, settings) : null,
 	])
 	await deleteFontFiles(env, unusedFontFiles(page.fonts, fonts))
@@ -563,7 +586,7 @@ export async function updateSettings(env: Env, input: SettingsInput): Promise<{ 
 
 	// Every snapshot carries these, so each has to go. Dropping one takes no parsing and no D1 read per page, and
 	// the page's next visit rebuilds it from D1, so pages nobody visits never cost a write. Going on or off has dealt with them.
-	const everyPage = languagesChanged || hostingChanged || timezoneChanged
+	const everyPage = languagesChanged || hostingChanged
 	let copiesLeft = false
 	const drop = async (keys: string[], dropOne: (key: string) => Promise<void>) => {
 		for (const result of await Promise.allSettled(keys.map(dropOne))) {
@@ -586,13 +609,8 @@ export async function updateSettings(env: Env, input: SettingsInput): Promise<{ 
 		const snapshots = await Promise.all(pages.map((page) => snapshotOf(db, page, next)))
 		await putCopies(snapshots.map((snapshot) => (snapshot ? putSnapshot(env, snapshot) : null)))
 	}
-	if (timezoneChanged) {
-		// A link's copy carries the time zone its clicks are counted in.
-		const { slugs, more } = await liveSlugs(db, budget)
-		if (more) copiesLeft = true
-		await drop(slugs, (slug) => deleteLinkRecord(env, slug))
-	}
-	if (!bioChanged && (everyPage || homeChanged || previous.homeUrl !== next.homeUrl)) await writeSite(env, next)
+	// The time zone is in the "site" record only; visits pick it up from there (siteTimeZone).
+	if (!bioChanged && (everyPage || homeChanged || timezoneChanged || previous.homeUrl !== next.homeUrl)) await writeSite(env, next)
 	await deleteFontFiles(env, unusedFonts.slice(0, KV_OPS_AT_ONCE))
 	return { settings: next, copiesLeft }
 }
@@ -679,7 +697,7 @@ export async function createSoloLinks(
 	const db = env.DB
 	const wanted = inputs.map((input) => normalizeSlug(input.slug ?? ''))
 	const bases = inputs.map((input, i) => (wanted[i] || !isHttpUrl(input.url.trim()) ? '' : slugFromUrl(input.url.trim())))
-	const [named, settings] = await Promise.all([takenAmong(db, wanted), loadSettings(db)])
+	const named = await takenAmong(db, wanted)
 	const taken = new Set([...named, ...(await takenForBases(db, bases))])
 	const now = Date.now()
 	const created: LinkRow[] = []
@@ -702,7 +720,7 @@ export async function createSoloLinks(
 	if (created.length) {
 		await settleSlugs(db, generated, taken)
 		await db.batch(created.map((row) => upsertLinkStatement(db, row)))
-		await putCopies(created.map((row) => putLinkRecord(env, row.slug, toLinkRecord(row, settings.timezone))))
+		await putCopies(created.map((row) => putLinkRecord(env, row.slug, toLinkRecord(row))))
 	}
 	return { created, errors }
 }
@@ -792,7 +810,7 @@ export async function setPageLinkSlug(
 	await upsertLinkStatement(db, next).run()
 	forgetPublicNames()
 	const snapshot = inPublished ? await snapshotOf(db, { ...page, draft, published, draftUpdatedAt }, settings) : null
-	await putCopies([putLinkRecord(env, slug, toLinkRecord(next, settings.timezone)), snapshot ? putSnapshot(env, snapshot) : null])
+	await putCopies([putLinkRecord(env, slug, toLinkRecord(next)), snapshot ? putSnapshot(env, snapshot) : null])
 	return { row: next, draftUpdatedAt }
 }
 
@@ -843,7 +861,7 @@ export async function updateLink(env: Env, id: string, patch: LinkPatch): Promis
 	if (patch.inAppPrompt !== undefined) next.inAppPrompt = patch.inAppPrompt
 	if (patch.qr !== undefined) next.qr = patch.qr
 
-	const routingChanged = JSON.stringify(toLinkRecord(row, settings.timezone)) !== JSON.stringify(toLinkRecord(next, settings.timezone))
+	const routingChanged = JSON.stringify(toLinkRecord(row)) !== JSON.stringify(toLinkRecord(next))
 	const moved = row.slug !== next.slug
 	// A new password or an archived link must never be left to an old KV copy.
 	// A password can't wait for the page's copy either: its button must stop showing the address at once.
@@ -854,7 +872,7 @@ export async function updateLink(env: Env, id: string, patch: LinkPatch): Promis
 	await upsertLinkStatement(db, next).run()
 	const snapshot = page ? await snapshotOf(db, page, settings) : null
 	await putCopies([
-		next.status === 'active' && (routingChanged || moved || row.status !== 'active') ? putLinkRecord(env, next.slug, toLinkRecord(next, settings.timezone)) : null,
+		next.status === 'active' && (routingChanged || moved || row.status !== 'active') ? putLinkRecord(env, next.slug, toLinkRecord(next)) : null,
 		snapshot ? putSnapshot(env, snapshot) : null,
 	])
 	return next
@@ -867,7 +885,7 @@ export async function linkRecordFromDb(env: Env, slug: string): Promise<LinkReco
 	await ensureSchema(env.DB)
 	const row = await getLinkBySlug(env.DB, slug)
 	if (!row || row.status !== 'active') return null
-	const record = toLinkRecord(row, (await loadSettings(env.DB)).timezone)
+	const record = toLinkRecord(row)
 	await putCopies([putLinkRecord(env, slug, record)])
 	return record
 }

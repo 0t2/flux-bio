@@ -30,7 +30,7 @@ import { readPreviewToken, sessionKeyOf } from '../lib/auth'
 import { ensureSchema, getPage, listPublished, loadSettings, publicNames } from '../lib/db'
 import { fontKey } from '../lib/fonts'
 import { isTestSite } from '../lib/mode'
-import { findSite, linkRecordFromDb, snapshotFromDb } from '../lib/ops'
+import { findSite, linkRecordFromDb, siteTimeZone, snapshotFromDb } from '../lib/ops'
 import { verifyLinkPassword } from '../lib/password'
 import { pingSignature } from '../lib/domain'
 import { UTM_PARAMS } from '../lib/analytics'
@@ -154,7 +154,7 @@ site.get('/', async (c) => {
 	if (record.bio === false) return record.homeUrl ? redirect(record.homeUrl, 302) : systemPage(c, 'short-links', 200, { site: record })
 	if (record.home) {
 		const snapshot = (await getSnapshot(c.env, record.home)) ?? (await snapshotFromDb(c.env, record.home))
-		if (snapshot) return serveBio(c, snapshot)
+		if (snapshot) return serveBio(c, snapshot, await siteTimeZone(c.env))
 	}
 	if (!record.published.length) return systemPage(c, 'unpublished', 200, { site: record })
 	return systemPage(c, 'not-found', 404, { site: record, suggestions: record.published.slice(0, 3) })
@@ -221,10 +221,10 @@ site.get('/:segment', async (c) => {
 	const record = await getLinkRecord(c.env, slug)
 	if (record) return serveLink(c, record, slug)
 	const snapshot = await getSnapshot(c.env, slug)
-	if (snapshot) return serveBio(c, snapshot)
+	if (snapshot) return serveBio(c, snapshot, await siteTimeZone(c.env))
 	const [stored, page] = await Promise.all([linkRecordFromDb(c.env, slug), snapshotFromDb(c.env, slug)])
 	if (stored) return serveLink(c, stored, slug)
-	if (page) return serveBio(c, page)
+	if (page) return serveBio(c, page, await siteTimeZone(c.env))
 	return systemPage(c, 'not-found', 404, { suggestions: await suggestionsFor(c.env, slug), meta: `${new URL(c.req.url).host}/${slug}` })
 })
 
@@ -268,12 +268,12 @@ export function customPageResponse(custom: CustomPage, headers: Record<string, s
 	})
 }
 
-function serveBio(c: SiteContext, snapshot: Snapshot): Response {
+function serveBio(c: SiteContext, snapshot: Snapshot, timeZone: string): Response {
 	const url = new URL(c.req.url)
 	const languages = pageLanguages(snapshot.locale, snapshot.languages)
 	const source = sourceOf(c)
 	if (snapshot.content.custom) {
-		recordHit(c.env, c.executionCtx, c.req.raw, { kind: 'view', target: snapshot.pageId, source, timeZone: snapshot.timezone, slug: snapshot.handle, url: '', page: snapshot.pageId })
+		recordHit(c.env, c.executionCtx, c.req.raw, { kind: 'view', target: snapshot.pageId, source, timeZone, slug: snapshot.handle, url: '', page: snapshot.pageId })
 		return customPageResponse(snapshot.content.custom, { 'cache-control': 'no-cache' })
 	}
 	// Links carry the visit's source and campaign tags along, so a click from a page
@@ -300,14 +300,14 @@ function serveBio(c: SiteContext, snapshot: Snapshot): Response {
 		linkHref: (link) => `/${encodeURIComponent(link.slug)}${suffix}`,
 		blockHref: (item, part) => `/_c/${handle}/${encodeURIComponent(item.id)}/${encodeURIComponent(part)}${suffix}`,
 		viaShortLink: snapshot.viaShortLink,
-		timeZone: snapshot.timezone,
+		timeZone,
 		fonts: snapshot.fonts,
 	})
 	recordHit(c.env, c.executionCtx, c.req.raw, {
 		kind: 'view',
 		target: snapshot.pageId,
 		source,
-		timeZone: snapshot.timezone,
+		timeZone,
 		slug: snapshot.handle,
 		url: '',
 		page: snapshot.pageId,
@@ -347,7 +347,7 @@ function tapOn({ content, handle, pageId }: Snapshot, id: string, part: string):
 }
 
 function countTap(c: SiteContext, snapshot: Snapshot, tap: Tap): void {
-	recordHit(c.env, c.executionCtx, c.req.raw, { kind: 'click', source: sourceOf(c), timeZone: snapshot.timezone, page: snapshot.pageId, ...tap })
+	recordHit(c.env, c.executionCtx, c.req.raw, { kind: 'click', source: sourceOf(c), timeZone: siteTimeZone(c.env), page: snapshot.pageId, ...tap })
 }
 
 function blockTarget(item: Item, part: string): string | null {
@@ -394,11 +394,11 @@ async function closedPage(c: SiteContext, record: LinkRecord, slug: string): Pro
 	const now = Date.now()
 	const meta = `${new URL(c.req.url).host}/${slug}`
 	if (record.startsAt && now < record.startsAt) {
-		return systemPage(c, 'scheduled', 403, { ...(await linkPage(c, record)), opensAt: record.startsAt, timeZone: record.tz, meta })
+		return systemPage(c, 'scheduled', 403, { ...(await linkPage(c, record)), opensAt: record.startsAt, timeZone: await siteTimeZone(c.env), meta })
 	}
 	if (record.expiresAt && now >= record.expiresAt) {
 		// The page adds the expiry date to `meta`, in its language.
-		return systemPage(c, 'expired', 410, { ...(await linkPage(c, record)), expiredAt: record.expiresAt, timeZone: record.tz, meta })
+		return systemPage(c, 'expired', 410, { ...(await linkPage(c, record)), expiredAt: record.expiresAt, timeZone: await siteTimeZone(c.env), meta })
 	}
 	return null
 }
@@ -478,7 +478,7 @@ function click(c: SiteContext, record: LinkRecord, slug: string, status: 302 | 3
 		kind: 'click',
 		target: record.id,
 		source: sourceOf(c),
-		timeZone: record.tz,
+		timeZone: siteTimeZone(c.env),
 		slug,
 		url: location,
 		page: record.page ?? '',
