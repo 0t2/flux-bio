@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearch } from 'wouter'
 import type { CreateLinkResponse, LinkJson, LinksResponse } from '../../shared/api'
 import { DEFAULT_QR_STYLE, defaultQrLogo, qrSvg, QrStyleSchema } from '../../shared/qr'
@@ -16,6 +16,9 @@ import { useApp } from '../state/app'
 import { useOptionalPage } from '../state/page'
 
 type Filter = 'all' | 'bio' | 'solo'
+
+/** Short links asked for at a time. */
+const LINKS_AT_ONCE = 100
 type Status = 'active' | 'scheduled' | 'expired' | 'archived'
 
 const STATUS_LABEL: Record<Status, string> = { active: msg('啟用'), scheduled: msg('排程'), expired: msg('已過期'), archived: msg('已封存') }
@@ -36,44 +39,77 @@ export function ShortLinksPage() {
 	const [filter, setFilter] = useState<Filter>('all')
 	const [query, setQuery] = useState('')
 	const [selectedId, setSelectedId] = useState<string | null>(() => new URLSearchParams(search).get('select'))
+	// The selected link when it isn't among the links loaded: further down the list, or filtered out.
+	const [selectedApart, setSelectedApart] = useState<LinkJson | null>(null)
+	const [loadingMore, setLoadingMore] = useState(false)
+	const latest = useRef(0)
+
+	const listPath = useCallback((cursor?: string | null) => {
+		const params = new URLSearchParams({ limit: String(LINKS_AT_ONCE) })
+		if (filter !== 'all') params.set('kind', filter)
+		if (query.trim()) params.set('q', query.trim())
+		if (cursor) params.set('cursor', cursor)
+		return `/links?${params.toString()}`
+	}, [filter, query])
 
 	const load = useCallback(async (select?: string) => {
+		const attempt = ++latest.current
 		try {
-			const result = await request<LinksResponse>('/links')
+			const result = await request<LinksResponse>(listPath())
+			if (attempt !== latest.current) return
 			setData(result)
 			setLoadError(null)
-			setSelectedId((current) => {
-				const wanted = select ?? current
-				return wanted && result.links.some((link) => link.id === wanted) ? wanted : (result.links[0]?.id ?? null)
-			})
+			const wanted = select ?? selectedRef.current
+			if (wanted && !result.links.some((link) => link.id === wanted)) {
+				const apart = await request<{ link: LinkJson }>(`/links/${encodeURIComponent(wanted)}`).then((found) => found.link, () => null)
+				if (attempt !== latest.current) return
+				setSelectedApart(apart)
+				setSelectedId(apart ? wanted : (result.links[0]?.id ?? null))
+			} else {
+				setSelectedApart(null)
+				setSelectedId(wanted ?? result.links[0]?.id ?? null)
+			}
 		} catch (error) {
-			setLoadError(error instanceof Error ? error.message : t('讀取失敗'))
+			if (attempt === latest.current) setLoadError(error instanceof Error ? error.message : t('讀取失敗'))
 		}
-	}, [])
+	}, [listPath])
 
-	// Reload after publishing: new bio links appear here as short links.
+	const selectedRef = useRef(selectedId)
+	selectedRef.current = selectedId
+
+	async function loadMore() {
+		if (!data?.nextCursor) return
+		const attempt = latest.current
+		setLoadingMore(true)
+		try {
+			const more = await request<LinksResponse>(listPath(data.nextCursor))
+			if (attempt === latest.current) setData({ ...more, links: [...data.links, ...more.links] })
+		} catch (error) {
+			toast(error instanceof Error ? error.message : t('讀取失敗'))
+		} finally {
+			setLoadingMore(false)
+		}
+	}
+
+	// Reload after publishing: new bio links appear here as short links. The list is searched on the Worker, so typing waits for a pause.
 	useEffect(() => {
-		void load()
-	}, [load, page?.publishedAt])
+		const timer = setTimeout(() => void load(), query ? 250 : 0)
+		return () => clearTimeout(timer)
+	}, [load, query, page?.publishedAt])
 
 	const links = data?.links ?? []
 	const pageNames = useMemo(() => new Map(app.pages.map((entry) => [entry.id, entry.name || entry.handle])), [app.pages])
-	const visible = useMemo(() => {
-		const q = query.trim().toLowerCase()
-		return links
-			.filter((link) => filter === 'all' || link.kind === filter)
-			.filter((link) => !q || `${link.slug} ${link.url} ${link.title}`.toLowerCase().includes(q))
-			.sort((a, b) => Number(a.status === 'archived') - Number(b.status === 'archived'))
-	}, [links, filter, query])
-	const selected = links.find((link) => link.id === selectedId) ?? null
+	const visible = links
+	const selected = links.find((link) => link.id === selectedId) ?? (selectedApart?.id === selectedId ? selectedApart : null)
+	const searching = filter !== 'all' || Boolean(query.trim())
 
-	const tabs: { id: Filter; label: string; count: number }[] = [
-		{ id: 'all', label: t('全部'), count: links.length },
-		{ id: 'bio', label: t('頁面連結'), count: links.filter((link) => link.kind === 'bio').length },
-		{ id: 'solo', label: t('獨立短網址'), count: links.filter((link) => link.kind === 'solo').length },
+	const tabs: { id: Filter; label: string }[] = [
+		{ id: 'all', label: t('全部') },
+		{ id: 'bio', label: t('頁面連結') },
+		{ id: 'solo', label: t('獨立短網址') },
 	]
 	// Only short links here: telling page links from standalone ones would say nothing.
-	const plain = !app.settings.bio && !links.some((link) => link.kind === 'bio')
+	const plain = !app.settings.bio && !searching && !links.some((link) => link.kind === 'bio')
 
 	return (
 		<>
@@ -90,7 +126,7 @@ export function ShortLinksPage() {
 				</div>
 			)}
 
-			{data && links.length === 0 ? (
+			{data && links.length === 0 && !searching ? (
 				<EmptyState icon="shortlink" title={t('還沒有短網址')}>
 					<CreateForm compact onCreated={(id) => load(id)} />
 					<AskAi say={t('把這份清單做成短網址')} />
@@ -106,7 +142,7 @@ export function ShortLinksPage() {
 										{tabs.map((tab) => (
 											<button key={tab.id} type="button" className="tab" aria-pressed={filter === tab.id} onClick={() => setFilter(tab.id)}>
 												{tab.label}
-												<span>{tab.count}</span>
+												{filter === tab.id && data && <span>{data.nextCursor ? `${links.length}+` : links.length}</span>}
 											</button>
 										))}
 									</div>
@@ -156,6 +192,13 @@ export function ShortLinksPage() {
 									)}
 								</div>
 							</div>
+							{data?.nextCursor && (
+								<div style={{ display: 'flex', justifyContent: 'center', padding: 16 }}>
+									<button type="button" className="btn" disabled={loadingMore} onClick={() => void loadMore()}>
+										{t('載入更多')}
+									</button>
+								</div>
+							)}
 						</section>
 
 						{selected && (

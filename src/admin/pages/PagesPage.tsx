@@ -23,6 +23,9 @@ const STARTS: { id: Start; label: string; hint: string }[] = [
 	{ id: 'copy', label: msg('複製現有頁面'), hint: msg('內容和外觀都複製一份') },
 ]
 
+/** Each card draws the page in miniature, so a long list is drawn a bit at a time. */
+const PAGE_CARDS = 60
+
 const titleOf = (page: PageSummary): string => page.name.trim() || page.handle
 
 function statusOf(page: PageSummary): { label: string; className: string } {
@@ -53,14 +56,14 @@ export function PagesPage() {
 	const search = useSearch()
 	const [creating, setCreating] = useState(false)
 	const [busyId, setBusyId] = useState<string | null>(null)
-	const full = app.pages.length >= app.limits.pages
+	const [shown, setShown] = useState(PAGE_CARDS)
 
 	// "新增頁面" in the page switcher comes here as /pages?new=1.
 	useEffect(() => {
 		if (new URLSearchParams(search).get('new') !== '1') return
-		if (!full) setCreating(true)
+		setCreating(true)
 		navigate('/pages', { replace: true })
-	}, [search, full, navigate])
+	}, [search, navigate])
 
 	async function run(page: PageSummary, action: () => Promise<string>) {
 		if (busyId) return
@@ -104,14 +107,14 @@ export function PagesPage() {
 					<h1>{t('頁面')}</h1>
 					<p>{t('一個 FluxBio 可以管理多個頁面，每頁有自己的網址、主題和數據；短網址則是所有頁面共用。')}</p>
 				</div>
-				<button type="button" className="btn primary" disabled={full} onClick={() => setCreating(true)}>
+				<button type="button" className="btn primary" onClick={() => setCreating(true)}>
 					<Icon name="plus" size={16} stroke={2.4} />
 					{t('新增頁面')}
 				</button>
 			</div>
 
 			<div className="lib-pages">
-				{app.pages.map((page) => (
+				{app.pages.slice(0, shown).map((page) => (
 					<PageCard
 						key={page.id}
 						page={page}
@@ -125,14 +128,21 @@ export function PagesPage() {
 						onDelete={app.pages.length > 1 ? () => void remove(page) : undefined}
 					/>
 				))}
-				<button type="button" className="lib-add-card" disabled={full} onClick={() => setCreating(true)}>
+				<button type="button" className="lib-add-card" onClick={() => setCreating(true)}>
 					<span className="lib-add-icon" aria-hidden="true">
 						<Icon name="plus" size={22} stroke={2.2} />
 					</span>
 					<strong>{t('新增頁面')}</strong>
-					<small>{full ? t('已經有 {count} 個頁面，到上限了', { count: app.limits.pages }) : t('從空白開始，或複製現有頁面')}</small>
+					<small>{t('從空白開始，或複製現有頁面')}</small>
 				</button>
 			</div>
+			{app.pages.length > shown && (
+				<div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
+					<button type="button" className="btn" onClick={() => setShown((count) => count + PAGE_CARDS)}>
+						{t('載入更多')}
+					</button>
+				</div>
+			)}
 
 			<Dialog open={creating} title={t('新增頁面')} onClose={() => setCreating(false)}>
 				<NewPageForm onDone={() => setCreating(false)} />

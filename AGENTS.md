@@ -429,8 +429,8 @@ tests/                  Vitest tests (run in workerd)
 - **With `bio` off, KV holds no pages.** So a redirect needs no extra read to know the setting: switching
   off deletes every `page:<handle>` (D1 first, or a visit could rebuild one) and `snapshotOf` returns null
   while it is off, for every write and for the rebuild from D1. A page's address then costs a miss and one
-  D1 read, and answers not found. Switching costs one KV write per published page plus the `site` record,
-  which carries `bio` and `homeUrl` for `/`. Switching on writes the snapshots back. In the dashboard no page is
+  D1 read, and answers not found. Switching off costs one KV delete per published page plus the `site` record,
+  which carries `bio` and `homeUrl` for `/`. Switching on writes only `site`: a visit puts back each page's snapshot. In the dashboard no page is
   loaded while it is off, so nothing outside the page routes may need `usePage()`; use `useOptionalPage()`.
 - **Stats are recorded in two places.** There are no cookies, IPs are not stored, and bots and
   link-preview fetchers are skipped.
@@ -478,6 +478,7 @@ tests/                  Vitest tests (run in workerd)
 - **KV writes.** The free plan allows 1,000 KV writes a day, per account (`pnpm kv-usage` shows what is left today). Publishing writes one per changed
   link, and with `hostFonts` on, when the page's characters change, one per font file plus one per
   old file deleted; keep bulk operations within that.
+- **No limit on pages or short links, so no whole-table reads.** A site can hold any number of both. The free plan still applies: 5 million D1 rows read a day (queries fail past that), 50 queries per request, 100 bound values per query, five terms in a compound SELECT, and 10 ms of CPU. So a lookup goes through an index for the names or ids it needs (`ownersOf`, `getLinksByIds`, `listLinkPage`, `listPageRows`), D1 does the work on a list of pages rather than the Worker parsing every draft, and a change to a whole site drops at most `KV_OPS_AT_ONCE` copies for visits to rebuild, answering `copiesLeft` if some stayed. `tests/scale.test.ts` holds a large site to these numbers; a query that names `stats_target_day` with `INDEXED BY` does so because SQLite otherwise scans the day's rows. Only backups read everything, a slice at a time.
 - **No extra Cloudflare products.** The app uses Workers, D1, KV and Analytics Engine, none of which
   need manual setup. Do not add R2, Durable Objects or Queues without a strong reason; each one
   adds setup steps for people who self-host.

@@ -274,7 +274,6 @@
 	"已撤銷「{name}」": "„{name}“ widerrufen",
 	"已發布": "Veröffentlicht",
 	"已發布，訪客現在看到的是新版本": "Veröffentlicht: Besucher sehen jetzt die neue Version",
-	"已經有 {count} 個頁面，到上限了": "Du hast schon {count} Seiten, das Maximum für diese Installation",
 	"已經複製到剪貼簿，可以直接貼上。": "In die Zwischenablage kopiert, du kannst es direkt einfügen.",
 	"已自動儲存": "Automatisch gespeichert",
 	"已複製": "Kopiert",
@@ -375,7 +374,6 @@
 	"書": "Buch",
 	"最多 10 張圖": "Bis zu 10 Bilder",
 	"最多 50 個 token": "Höchstens 50 Tokens",
-	"最多 {count} 個頁面": "Höchstens {count} Seiten",
 	"最多 {limit} 個，兩個一排。點商品會算進數據。": "Bis zu {limit}, zwei pro Reihe. Klicks auf Produkte zählen in die Statistik.",
 	"最多 {limit} 張。": "Höchstens {limit} Bilder.",
 	"最多人點：{time}": "Spitze: {time}",
@@ -491,8 +489,6 @@
 	"開始用短網址": "Mit Kurzlinks loslegen",
 	"短網址代稱": "Kürzel des Kurzlinks",
 	"短網址列表": "Kurzlink-Liste",
-	"最多 {count} 個短網址": "Höchstens {count} Kurzlinks",
-	"最多 {count} 個短網址，請先封存一些再發布": "Höchstens {count} Kurzlinks. Archiviere erst ein paar und veröffentliche dann.",
 	"短網址設定": "Kurzlink-Einstellungen",
 	"短網址詳情": "Kurzlink-Details",
 	"確定刪除": "Wirklich löschen",
@@ -626,8 +622,6 @@
 	"這個代稱是系統保留字，請換一個": "Dieser Name ist vom System reserviert. Bitte wähle einen anderen.",
 	"這個商品": "Dieses Produkt",
 	"這個月哪個連結最多人點？跟上個月比呢？": "Welcher Link wurde diesen Monat am häufigsten geklickt? Und im Vergleich zum Vormonat?",
-	"這個網站最多 {count} 個短網址": "Diese Installation erlaubt höchstens {count} Kurzlinks",
-	"這個網站最多 {count} 個頁面": "Diese Installation erlaubt höchstens {count} Seiten",
 	"這個頁面的網址代稱": "Adresse dieser Seite",
 	"這個頁面還沒發布，先到 {link} 按「發布」。": "Diese Seite ist noch nicht veröffentlicht. Geh zu {link} und klicke auf „Veröffentlichen“.",
 	"這張圖": "Dieses Bild",
@@ -907,5 +901,7 @@
 	"LINE 按鈕": "LINE-Button",
 	"頁面連結的網址、標題、開放時間和到期日，請到「內容」修改後發布": "URL, Titel und Zeitplan eines Bio-Links änderst du unter „Inhalt“ und veröffentlichst dann.",
 	"載入得比平常久，可能是網路或伺服器的問題。": "Das dauert länger als sonst. Es könnte am Netzwerk oder am Server liegen.",
-	"重新整理": "Neu laden"
+	"重新整理": "Neu laden",
+	"載入更多": "Mehr laden",
+	"查詢參數不正確": "Die Abfrageparameter sind ungültig"
 }

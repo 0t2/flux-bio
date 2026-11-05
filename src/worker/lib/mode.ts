@@ -8,5 +8,15 @@ export function adminPassword(env: Env): string {
 	return typeof current === 'string' && current ? current : typeof legacy === 'string' ? legacy : ''
 }
 
-/** How much one deployment may hold. */
-export const LIMITS = { pages: 50, links: 5000, versions: 20 }
+/** Published versions kept per page. A site itself can hold any number of pages and short links. */
+export const VERSIONS_KEPT = 20
+
+/**
+ * KV operations one request may start. The free plan allows 1,000 writes and deletes a day and 1,000 calls to Cloudflare's
+ * services per request. KV is a copy of D1 that a visit rebuilds, so a change to a whole site drops at most this many copies,
+ * newest first, and says how many it left.
+ */
+export const KV_OPS_AT_ONCE = 800
+
+/** Pages whose fonts one settings change copies: each takes several requests to Google, and the free plan allows 50 outside requests. */
+export const FONT_PAGES_AT_ONCE = 8

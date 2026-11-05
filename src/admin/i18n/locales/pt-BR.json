@@ -274,7 +274,6 @@
 	"已撤銷「{name}」": "Você revogou “{name}”",
 	"已發布": "Publicado",
 	"已發布，訪客現在看到的是新版本": "Publicado. Os visitantes já veem a nova versão",
-	"已經有 {count} 個頁面，到上限了": "Você já tem {count} páginas, o máximo desta instalação",
 	"已經複製到剪貼簿，可以直接貼上。": "Já está na área de transferência, é só colar.",
 	"已自動儲存": "Salvo automaticamente",
 	"已複製": "Copiado",
@@ -375,7 +374,6 @@
 	"書": "Livro",
 	"最多 10 張圖": "Até 10 fotos",
 	"最多 50 個 token": "No máximo 50 tokens",
-	"最多 {count} 個頁面": "No máximo {count} páginas",
 	"最多 {limit} 個，兩個一排。點商品會算進數據。": "Até {limit}, dois por linha. Cliques nos produtos entram nas estatísticas.",
 	"最多 {limit} 張。": "No máximo {limit} fotos.",
 	"最多人點：{time}": "Horário de pico: {time}",
@@ -491,8 +489,6 @@
 	"開始用短網址": "Começar com links curtos",
 	"短網址代稱": "Apelido do link curto",
 	"短網址列表": "Lista de links curtos",
-	"最多 {count} 個短網址": "No máximo {count} links curtos",
-	"最多 {count} 個短網址，請先封存一些再發布": "No máximo {count} links curtos. Arquive alguns antes de publicar",
 	"短網址設定": "Configurações do link curto",
 	"短網址詳情": "Detalhes do link curto",
 	"確定刪除": "Sim, excluir",
@@ -626,8 +622,6 @@
 	"這個代稱是系統保留字，請換一個": "Este apelido é reservado pelo sistema. Escolha outro",
 	"這個商品": "este produto",
 	"這個月哪個連結最多人點？跟上個月比呢？": "Qual link teve mais cliques este mês? E em comparação com o mês passado?",
-	"這個網站最多 {count} 個短網址": "Esta instalação permite até {count} links curtos",
-	"這個網站最多 {count} 個頁面": "Esta instalação permite até {count} páginas",
 	"這個頁面的網址代稱": "Endereço desta página",
 	"這個頁面還沒發布，先到 {link} 按「發布」。": "Esta página ainda não foi publicada. Vá em {link} e clique em “Publicar”.",
 	"這張圖": "esta imagem",
@@ -907,5 +901,7 @@
 	"LINE 按鈕": "Botão do LINE",
 	"頁面連結的網址、標題、開放時間和到期日，請到「內容」修改後發布": "URL, título e agendamento dos links da bio são alterados em “Conteúdo” e depois publicados.",
 	"載入得比平常久，可能是網路或伺服器的問題。": "Está demorando mais que o normal. Pode ser a rede ou o servidor.",
-	"重新整理": "Recarregar"
+	"重新整理": "Recarregar",
+	"載入更多": "Carregar mais",
+	"查詢參數不正確": "Os parâmetros da consulta não são válidos"
 }
