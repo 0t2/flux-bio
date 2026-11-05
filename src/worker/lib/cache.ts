@@ -15,7 +15,6 @@ export interface Snapshot {
 	handle: string
 	content: PageContent
 	publishedAt: number
-	timezone: string
 	/** The page language, resolved per visitor against `languages` ("auto" in copies from before v0.3). */
 	locale: LocaleSetting
 	/** More languages visitors may get (settings.languages); missing in copies from before v0.3. */
@@ -42,6 +41,12 @@ export interface SiteRecord {
 	/** false: pages are switched off, and "/" goes to `homeUrl` or says this address is for short links. Missing in older copies, which means on. */
 	bio?: boolean
 	homeUrl?: string
+	/**
+	 * The time zone stats count days in and pages show times in. Visits read it from here at most once in
+	 * 5 minutes per copy of the Worker (siteTimeZone), so changing it rewrites no page or short link.
+	 * Missing in older copies, which are then rebuilt from D1.
+	 */
+	timezone?: string
 }
 
 export interface LinkRecord {
@@ -51,8 +56,6 @@ export interface LinkRecord {
 	expiresAt: number | null
 	passwordHash: string | null
 	utm: UtmTags
-	/** Time zone for stats, copied here so a redirect needs no other read. */
-	tz: string
 	/** The page a bio link belongs to, for the "see the other links" button on its expired page. */
 	page: string | null
 	ios: string | null
@@ -100,7 +103,7 @@ export function deleteLinkRecord(env: Env, slug: string): Promise<void> {
 	return env.KV.delete(linkKey(slug))
 }
 
-export function toLinkRecord(link: LinkRow, tz: string): LinkRecord {
+export function toLinkRecord(link: LinkRow): LinkRecord {
 	return {
 		id: link.id,
 		url: link.url,
@@ -108,7 +111,6 @@ export function toLinkRecord(link: LinkRow, tz: string): LinkRecord {
 		expiresAt: link.expiresAt,
 		passwordHash: link.passwordHash,
 		utm: { source: link.utmSource, medium: link.utmMedium, campaign: link.utmCampaign, content: link.utmContent },
-		tz,
 		page: link.pageId,
 		ios: link.iosUrl,
 		android: link.androidUrl,
