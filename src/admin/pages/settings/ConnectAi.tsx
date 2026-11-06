@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { CopyButton, Section } from '../../components/ui'
-import { msg, t, tr } from '../../i18n'
+import { msg, t } from '../../i18n'
 import { useApp } from '../../state/app'
 import { TokensSection } from './TokensSection'
 import '../../styles/settings.css'
@@ -31,7 +31,6 @@ export function ConnectAi() {
 	const [token, setToken] = useState<string | null>(null)
 	const [tool, setTool] = useState<Tool>('Claude Code')
 	const { settings, origin } = useApp()
-	const code = (text: string) => <code className="set-inline-code">{text}</code>
 	return (
 		<>
 			<TokensSection onCreated={setToken} />
@@ -43,15 +42,6 @@ export function ConnectAi() {
 						</button>
 					))}
 				</div>
-				{tool === 'Codex' && (
-					<p className="set-tool-note">
-						{tr('Codex 預設不能連網：先在 {file} 的 {section} 加上 {setting}。', {
-							file: code('~/.codex/config.toml'),
-							section: code('[sandbox_workspace_write]'),
-							setting: code('network_access = true'),
-						})}
-					</p>
-				)}
 				<p className="set-tool-note">{t('在 {tool} 開新對話，貼上：', { tool })}</p>
 				<Block text={startPrompt(origin, token)} />
 			</Section>

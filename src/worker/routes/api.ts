@@ -49,7 +49,8 @@ import communityThemes from '../../../themes/community.json'
 import { CommunityListSchema } from '../../shared/community'
 import { guideNames, openApi, workerNameOf } from '../lib/agent'
 import { guideTopic } from '../lib/agentTopics'
-import { countsSince, insights, type Insights } from '../lib/analytics'
+import { accountUse, countsSince, insights, type Insights } from '../lib/analytics'
+import { D1_DAILY_LIMITS, D1_STORAGE, KV_DAILY_LIMITS } from '../../shared/usage'
 import {
 	adminPasswordProblem,
 	createSession,
@@ -419,8 +420,13 @@ api.get('/state', async (c) => {
 	return c.json(body)
 })
 
-/** The free plan's daily limits: 100,000 Worker requests, KV reads and D1 rows written. */
-const FREE_DAILY = { requests: 100_000, kvReads: 100_000, rowsWritten: 100_000 }
+/** The free plan's limits, per account and per UTC day. */
+const FREE_DAILY: NonNullable<UsageResponse['dailyLimits']> = {
+	requests: 100_000,
+	kv: KV_DAILY_LIMITS,
+	d1: D1_DAILY_LIMITS,
+	databases: { count: D1_STORAGE.databases, bytes: D1_STORAGE.account },
+}
 
 api.get('/usage', async (c) => {
 	const db = c.env.DB
@@ -428,13 +434,12 @@ api.get('/usage', async (c) => {
 	const now = Date.now()
 	const since = `${new Date(now).toISOString().slice(0, 10)}T00:00:00Z`
 	const bytes = await databaseBytes(db)
-	const [history, counted] = await Promise.all([
-		statsHistory(db, settings, bytes, now),
-		countsSince(c.env, since).catch((error: unknown) => {
-			console.error('Analytics Engine did not answer', error)
+	const quietly = <T>(read: Promise<T>) =>
+		read.catch((error: unknown) => {
+			console.error('Cloudflare analytics did not answer', error)
 			return null
-		}),
-	])
+		})
+	const [history, counted, account] = await Promise.all([statsHistory(db, settings, bytes, now), quietly(countsSince(c.env, since)), quietly(accountUse(c.env, since))])
 	let today: UsageResponse['today']
 	if (counted) today = { since, ...counted, from: 'analytics' }
 	else {
@@ -449,7 +454,8 @@ api.get('/usage', async (c) => {
 		plan: settings.plan,
 		database: { bytes, limit: DATABASE_LIMIT[settings.plan] },
 		today,
-		estimate: { requests: today.views + today.clicks, kvReads: today.views * 2 + today.clicks, rowsWritten: today.views + today.clicks },
+		estimate: { requests: today.views + today.clicks },
+		account,
 		dailyLimits: settings.plan === 'free' ? FREE_DAILY : null,
 		stats: history,
 	}
