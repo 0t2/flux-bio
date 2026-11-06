@@ -371,6 +371,12 @@ Worker requests, D1 or KV, and it can't touch the account's quota.
   Wednesday at noon, so a new theme is on the site once it is in `THEME_SAMPLES` (`landing/previews.ts`).
 - **Movement** is in `landing/public/motion.js`, and the page works without it. The phones in the hero take turns while they can be seen, until someone chooses one, and never
   for someone who asked for less motion. On a touch screen a finger moves between the phones and, on a phone, the templates.
+- **Fonts.** The pages' own fonts come from the site itself, so a visit connects to nobody else for them (`landing/fonts.ts`). IBM Plex is IBM's
+  own web font files, unchanged, in `landing/public/fonts/` with their licence: its reserved name is "Plex", so a file cut down here couldn't keep
+  the name. Noto Sans TC, for the Traditional Chinese page, is one file with only the characters that page shows: `pnpm landing:fonts` has Google
+  Fonts cut it and keeps it in `landing/.fonts/`, out of git, and a deploy runs it first, so new copy needs nothing done. Without that file, or
+  once the page shows a character it lacks, the page links the font at Google. The Arabic page links IBM Plex Sans Arabic there too, and the
+  sample pages in the phones load each theme's fonts as any FluxBio page does.
 - **Pictures.** `landing/public/` holds what is copied as it is: `images/`, and the dashboard screenshots in `<code>/dash-*.webp`, showing the made-up shop.
   `pnpm shots --locale <code>` retakes a language's set, and `pnpm shots --category creator --out <dir>` another kind of page. No real person's page or data belongs on the
   landing page. The photographs in `images/` were made with an image generator, and the people and places in them are invented; `link-web.webp` comes from `pnpm brand`.
@@ -386,6 +392,7 @@ pnpm typecheck   # generates .cloudflare/types, then type-checks the Worker, das
 pnpm build       # builds into .cloudflare/output
 pnpm i18n check  # lists dashboard text that isn't translated yet
 pnpm landing     # builds the landing page (see "The landing page"); pnpm landing:deploy also deploys it
+pnpm landing:fonts  # makes the Traditional Chinese landing page's font from the characters it shows now (a deploy does this itself)
 pnpm shots       # retakes the landing page's dashboard screenshots from the sample pages, in a throwaway local site
 pnpm brand       # remakes the favicon, app icons and the landing page's logo pictures from LOGO_PATH in src/templates/icons.ts
 pnpm deploy:images --site <url>  # deploy with the site's pictures as static files, which cost no quota (--no-deploy, --mode staging)

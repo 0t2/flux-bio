@@ -18,6 +18,7 @@
     "i18n": "node scripts/i18n.mjs",
     "landing": "node landing/build.mjs",
     "landing:deploy": "node landing/build.mjs && cd landing && cf deploy --prebuilt",
+    "landing:fonts": "node scripts/landing-fonts.mjs",
     "shots": "node scripts/shots.mjs",
     "brand": "node scripts/brand.mjs",
     "usage": "node scripts/usage.mjs",

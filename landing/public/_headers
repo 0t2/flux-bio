@@ -3,11 +3,17 @@
 /*
   X-Content-Type-Options: nosniff
 
+# The pages' own fonts are files here (fonts.ts). Google's stay allowed for the two pages that may still link one:
+# Arabic, and Traditional Chinese when its font hasn't been made.
 /
-  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; base-uri 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; base-uri 'none'; frame-ancestors 'none'
 
 /:language/
-  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; base-uri 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; base-uri 'none'; frame-ancestors 'none'
+
+# A font file's address holds its version, or says what is in it, so it never changes: a browser keeps it for a year.
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
 
 # Pictures keep their names when they change, which is rarely: a browser may use one for a day without asking, and for
 # a week more while it asks in the background. The phones show the same few in every preview and every language.
