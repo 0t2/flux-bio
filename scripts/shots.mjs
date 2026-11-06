@@ -4,7 +4,7 @@
 // `cf dev` keeps its state in the project: nothing touches your local data or a
 // deployed site. Stop any `pnpm dev` first, as it needs port 5173.
 //
-//   pnpm shots --locale ja                     the made-up shop in a language, into landing/public/ja/
+//   pnpm shots --locale ja                     the made-up shop in a language, into landing/public/ja/ (not in git: pnpm landing:deploy publishes them)
 //   pnpm shots --category creator --out shots  another kind of page, somewhere else
 //   pnpm shots --all --out shots               every kind, in shots/<kind>/
 //   pnpm shots --locale en --out shots         in another language

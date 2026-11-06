@@ -37,7 +37,7 @@
 - 내 Cloudflare 계정에서 돌아가요. 무료 요금제면 충분하고, 데이터는 내 손에 있어요.
 - [AI에게 프롬프트를 붙여 넣으면](#직접-배포하기) 알아서 설치해 줘요. 그다음엔 관리자 페이지에서 고치거나 AI에게 말하면 돼요.
 
-<img src="../landing/public/ko/dash-links.webp" alt="FluxBio 관리자 화면: bio 페이지를 편집하면서 실시간 미리보기 확인">
+<img src="https://fluxbio.link/ko/dash-links.webp" alt="FluxBio 관리자 화면: bio 페이지를 편집하면서 실시간 미리보기 확인">
 
 내 스타일대로 bio 페이지를 여러 개 만들어 보세요. 테마와 색 조합을 고르거나 AI에게 내 사진으로 테마를 만들어 달라고 할 수 있고, 동영상, 상품, 영업시간도 넣을 수 있어요. 페이지의 모든 링크에는 단축 링크도 있고, 어떤 링크가 클릭됐는지, IG, Threads, LINE 중 어디서 들어왔는지 볼 수 있어요.
 
@@ -79,8 +79,8 @@
 
 <table>
   <tr>
-    <td width="50%"><img src="../landing/public/ko/dash-stats.webp" alt="통계: 최근 30일 조회수, 클릭수, 클릭률, 순 방문자"></td>
-    <td width="50%"><img src="../landing/public/ko/dash-qr.webp" alt="단축 링크용 QR 코드 디자인"></td>
+    <td width="50%"><img src="https://fluxbio.link/ko/dash-stats.webp" alt="통계: 최근 30일 조회수, 클릭수, 클릭률, 순 방문자"></td>
+    <td width="50%"><img src="https://fluxbio.link/ko/dash-qr.webp" alt="단축 링크용 QR 코드 디자인"></td>
   </tr>
   <tr>
     <td align="center"><sub>이전 기간과 비교한 통계</sub></td>

@@ -37,7 +37,7 @@
 - 跑在你自己的 Cloudflare 帳號，免費方案就夠用，資料都在你手上。
 - [把一段話貼給 AI](#自己架一個)，它會幫你架好。之後在後台改，或直接跟 AI 說就好。
 
-<img src="../landing/public/zh-TW/dash-links.webp" alt="FluxBio 後台：一邊編輯 bio 頁，一邊看即時預覽">
+<img src="https://fluxbio.link/zh-TW/dash-links.webp" alt="FluxBio 後台：一邊編輯 bio 頁，一邊看即時預覽">
 
 照你的風格做幾個 bio 頁：選一種主題和配色，或請 AI 用你的圖片做一套，還能放影片、商品和營業時間。頁面上每個連結也都有短網址，可以看到每個連結的點擊，以及來自 IG、Threads 還是 LINE。
 
@@ -79,8 +79,8 @@
 
 <table>
   <tr>
-    <td width="50%"><img src="../landing/public/zh-TW/dash-stats.webp" alt="數據：近 30 天的瀏覽、點擊、點擊率和不重複訪客"></td>
-    <td width="50%"><img src="../landing/public/zh-TW/dash-qr.webp" alt="為短網址設計 QR Code"></td>
+    <td width="50%"><img src="https://fluxbio.link/zh-TW/dash-stats.webp" alt="數據：近 30 天的瀏覽、點擊、點擊率和不重複訪客"></td>
+    <td width="50%"><img src="https://fluxbio.link/zh-TW/dash-qr.webp" alt="為短網址設計 QR Code"></td>
   </tr>
   <tr>
     <td align="center"><sub>數據，和上一期比較</sub></td>

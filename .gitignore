@@ -16,6 +16,10 @@ coverage/
 # Pictures pnpm deploy:images downloads from a site, to ship as static files: the owner's, never committed
 public/media/
 
+# The landing page's dashboard screenshots, made by pnpm shots: on the maintainer's computer and on fluxbio.link,
+# from where pnpm landing:pictures fetches the ones a checkout lacks
+landing/public/*/dash-*.webp
+
 # The Chinese font pnpm landing:fonts cuts to the landing page's characters: made again by each deploy
 landing/.fonts/
 

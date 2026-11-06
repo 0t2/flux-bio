@@ -37,7 +37,7 @@ Link in bio + liên kết rút gọn mã nguồn mở, chạy trọn vẹn trên
 - Chạy trên tài khoản Cloudflare của chính bạn. Gói miễn phí là đủ, và dữ liệu vẫn là của bạn.
 - [Dán một câu lệnh cho AI của bạn](#tự-triển-khai), AI sẽ cài đặt tất cả. Sau đó, sửa trong trang quản trị hoặc chỉ cần nói với AI.
 
-<img src="../landing/public/vi/dash-links.webp" alt="Trang quản trị FluxBio: chỉnh sửa trang bio bên cạnh bản xem trước trực tiếp">
+<img src="https://fluxbio.link/vi/dash-links.webp" alt="Trang quản trị FluxBio: chỉnh sửa trang bio bên cạnh bản xem trước trực tiếp">
 
 Tạo vài trang bio đúng phong cách của bạn: chọn chủ đề và bộ màu, hoặc nhờ AI làm một bộ từ ảnh của bạn, lại có thể thêm video, sản phẩm và giờ mở cửa. Mỗi liên kết trên trang đều có liên kết rút gọn, và bạn biết liên kết nào được nhấp, khách đến từ IG, Threads hay LINE.
 
@@ -79,8 +79,8 @@ Tạo vài trang bio đúng phong cách của bạn: chọn chủ đề và bộ
 
 <table>
   <tr>
-    <td width="50%"><img src="../landing/public/vi/dash-stats.webp" alt="Thống kê: lượt xem, lượt nhấp, tỷ lệ nhấp và khách truy cập duy nhất trong 30 ngày"></td>
-    <td width="50%"><img src="../landing/public/vi/dash-qr.webp" alt="Thiết kế mã QR cho liên kết rút gọn"></td>
+    <td width="50%"><img src="https://fluxbio.link/vi/dash-stats.webp" alt="Thống kê: lượt xem, lượt nhấp, tỷ lệ nhấp và khách truy cập duy nhất trong 30 ngày"></td>
+    <td width="50%"><img src="https://fluxbio.link/vi/dash-qr.webp" alt="Thiết kế mã QR cho liên kết rút gọn"></td>
   </tr>
   <tr>
     <td align="center"><sub>Thống kê, so sánh với kỳ trước</sub></td>

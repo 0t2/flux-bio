@@ -38,7 +38,7 @@ The free plan is all you need.
 - It runs on your own Cloudflare account. The free plan is enough, and your data stays yours.
 - [Paste one prompt into your AI](#host-your-own) and it sets everything up. After that, edit in the dashboard or just tell your AI.
 
-<img src="landing/public/en/dash-links.webp" alt="The FluxBio dashboard: editing a bio page next to its live preview">
+<img src="https://fluxbio.link/en/dash-links.webp" alt="The FluxBio dashboard: editing a bio page next to its live preview">
 
 Build bio pages in your own style: pick a theme and its colors, or have your AI make one with your own pictures, and add videos, products and opening hours. Every link on your page also has a short link, and you can see what gets clicked, and whether visitors came from IG, Threads or LINE.
 
@@ -80,8 +80,8 @@ Build bio pages in your own style: pick a theme and its colors, or have your AI 
 
 <table>
   <tr>
-    <td width="50%"><img src="landing/public/en/dash-stats.webp" alt="Stats: views, clicks, click-through rate and unique visitors over 30 days"></td>
-    <td width="50%"><img src="landing/public/en/dash-qr.webp" alt="Designing a QR code for a short link"></td>
+    <td width="50%"><img src="https://fluxbio.link/en/dash-stats.webp" alt="Stats: views, clicks, click-through rate and unique visitors over 30 days"></td>
+    <td width="50%"><img src="https://fluxbio.link/en/dash-qr.webp" alt="Designing a QR code for a short link"></td>
   </tr>
   <tr>
     <td align="center"><sub>Stats, compared with the period before</sub></td>

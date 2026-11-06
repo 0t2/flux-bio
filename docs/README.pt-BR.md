@@ -37,7 +37,7 @@ Link na bio e links curtos de código aberto, rodando inteiro na sua própria co
 - Roda na sua própria conta da Cloudflare. O plano gratuito basta, e seus dados continuam seus.
 - [Cole um texto na sua IA](#monte-o-seu) e ela configura tudo. Depois, edite no painel ou simplesmente peça à sua IA.
 
-<img src="../landing/public/pt-BR/dash-links.webp" alt="O painel do FluxBio: editando uma página bio ao lado da prévia ao vivo">
+<img src="https://fluxbio.link/pt-BR/dash-links.webp" alt="O painel do FluxBio: editando uma página bio ao lado da prévia ao vivo">
 
 Crie páginas bio com a sua cara: escolha um tema e suas cores, ou peça à sua IA um com as suas imagens, e adicione vídeos, produtos e horário de funcionamento. Cada link da página também tem seu link curto, e você vê o que recebe cliques e se as pessoas vieram do IG, do Threads ou do LINE.
 
@@ -79,8 +79,8 @@ Crie páginas bio com a sua cara: escolha um tema e suas cores, ou peça à sua 
 
 <table>
   <tr>
-    <td width="50%"><img src="../landing/public/pt-BR/dash-stats.webp" alt="Estatísticas: visualizações, cliques, taxa de cliques e visitantes únicos em 30 dias"></td>
-    <td width="50%"><img src="../landing/public/pt-BR/dash-qr.webp" alt="Criando um QR code para um link curto"></td>
+    <td width="50%"><img src="https://fluxbio.link/pt-BR/dash-stats.webp" alt="Estatísticas: visualizações, cliques, taxa de cliques e visitantes únicos em 30 dias"></td>
+    <td width="50%"><img src="https://fluxbio.link/pt-BR/dash-qr.webp" alt="Criando um QR code para um link curto"></td>
   </tr>
   <tr>
     <td align="center"><sub>Estatísticas comparadas com o período anterior</sub></td>
