@@ -376,3 +376,20 @@ export interface CommunityThemesResponse {
 	/** Where the list came from: GitHub, or the copy bundled with this version. */
 	source: 'github' | 'bundled'
 }
+
+/** GET /api/media/unused: uploaded pictures nothing refers to any more. */
+export interface UnusedMediaResponse {
+	/** Their ids: each is still at /media/<id> until deleted. */
+	unused: string[]
+	/** KV holds more pictures than one call looks through: ask again after deleting these. */
+	more: boolean
+	/** A picture uploaded within this many days is never listed, used or not. */
+	keptDays: number
+}
+
+/** DELETE /api/media/unused. */
+export interface DeletedMediaResponse {
+	deleted: number
+	/** There are more to delete: ask again. */
+	more: boolean
+}
