@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import type { CommunityThemesResponse, PageJson, ThemesResponse } from '../src/shared/api'
 import { appearanceFromPreset, emptyContent, emptyLink, THEME_IDS, type SavedTheme } from '../src/shared/content'
 import { THEME_WORDS } from '../src/shared/serverWords'
-import { THEMES } from '../src/templates/themes'
+import { COLORFUL, THEMES } from '../src/templates/themes'
 import { api, apiJson, visit } from './helpers'
 
 // An AI makes a theme through the API: pictures, colors, fonts, then saved for later.
@@ -114,5 +114,13 @@ describe('the themes by name', () => {
 		for (const part of ['/api/themes/community?lang=', '`{ source, lang, bases, themes }`', 'https://fluxbio.link/<code>/#themes', 'https://fluxbio.link/preview/<code>/<theme id>']) expect(look).toContain(part)
 		const customize = await (await visit('/api/guide/customize')).text()
 		expect(customize).toContain('https://fluxbio.link/en/#themes')
+		// The pictures load as the page scrolls to them, which a script taking a screenshot has to know.
+		expect(customize).toContain('https://fluxbio.link/preview/en/<theme id>')
+	})
+
+	it('say which themes color buttons by position, and how fonts are loaded', async () => {
+		const look = await (await visit('/api/guide/look')).text()
+		for (const id of COLORFUL) expect(look, id).toContain(`(\`${id}\`)`)
+		for (const part of ['`--c1`', '`--on-c1`', '`bodyFont` loads 400 to 700', '`headFont` only its bold']) expect(look).toContain(part)
 	})
 })

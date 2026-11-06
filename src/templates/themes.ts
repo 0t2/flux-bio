@@ -182,8 +182,9 @@ export const AVATAR_RADIUS: Record<ButtonKey, string> = { pill: '999px', rounded
 const HEX = /^#[0-9a-fA-F]{6}$/
 
 /** The bright colors of the themes that take a color per social account or link, or tint a field with several. They stay the same in every color set. */
-const PALETTE = ['#EC6097', '#65D6D0', '#F7786B', '#A58CEE', '#7C9AF5', '#F3CB68']
-const COLORFUL: readonly ThemeId[] = ['brutal', 'jelly', 'pop', 'dots', 'pastel', 'chips']
+export const PALETTE = ['#EC6097', '#65D6D0', '#F7786B', '#A58CEE', '#7C9AF5', '#F3CB68']
+/** Themes that paint link buttons and social icons in turn from PALETTE (--c1…), not from the accent colors. */
+export const COLORFUL: readonly ThemeId[] = ['brutal', 'jelly', 'pop', 'dots', 'pastel', 'chips']
 
 /** `hex` with its hue turned by `degrees`, for the second color of a gradient. */
 function turnHue(hex: string, degrees: number): string {
