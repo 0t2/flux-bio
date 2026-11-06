@@ -11,7 +11,8 @@ import { errorText } from './util'
 
 interface Meter {
 	label: string
-	used: number
+	/** Null where Cloudflare's numbers can't be read, as in local development. */
+	used: number | null
 	/** Null on the paid plan, which has no daily limit to measure against. */
 	limit: number | null
 	format?: (value: number) => string
@@ -45,15 +46,17 @@ export function UsageSection() {
 	const account = usage.account
 	const reset = dateFormat({ hour: '2-digit', minute: '2-digit' }).format(Date.parse(usage.today.since) + 86_400_000)
 	const site: Meter[] = [{ label: t('資料庫'), used: usage.database.bytes, limit: usage.database.limit, format: formatSize }]
-	const accountMeters: Meter[] = account
-		? [
-				{ label: t('KV 讀取'), used: account.kv.read, limit: limits?.kv.read ?? null },
-				{ label: t('KV 寫入'), used: account.kv.write, limit: limits?.kv.write ?? null },
-				{ label: t('資料庫讀取'), used: account.d1.rowsRead, limit: limits?.d1.rowsRead ?? null },
-				{ label: t('資料庫寫入'), used: account.d1.rowsWritten, limit: limits?.d1.rowsWritten ?? null },
-				{ label: t('所有資料庫的大小'), used: account.databases.bytes, limit: limits?.databases.bytes ?? null, format: formatSize },
-			]
-		: []
+	// Every row is listed even where Cloudflare's numbers can't be read, so the owner sees what there is to watch.
+	const accountMeters: Meter[] = [
+		{ label: t('KV 讀取'), used: account?.kv.read ?? null, limit: limits?.kv.read ?? null },
+		{ label: t('KV 寫入'), used: account?.kv.write ?? null, limit: limits?.kv.write ?? null },
+		{ label: t('KV 刪除'), used: account?.kv.delete ?? null, limit: limits?.kv.delete ?? null },
+		{ label: t('KV 列出'), used: account?.kv.list ?? null, limit: limits?.kv.list ?? null },
+		{ label: t('資料庫讀取'), used: account?.d1.rowsRead ?? null, limit: limits?.d1.rowsRead ?? null },
+		{ label: t('資料庫寫入'), used: account?.d1.rowsWritten ?? null, limit: limits?.d1.rowsWritten ?? null },
+		{ label: t('資料庫數量'), used: account?.databases.count ?? null, limit: limits?.databases.count ?? null },
+		{ label: t('所有資料庫的大小'), used: account?.databases.bytes ?? null, limit: limits?.databases.bytes ?? null, format: formatSize },
+	]
 	const estimate: Meter[] = [{ label: t('請求（估計）'), used: usage.estimate.requests, limit: limits?.requests ?? null }]
 	const plans: { id: Settings['plan']; label: string }[] = [
 		{ id: 'free', label: t('免費') },
@@ -78,21 +81,23 @@ export function UsageSection() {
 
 			<h3 className="usage-group">{t('這個網站')}</h3>
 			<Meters meters={site} />
-			{account ? (
-				<>
-					<h3 className="usage-group">{t('整個 Cloudflare 帳號，今天')}</h3>
-					<Meters meters={accountMeters} />
-				</>
-			) : (
-				<p className="hint">{t('部署到 Cloudflare 後，這裡會顯示整個帳號今天實際用了多少。')}</p>
-			)}
+			<h3 className="usage-group">{t('整個 Cloudflare 帳號，今天')}</h3>
+			{!account && <p className="hint">{t('本機預覽讀不到 Cloudflare 的帳號用量，部署到 Cloudflare 後就會顯示。')}</p>}
+			<Meters meters={accountMeters} />
 			<Meters meters={estimate} />
 			<p className="hint">
 				{account
 					? t('帳號的數字來自 Cloudflare，會晚幾分鐘，包含帳號裡的其他專案。Cloudflare 沒有提供請求數，這裡用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。', { views: formatNumber(usage.today.views), clicks: formatNumber(usage.today.clicks) })
 					: t('請求數用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。', { views: formatNumber(usage.today.views), clicks: formatNumber(usage.today.clicks) })}
 			</p>
+			<h3 className="usage-group">{t('這裡看不到，要問 AI')}</h3>
+			<ul className="usage-ai">
+				<li>{t('每個 KV 命名空間和每個資料庫各用了多少，看是哪個專案用掉的')}</li>
+				<li>{t('前幾天每天的用量，最多 31 天')}</li>
+				<li>{t('帳號是不是 Workers Paid，AI 查到後會順便更新上面的方案')}</li>
+			</ul>
 			<AskAi say={t('幫我查 Cloudflare 帳號今天的詳細用量，看是哪個專案用掉的')} />
+			<p className="hint">{t('每個 Worker 的請求數只有 Cloudflare 後台看得到：Workers & Pages → 選 Worker → Metrics。')}</p>
 		</Section>
 	)
 }
@@ -102,25 +107,26 @@ function Meters({ meters }: { meters: Meter[] }) {
 		<ul className="usage-meters" role="list">
 			{meters.map((meter) => {
 				const format = meter.format ?? formatNumber
-				const text = meter.limit ? `${format(meter.used)} / ${format(meter.limit)}` : format(meter.used)
-				const share = meter.limit ? Math.min(1, meter.used / meter.limit) : 0
+				const used = meter.used
+				const text = used === null ? t('部署後顯示') : meter.limit ? `${format(used)} / ${format(meter.limit)}` : format(used)
+				const share = used !== null && meter.limit ? Math.min(1, used / meter.limit) : 0
 				return (
 					<li key={meter.label}>
 						<div className="usage-meter-head">
 							<span>{meter.label}</span>
 							<span className="mono">{text}</span>
 						</div>
-						{meter.limit !== null && (
+						{used !== null && meter.limit !== null && (
 							<span
 								className={share >= 0.9 ? 'usage-meter-bar high' : share >= 0.7 ? 'usage-meter-bar mid' : 'usage-meter-bar'}
 								role="meter"
 								aria-label={meter.label}
 								aria-valuemin={0}
 								aria-valuemax={meter.limit}
-								aria-valuenow={meter.used}
+								aria-valuenow={used}
 								aria-valuetext={text}
 							>
-								<span style={{ inlineSize: `${Math.max(share * 100, meter.used > 0 ? 1 : 0)}%` }} />
+								<span style={{ inlineSize: `${Math.max(share * 100, used > 0 ? 1 : 0)}%` }} />
 							</span>
 						)}
 					</li>
