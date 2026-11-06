@@ -11,6 +11,8 @@ export const KIND_META: Record<ItemKind, { label: string; add: string; sub: stri
 	gallery: { label: msg('圖片輪播'), add: msg('圖片輪播'), sub: msg('最多 10 張圖'), icon: 'image' },
 	product: { label: msg('商品卡'), add: msg('商品卡'), sub: msg('名稱、價格、購買連結'), icon: 'bag' },
 	hours: { label: msg('營業時間'), add: msg('營業時間與地圖'), sub: msg('自動顯示營業中或休息中'), icon: 'map' },
+	// A brand name, the same in every language.
+	kofi: { label: 'Ko-fi', add: msg('Ko-fi 贊助'), sub: msg('訪客點一下就能贊助你'), icon: 'cup' },
 }
 
 export function itemIcon(item: Item): IconName {
@@ -25,6 +27,7 @@ export function itemTitle(item: Item): string {
 		case 'heading':
 		case 'video':
 		case 'hours':
+		case 'kofi':
 			return item.title.trim() || (item.kind === 'link' ? t('未命名連結') : t(KIND_META[item.kind].label))
 		case 'gallery':
 			return item.title.trim() || t('圖片輪播・{count} 張', { count: item.images.length })

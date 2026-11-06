@@ -961,5 +961,21 @@
 	"頁面上的圖片可以跟網站一起部署，之後訪客看圖片就不算請求和 KV 讀取。這要由你的 AI 在電腦上部署，後台沒有這個按鈕；之後新上傳的圖片，要再部署一次才不算。": "Gambar di halamanmu bisa di-deploy bersama situs, sehingga saat pengunjung memuatnya tidak memakai permintaan atau pembacaan KV. Ini dikerjakan AI-mu di komputermu; di sini tidak ada tombolnya. Gambar yang diunggah sesudahnya tetap dihitung sampai deploy berikutnya.",
 	"把頁面上的圖片跟網站一起部署，讓看圖片不算額度": "Deploy gambar di halaman saya bersama situs, supaya tidak memakai kuota",
 	"站台": "Situs",
-	"切換站台，目前是 {host}": "Ganti situs, saat ini {host}"
+	"切換站台，目前是 {host}": "Ganti situs, saat ini {host}",
+	"Ko-fi 帳號": "Akun Ko-fi",
+	"ko-fi.com/你的帳號": "ko-fi.com/namamu",
+	"找不到 Ko-fi 帳號，請貼上你的 Ko-fi 網址。": "Itu bukan akun Ko-fi. Tempel alamat halaman Ko-fi-mu.",
+	"按鈕會打開 ko-fi.com/{name} 的贊助視窗。": "Tombol ini membuka panel dukungan ko-fi.com/{name}.",
+	"貼上你的 Ko-fi 網址也可以。訪客按下按鈕，才會載入 Ko-fi。": "Alamat halaman Ko-fi-mu juga bisa. Ko-fi baru dimuat saat pengunjung mengetuk tombolnya.",
+	"請我喝杯咖啡": "Traktir aku kopi",
+	"例如：每一杯都會變成下一支影片": "misalnya: Setiap kopi jadi video berikutnya",
+	"Ko-fi 贊助": "Dukungan Ko-fi",
+	"訪客點一下就能贊助你": "Pengunjung bisa mendukungmu dengan sekali ketuk",
+	"右下角 Ko-fi 按鈕": "Tombol Ko-fi di kanan bawah",
+	"固定在頁面右下角，訪客一點就會打開你的 Ko-fi 贊助視窗。": "Tetap di kanan bawah halaman, dan membuka panel Ko-fi-mu dengan sekali ketuk.",
+	"第 {n} 項 Ko-fi：找不到 Ko-fi 帳號，請填 ko-fi.com/ 後面那段": "Ko-fi di item ke-{n}: itu bukan akun Ko-fi. Isi bagian setelah ko-fi.com/",
+	"第 {n} 項 Ko-fi 還沒填帳號": "Ko-fi di item ke-{n} belum punya akun",
+	"右下角 Ko-fi 按鈕找不到 Ko-fi 帳號": "Tombol Ko-fi di kanan bawah tidak punya akun Ko-fi yang valid",
+	"Ko-fi 按鈕": "Tombol Ko-fi",
+	"Ko-fi：{title}": "Ko-fi: {title}"
 }

@@ -31,6 +31,7 @@ import {
 	MEDIA_ID,
 	newId,
 	PageContentInputSchema,
+	KOFI_PART,
 	LINE_PART,
 	SOCIAL_PART,
 	randomString,
@@ -278,7 +279,7 @@ function labelOf(key: string, params?: Params): Label {
 }
 
 /** A readable name for a click target: a short link's title, or the block part that was tapped. */
-function targetLabel(target: string, rows: Map<string, LinkRow>, content: PageContent | null): Label & { slug: string; kind: 'link' | 'block' } {
+function targetLabel(target: string, rows: Map<string, LinkRow>, content: PageContent | null, pageId = ''): Label & { slug: string; kind: 'link' | 'block' } {
 	const row = rows.get(target)
 	if (row) return { label: row.title || row.slug, slug: row.slug.startsWith('~') ? '' : row.slug, kind: 'link' }
 	const [itemId, part = ''] = target.split('.')
@@ -290,7 +291,11 @@ function targetLabel(target: string, rows: Map<string, LinkRow>, content: PageCo
 	// Fallbacks for an untitled block are translated; the owner's own titles are not.
 	const named = (text: string, fallback: string): string | Message => text || { key: fallback }
 	const deleted = block(labelOf(msg('（已刪除的項目）')))
-	if (!item) return part === LINE_PART ? block(labelOf(msg('LINE 按鈕'))) : deleted
+	if (!item) {
+		if (part === LINE_PART) return block(labelOf(msg('LINE 按鈕')))
+		// A Ko-fi card that was deleted counts under its own id, the button under the page's.
+		return itemId === pageId && part === KOFI_PART ? block(labelOf(msg('Ko-fi 按鈕'))) : deleted
+	}
 	switch (item.kind) {
 		case 'video':
 			return block(labelOf(msg('影片：{title}'), { title: named(item.title, msg('未命名')) }))
@@ -305,6 +310,8 @@ function targetLabel(target: string, rows: Map<string, LinkRow>, content: PageCo
 		}
 		case 'hours':
 			return block(labelOf(msg('地圖導航')))
+		case 'kofi':
+			return block(labelOf(msg('Ko-fi：{title}'), { title: named(item.title, msg('未命名')) }))
 		default:
 			return deleted
 	}
@@ -858,10 +865,10 @@ api.get('/stats', async (c) => {
 	const label = (target: string): Label => {
 		if (page && target === page.id) return labelOf(msg('bio 頁'))
 		// Only the label: an event has a kind of its own.
-		const { label: text, labelKey, labelParams } = targetLabel(target, byId, content)
+		const { label: text, labelKey, labelParams } = targetLabel(target, byId, content, page?.id)
 		return { label: text, labelKey, labelParams }
 	}
-	const topLinks: TopTargetJson[] = data.clicksByTarget.slice(0, 20).map((entry) => ({ target: entry.target, count: entry.count, ...targetLabel(entry.target, byId, content) }))
+	const topLinks: TopTargetJson[] = data.clicksByTarget.slice(0, 20).map((entry) => ({ target: entry.target, count: entry.count, ...targetLabel(entry.target, byId, content, page?.id) }))
 	const body: StatsResponse = {
 		page: page ? { id: page.id, handle: page.handle } : null,
 		timezone: settings.timezone,

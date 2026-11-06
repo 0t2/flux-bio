@@ -2,6 +2,9 @@ import { Hono, type Context } from 'hono'
 import {
 	DEFAULT_SETTINGS,
 	isHttpUrl,
+	KOFI_PART,
+	kofiPage,
+	kofiUrl,
 	LINE_PART,
 	mapsUrl,
 	MEDIA_ID,
@@ -22,7 +25,7 @@ import { pageLanguages, requestedLocale, resolveLocale } from '../../shared/loca
 import { normalizeSlug, slugProblem } from '../../shared/slug'
 import { detectOs, detectSource, sourceFromUserAgent } from '../../shared/source'
 import { translatedLocales } from '../../shared/translations'
-import { renderBioPage, TAP_SCRIPT_HASH, visibleItems } from '../../templates/render'
+import { renderBioPage, SHEET_SCRIPT_HASH, TAP_SCRIPT_HASH, visibleItems } from '../../templates/render'
 import { renderSystemPage, type SystemPageKind, type SystemPageOptions } from '../../templates/system'
 import { agentGuide, agentSkill, guideSite, workerNameOf } from '../lib/agent'
 import { getLinkRecord, getNamed, getSnapshot, mediaKey, type LinkRecord, type SiteRecord, type Snapshot } from '../lib/cache'
@@ -42,11 +45,14 @@ type SiteContext = Context<AppEnv>
 
 /** Videos and maps load in frames only after a tap; everything else on public pages is plain HTML. */
 const FRAMES = "'self' https://www.youtube-nocookie.com https://player.vimeo.com https://maps.google.com https://www.google.com"
-const csp = (ancestors: string, script = "'none'") =>
-	`default-src 'none'; script-src ${script}; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; frame-src ${FRAMES}; form-action 'self'; base-uri 'none'; frame-ancestors ${ancestors}`
+const csp = (ancestors: string, script = "'none'", frames = FRAMES) =>
+	`default-src 'none'; script-src ${script}; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; frame-src ${frames}; form-action 'self'; base-uri 'none'; frame-ancestors ${ancestors}`
 const PAGE_CSP = csp("'none'")
-/** A page of links: the one script that reports a tap, by its hash, and somewhere for it and the ping attribute to report to. */
-const BIO_CSP = `${csp("'none'", `'${TAP_SCRIPT_HASH}'`)}; connect-src 'self'`
+/**
+ * A page of links: the script that reports a tap and the one that opens Ko-fi's panel, by their hashes, somewhere for
+ * them and the ping attribute to report to, and Ko-fi, whose panel loads in a frame only after a tap.
+ */
+const BIO_CSP = `${csp("'none'", `'${TAP_SCRIPT_HASH}' '${SHEET_SCRIPT_HASH}'`, `${FRAMES} https://ko-fi.com`)}; connect-src 'self'`
 
 /** The dashboard's preview tab; it may be framed by the dashboard. */
 export const PREVIEW_CSP = csp("'self'")
@@ -346,6 +352,9 @@ function tapOn({ content, handle, pageId }: Snapshot, id: string, part: string):
 		const url = content.lineButton?.trim() ? socialHref('line', content.lineButton) : null
 		return url ? { target: `${pageId}.${LINE_PART}`, url, slug: handle } : null
 	}
+	// "page" is a possible item id too: only a page with the button takes it for the button.
+	const kofiButton = id === 'page' && part === KOFI_PART && content.kofiButton?.trim() ? kofiPage(content.kofiButton) : null
+	if (kofiButton) return { target: `${pageId}.${KOFI_PART}`, url: kofiUrl(kofiButton), slug: handle }
 	if (part === SOCIAL_PART && content.countSocials) {
 		const social = content.socials.find((entry) => entry.id === id)
 		const url = social ? socialHref(social.platform, social.url) : null
@@ -374,6 +383,10 @@ function blockTarget(item: Item, part: string): string | null {
 			return part === 'more' ? typed(item.moreUrl) : typed(item.products.find((product) => product.id === part)?.url ?? '')
 		case 'hours':
 			return part === 'map' && item.address.trim() ? mapsUrl(item.address) : null
+		case 'kofi': {
+			const page = part === KOFI_PART ? kofiPage(item.username) : null
+			return page ? kofiUrl(page) : null
+		}
 		default:
 			return null
 	}

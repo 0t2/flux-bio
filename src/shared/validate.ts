@@ -1,5 +1,5 @@
 import { fill, msg, type Message, type Params } from '../templates/msg'
-import { isHttpUrl, socialHref, videoEmbed, type PageContent } from './content'
+import { isHttpUrl, kofiPage, socialHref, videoEmbed, type PageContent } from './content'
 import { normalizeSlug, SLUG_PROBLEM_TEXT, slugProblem } from './slug'
 
 export interface Problem {
@@ -80,6 +80,10 @@ export function publishProblems(content: PageContent, handle: string): Problem[]
 					}
 				})
 				return
+			case 'kofi':
+				if (item.username.trim() && !kofiPage(item.username)) report(at('username'), msg('第 {n} 項 Ko-fi：找不到 Ko-fi 帳號，請填 ko-fi.com/ 後面那段'), { n })
+				else if (!item.hidden && !item.username.trim()) report(at('username'), msg('第 {n} 項 Ko-fi 還沒填帳號'), { n })
+				return
 			case 'heading':
 				return
 		}
@@ -92,6 +96,7 @@ export function publishProblems(content: PageContent, handle: string): Problem[]
 	})
 
 	if (content.lineButton?.trim() && !socialHref('line', content.lineButton)) report('lineButton', msg('右下角 LINE 按鈕的網址格式不正確'), {})
+	if (content.kofiButton?.trim() && !kofiPage(content.kofiButton)) report('kofiButton', msg('右下角 Ko-fi 按鈕找不到 Ko-fi 帳號'), {})
 
 	return problems
 }

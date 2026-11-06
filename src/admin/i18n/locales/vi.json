@@ -961,5 +961,21 @@
 	"頁面上的圖片可以跟網站一起部署，之後訪客看圖片就不算請求和 KV 讀取。這要由你的 AI 在電腦上部署，後台沒有這個按鈕；之後新上傳的圖片，要再部署一次才不算。": "Ảnh trên trang của bạn có thể triển khai cùng trang web, khi đó khách tải ảnh sẽ không tốn yêu cầu hay lượt đọc KV. Việc này do AI của bạn làm trên máy tính; ở đây không có nút. Ảnh tải lên sau đó vẫn tính cho đến lần triển khai tiếp theo.",
 	"把頁面上的圖片跟網站一起部署，讓看圖片不算額度": "Triển khai ảnh trên trang của mình cùng trang web để ảnh không tính vào hạn mức",
 	"站台": "Trang web",
-	"切換站台，目前是 {host}": "Chuyển trang web, hiện là {host}"
+	"切換站台，目前是 {host}": "Chuyển trang web, hiện là {host}",
+	"Ko-fi 帳號": "Tài khoản Ko-fi",
+	"ko-fi.com/你的帳號": "ko-fi.com/tencuaban",
+	"找不到 Ko-fi 帳號，請貼上你的 Ko-fi 網址。": "Không tìm thấy tài khoản Ko-fi. Hãy dán địa chỉ trang Ko-fi của bạn.",
+	"按鈕會打開 ko-fi.com/{name} 的贊助視窗。": "Nút này mở bảng ủng hộ của ko-fi.com/{name}.",
+	"貼上你的 Ko-fi 網址也可以。訪客按下按鈕，才會載入 Ko-fi。": "Dán địa chỉ trang Ko-fi của bạn cũng được. Ko-fi chỉ tải khi khách bấm nút.",
+	"請我喝杯咖啡": "Mời mình một ly cà phê",
+	"例如：每一杯都會變成下一支影片": "ví dụ: Mỗi ly cà phê sẽ thành video tiếp theo",
+	"Ko-fi 贊助": "Ủng hộ qua Ko-fi",
+	"訪客點一下就能贊助你": "Khách bấm một lần là ủng hộ được bạn",
+	"右下角 Ko-fi 按鈕": "Nút Ko-fi ở góc dưới bên phải",
+	"固定在頁面右下角，訪客一點就會打開你的 Ko-fi 贊助視窗。": "Luôn nằm ở góc dưới bên phải trang, bấm một lần là mở bảng ủng hộ Ko-fi của bạn.",
+	"第 {n} 項 Ko-fi：找不到 Ko-fi 帳號，請填 ko-fi.com/ 後面那段": "Ko-fi ở mục {n}: không tìm thấy tài khoản Ko-fi. Hãy nhập phần sau ko-fi.com/",
+	"第 {n} 項 Ko-fi 還沒填帳號": "Ko-fi ở mục {n} chưa có tài khoản",
+	"右下角 Ko-fi 按鈕找不到 Ko-fi 帳號": "Nút Ko-fi ở góc dưới bên phải không có tài khoản Ko-fi hợp lệ",
+	"Ko-fi 按鈕": "Nút Ko-fi",
+	"Ko-fi：{title}": "Ko-fi: {title}"
 }

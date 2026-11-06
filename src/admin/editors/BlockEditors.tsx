@@ -1,12 +1,14 @@
 import { useRef, useState } from 'react'
 import {
 	GALLERY_LIMIT,
+	kofiPage,
 	newId,
 	newProduct,
 	PRODUCT_LIMIT,
 	videoEmbed,
 	type GalleryItem,
 	type HeadingItem,
+	type KofiItem,
 	type Product,
 	type ProductItem,
 	type VideoItem,
@@ -78,6 +80,48 @@ export function VideoEditor({ item, set, invalid }: EditorProps<VideoItem>) {
 			<div className="field">
 				<label htmlFor={fieldId(item, 'title')}>{t('影片標題（選填）')}</label>
 				<input id={fieldId(item, 'title')} className="input" maxLength={80} value={item.title} onChange={(event) => set({ title: event.target.value })} placeholder={t('顯示在影片下方')} />
+			</div>
+		</>
+	)
+}
+
+/** A pasted Ko-fi address, or Ko-fi's widget code, becomes the name of the page; anything else stays as typed. */
+export const kofiInput = (value: string): string => (/ko-fi\.com\/|kofiWidgetOverlay/i.test(value) ? (kofiPage(value) ?? value) : value)
+
+export function KofiEditor({ item, set, invalid }: EditorProps<KofiItem>) {
+	const page = kofiPage(item.username)
+	const wrong = Boolean(item.username.trim()) && !page
+	return (
+		<>
+			<div className="field">
+				<label htmlFor={fieldId(item, 'username')}>{t('Ko-fi 帳號')}</label>
+				<input
+					id={fieldId(item, 'username')}
+					className="input mono"
+					maxLength={2048}
+					autoCapitalize="none"
+					autoCorrect="off"
+					spellCheck={false}
+					value={item.username}
+					aria-invalid={invalid('username') ?? (wrong || undefined)}
+					onChange={(event) => set({ username: kofiInput(event.target.value) })}
+					placeholder={t('ko-fi.com/你的帳號')}
+				/>
+				<span className="hint">
+					{wrong
+						? t('找不到 Ko-fi 帳號，請貼上你的 Ko-fi 網址。')
+						: page
+							? t('按鈕會打開 ko-fi.com/{name} 的贊助視窗。', { name: page })
+							: t('貼上你的 Ko-fi 網址也可以。訪客按下按鈕，才會載入 Ko-fi。')}
+				</span>
+			</div>
+			<div className="field">
+				<label htmlFor={fieldId(item, 'title')}>{t('標題')}</label>
+				<input id={fieldId(item, 'title')} className="input" maxLength={80} value={item.title} onChange={(event) => set({ title: event.target.value })} placeholder={t('請我喝杯咖啡')} />
+			</div>
+			<div className="field">
+				<label htmlFor={fieldId(item, 'note')}>{t('備註（選填）')}</label>
+				<input id={fieldId(item, 'note')} className="input" maxLength={120} value={item.note} onChange={(event) => set({ note: event.target.value })} placeholder={t('例如：每一杯都會變成下一支影片')} />
 			</div>
 		</>
 	)

@@ -20,6 +20,7 @@ import {
 	SOCIAL_PLATFORMS,
 	type Item,
 	type ItemKind,
+	type KofiItem,
 	type SocialPlatform,
 } from '../../shared/content'
 import { STARTER_IDS, STARTER_LABELS, starterContent, starterPreview, type StarterId } from '../../shared/starters'
@@ -27,7 +28,7 @@ import { SOCIAL_META } from '../../templates/icons'
 import { Icon } from '../components/Icon'
 import { PhonePreview } from '../components/PhonePreview'
 import { ConfirmButton, EmptyState, Section, Toggle, useMedia } from '../components/ui'
-import { GalleryEditor, HeadingEditor, ProductEditor, VideoEditor } from '../editors/BlockEditors'
+import { GalleryEditor, HeadingEditor, KofiEditor, kofiInput, ProductEditor, VideoEditor } from '../editors/BlockEditors'
 import { HoursEditor } from '../editors/HoursEditor'
 import { itemIcon, itemTitle, KIND_META } from '../editors/kinds'
 import { LinkEditor } from '../editors/LinkEditor'
@@ -367,6 +368,9 @@ function ItemEditor({ item }: { item: Item }) {
 		case 'hours':
 			editor = <HoursEditor item={item} set={set} invalid={invalid} />
 			break
+		case 'kofi':
+			editor = <KofiEditor item={item} set={set} invalid={invalid} />
+			break
 	}
 	return (
 		<>
@@ -500,6 +504,40 @@ function SocialSection() {
 					onChange={(event) =>
 						page.update((d) => {
 							d.lineButton = event.target.value
+						})
+					}
+				/>
+			)}
+			<div className="section-row">
+				<div>
+					<p className="section-title">{t('右下角 Ko-fi 按鈕')}</p>
+					<p className="hint" style={{ marginTop: 4 }}>{t('固定在頁面右下角，訪客一點就會打開你的 Ko-fi 贊助視窗。')}</p>
+				</div>
+				<Toggle
+					on={page.draft.kofiButton !== undefined}
+					onChange={(on) =>
+						page.update((d) => {
+							// A Ko-fi card on the page already says which account.
+							if (on) d.kofiButton = d.items.find((item): item is KofiItem => item.kind === 'kofi')?.username ?? ''
+							else delete d.kofiButton
+						})
+					}
+					label={t('右下角 Ko-fi 按鈕')}
+				/>
+			</div>
+			{page.draft.kofiButton !== undefined && (
+				<input
+					className="input mono"
+					aria-label={t('Ko-fi 帳號')}
+					aria-invalid={page.problems.some((problem) => problem.path === 'kofiButton') || undefined}
+					autoCapitalize="none"
+					autoCorrect="off"
+					spellCheck={false}
+					value={page.draft.kofiButton}
+					placeholder={t('ko-fi.com/你的帳號')}
+					onChange={(event) =>
+						page.update((d) => {
+							d.kofiButton = kofiInput(event.target.value)
 						})
 					}
 				/>

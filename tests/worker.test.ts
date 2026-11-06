@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { CreateLinkResponse, LinkJson, LinksResponse, PageJson, StateResponse, StatsResponse } from '../src/shared/api'
 import { emptyContent, emptyLink, newItem, type LinkItem, type PageContent } from '../src/shared/content'
-import { TAP_SCRIPT, TAP_SCRIPT_HASH } from '../src/templates/render'
+import { SHEET_SCRIPT_HASH, TAP_SCRIPT, TAP_SCRIPT_HASH } from '../src/templates/render'
 import { ANDROID, api, apiJson, call, INSTAGRAM, IPHONE, LINE, PASSWORD, visit } from './helpers'
 
 function link(patch: Partial<LinkItem>): LinkItem {
@@ -115,7 +115,7 @@ describe('publishing and visiting', () => {
 		expect(html).not.toContain('隱藏的連結')
 		expect(html.match(/<script/g)).toHaveLength(1)
 		expect(html).toContain(`<script>${TAP_SCRIPT}</script>`)
-		expect(response.headers.get('content-security-policy')).toContain(`script-src '${TAP_SCRIPT_HASH}';`)
+		expect(response.headers.get('content-security-policy')).toContain(`script-src '${TAP_SCRIPT_HASH}' '${SHEET_SCRIPT_HASH}';`)
 	})
 
 	it("passes the visit's campaign tags on to the page's links", async () => {

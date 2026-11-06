@@ -1,5 +1,9 @@
 import {
 	isScheduledNow,
+	KOFI_PART,
+	kofiPage,
+	kofiPanelUrl,
+	kofiUrl,
 	mapsEmbedUrl,
 	mapsUrl,
 	isHttpUrl,
@@ -12,6 +16,7 @@ import {
 	type GalleryItem,
 	type HoursItem,
 	type Item,
+	type KofiItem,
 	type LinkItem,
 	type Locale,
 	type PageContent,
@@ -79,6 +84,12 @@ interface BioStrings {
 	call: string
 	map: string
 	loadMap: string
+	/** The button of a Ko-fi card, and what the floating Ko-fi button and its panel are called. */
+	kofi: string
+	/** What the floating Ko-fi button says. */
+	tip: string
+	/** Closes the panel a Ko-fi button opens. */
+	close: string
 	/** Joins a label to what it names, e.g. "Play video: <title>". */
 	colon: string
 }
@@ -102,6 +113,9 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: '打電話',
 		map: '地圖',
 		loadMap: '點一下載入地圖',
+		kofi: '到 Ko-fi 贊助我',
+		tip: '贊助我',
+		close: '關閉',
 		colon: '：',
 	},
 	en: {
@@ -122,6 +136,9 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Call',
 		map: 'Map',
 		loadMap: 'Tap to load the map',
+		kofi: 'Support me on Ko-fi',
+		tip: 'Support me',
+		close: 'Close',
 		colon: ': ',
 	},
 	'zh-CN': {
@@ -142,6 +159,9 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: '打电话',
 		map: '地图',
 		loadMap: '点击加载地图',
+		kofi: '到 Ko-fi 赞助我',
+		tip: '赞助我',
+		close: '关闭',
 		colon: '：',
 	},
 	ja: {
@@ -162,6 +182,9 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: '電話する',
 		map: '地図',
 		loadMap: 'タップして地図を表示',
+		kofi: 'Ko-fi で応援する',
+		tip: '応援する',
+		close: '閉じる',
 		colon: '：',
 	},
 	ko: {
@@ -182,6 +205,9 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: '전화하기',
 		map: '지도',
 		loadMap: '탭해서 지도 불러오기',
+		kofi: 'Ko-fi에서 후원하기',
+		tip: '후원하기',
+		close: '닫기',
 		colon: ': ',
 	},
 	es: {
@@ -202,6 +228,9 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Llamar',
 		map: 'Mapa',
 		loadMap: 'Toca para cargar el mapa',
+		kofi: 'Apóyame en Ko-fi',
+		tip: 'Apóyame',
+		close: 'Cerrar',
 		colon: ': ',
 	},
 	'pt-BR': {
@@ -222,6 +251,9 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Ligar',
 		map: 'Mapa',
 		loadMap: 'Toque para carregar o mapa',
+		kofi: 'Me apoie no Ko-fi',
+		tip: 'Me apoie',
+		close: 'Fechar',
 		colon: ': ',
 	},
 	fr: {
@@ -242,6 +274,9 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Appeler',
 		map: 'Carte',
 		loadMap: 'Touchez pour charger la carte',
+		kofi: 'Me soutenir sur Ko-fi',
+		tip: 'Me soutenir',
+		close: 'Fermer',
 		colon: '\u00a0: ',
 	},
 	de: {
@@ -262,6 +297,9 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Anrufen',
 		map: 'Karte',
 		loadMap: 'Tippen, um die Karte zu laden',
+		kofi: 'Auf Ko-fi unterstützen',
+		tip: 'Unterstützen',
+		close: 'Schließen',
 		colon: ': ',
 	},
 	id: {
@@ -282,6 +320,9 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Telepon',
 		map: 'Peta',
 		loadMap: 'Ketuk untuk memuat peta',
+		kofi: 'Dukung saya di Ko-fi',
+		tip: 'Dukung saya',
+		close: 'Tutup',
 		colon: ': ',
 	},
 	th: {
@@ -302,6 +343,9 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'โทร',
 		map: 'แผนที่',
 		loadMap: 'แตะเพื่อโหลดแผนที่',
+		kofi: 'สนับสนุนฉันบน Ko-fi',
+		tip: 'สนับสนุนฉัน',
+		close: 'ปิด',
 		colon: ': ',
 	},
 	vi: {
@@ -322,6 +366,9 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Gọi điện',
 		map: 'Bản đồ',
 		loadMap: 'Chạm để tải bản đồ',
+		kofi: 'Ủng hộ tôi trên Ko-fi',
+		tip: 'Ủng hộ tôi',
+		close: 'Đóng',
 		colon: ': ',
 	},
 	ar: {
@@ -342,6 +389,9 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'اتصال',
 		map: 'الخريطة',
 		loadMap: 'اضغط لتحميل الخريطة',
+		kofi: 'ادعمني على Ko-fi',
+		tip: 'ادعمني',
+		close: 'إغلاق',
 		colon: ': ',
 	},
 }
@@ -560,10 +610,33 @@ function absoluteUrl(path: string, base?: string): string | null {
 }
 
 /** The items a visitor sees right now: not hidden, inside their schedule, and filled in enough to show. */
-const TODO_CSS = '.link.todo{opacity:.62;border-style:dashed;border-width:1.5px}'
+const TODO_CSS = '.link.todo,.act.todo{opacity:.62;border-style:dashed;border-width:1.5px}'
 
 const LINE_BUTTON_CSS = `.has-line main{padding-bottom:88px}
 .line-button{position:fixed;inset-inline-end:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:6;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;background:#06C755;box-shadow:0 4px 14px rgba(0,0,0,.28);text-decoration:none}`
+
+/**
+ * A Ko-fi card, the floating Ko-fi button (above the LINE button when there is one), and the sheet their tap opens. The
+ * sheet holds Ko-fi's own panel, which is white whatever the theme, so the sheet is too.
+ */
+const KOFI_CSS = `.kofi-head{display:flex;align-items:center;gap:14px}
+.kofi-cup{flex:0 0 auto;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:min(var(--radius),14px);color:var(--accent-text);background:color-mix(in srgb,var(--accent) 16%,transparent)}
+.kofi-text{min-width:0;display:flex;flex-direction:column;gap:2px}
+.has-kofi main{padding-bottom:84px}
+.has-kofi.has-line main{padding-bottom:148px}
+.kofi-button{position:fixed;inset-inline-end:16px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:6;min-height:48px;padding-inline:14px 18px;display:flex;align-items:center;gap:8px;border-radius:999px;color:var(--ink);background:var(--accent);font:700 15px/1.2 var(--body-font);text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.28)}
+.has-line .kofi-button{bottom:calc(84px + env(safe-area-inset-bottom))}
+.sheet{width:100%;max-width:440px;max-height:100%;margin:auto auto 0;padding:0 0 env(safe-area-inset-bottom);border:0;border-radius:20px 20px 0 0;color:#131416;background:#f9f9f9;box-shadow:0 -8px 40px rgba(0,0,0,.3);overflow:hidden}
+.sheet::backdrop{background:rgba(0,0,0,.5)}
+.sheet-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:6px 0;padding-inline:20px 6px}
+.sheet-bar b{font:700 15px/1.3 var(--body-font)}
+.sheet-bar form{margin:0}
+.sheet:focus{outline:0}
+.sheet-close{width:40px;height:40px;margin:2px;display:flex;align-items:center;justify-content:center;border:0;border-radius:50%;color:inherit;background:rgba(0,0,0,.06);cursor:pointer}
+.sheet-close:focus-visible{outline:2px solid currentColor;outline-offset:-4px}
+.sheet iframe{display:block;width:100%;height:min(712px,calc(100dvh - 110px));border:0}
+body:has(.sheet[open]){overflow:hidden}
+@media (min-width:600px){.sheet{margin:auto;border-radius:20px;padding:0}}`
 
 const DRAFT_CSS = '.draft-note{position:sticky;top:0;z-index:5;margin:0;padding:6px 12px;background:#131416;color:#fff;font:500 13px/1.4 system-ui,sans-serif;text-align:center}'
 
@@ -594,6 +667,8 @@ export function visibleItems(content: PageContent, now = Date.now(), { unfinishe
 				return item.products.some((product) => product.name.trim())
 			case 'hours':
 				return item.week.some((day) => day.length > 0) || Boolean(item.address.trim())
+			case 'kofi':
+				return Boolean(kofiPage(item.username)) || (unfinished && Boolean(item.title.trim()))
 			// A kind this version doesn't know, e.g. in a page published by another version, isn't shown.
 			default:
 				return false
@@ -626,6 +701,27 @@ function facade(ctx: Context, link: { href: string; label: string }, inner: stri
 export const TAP_SCRIPT = `document.querySelectorAll('a[ping]').forEach(function(a){var u=a.getAttribute('ping');a.removeAttribute('ping');function t(){fetch(u,{method:'POST',keepalive:true,credentials:'omit'}).catch(function(){})}a.addEventListener('click',t);a.addEventListener('auxclick',function(e){e.button===1&&t()})})`
 /** The CSP allows exactly that text; tests/link-buttons.test.ts fails if the two part ways. */
 export const TAP_SCRIPT_HASH = 'sha256-ll32O/+80PlnpGmojgn8eAezy4q1giUtfmTb5/iYkwU='
+
+/**
+ * The other script, on a page with a Ko-fi card or button: a tap on a link with `data-sheet` opens that address in the
+ * sheet's frame, over the page, instead of leaving it. The frame has no address until then, so nothing loads from Ko-fi
+ * before a tap. TAP_SCRIPT still counts the tap. Without JavaScript, or a browser without <dialog>, or a tap meant for a
+ * new tab, the link goes to the Ko-fi page as any link would. The close button needs no script: it is a dialog form.
+ */
+export const SHEET_SCRIPT = `(function(){var d=document.getElementById('sheet'),f=d&&d.querySelector('iframe');if(!f||!d.showModal)return;document.querySelectorAll('a[data-sheet]').forEach(function(a){a.addEventListener('click',function(e){if(e.button||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;e.preventDefault();var u=a.getAttribute('data-sheet');if(f.getAttribute('src')!==u)f.setAttribute('src',u);d.showModal()})});d.addEventListener('click',function(e){if(e.target===d)d.close()})})()`
+/** Allowed by the CSP like TAP_SCRIPT; tests/kofi.test.ts fails if the two part ways. */
+export const SHEET_SCRIPT_HASH = 'sha256-4nC8NlRWLRWbhLvmMVCEiGVw6GNJaypyCqGygKc6bHs='
+
+/**
+ * What Ko-fi's panel may do in the sheet's frame: run, keep its own origin (ko-fi.com, never this site's: the frame only
+ * ever gets a Ko-fi address), send its form, and open PayPal or a card form in a window of their own. Not navigate this page.
+ */
+const SHEET_SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox'
+
+function sheetHtml(text: BioStrings): string {
+	// autofocus: opening it focuses the sheet itself, not its close button, which a tap would then show ringed.
+	return `<dialog class="sheet" id="sheet" aria-label="${esc(text.kofi)}" autofocus><div class="sheet-bar"><b>Ko-fi</b><form method="dialog"><button class="sheet-close" aria-label="${esc(text.close)}">${iconSvg('close', 22, 2)}</button></form></div><iframe title="Ko-fi" sandbox="${SHEET_SANDBOX}" allow="payment"></iframe></dialog>`
+}
 
 /** A link to an address the visitor can see before tapping, which reports the tap in live mode. */
 function counted(ctx: Context, item: { id: string }, part: string, url: string): string {
@@ -736,6 +832,24 @@ function hoursHtml(ctx: Context, item: HoursItem): string {
 	return `<section class="panel hours" aria-labelledby="${esc(id)}"><h2 id="${esc(id)}">${esc(item.title.trim() || ctx.text.map)}</h2>${rows}${item.note.trim() ? `<p class="note">${esc(item.note)}</p>` : ''}${map}${address ? `<p class="addr">${esc(address)}</p>` : ''}${actions.length ? `<div class="acts${actions.length === 1 ? ' one' : ''}">${actions.join('')}</div>` : ''}</section>`
 }
 
+/** A link to a Ko-fi page. On a live page a tap opens the page's tip panel in the sheet instead (SHEET_SCRIPT). */
+function kofiLink(ctx: Context, item: { id: string }, page: string): string {
+	const sheet = ctx.live ? ` data-sheet="${esc(kofiPanelUrl(page))}"` : ''
+	return `${counted(ctx, item, KOFI_PART, kofiUrl(page))}${sheet}${ctx.newTab}`
+}
+
+function kofiHtml(ctx: Context, item: KofiItem): string {
+	const page = kofiPage(item.username)
+	const id = `k-${item.id}`
+	const title = item.title.trim()
+	const label = esc(ctx.text.kofi)
+	// Only previews get this far without a Ko-fi page: the button shows, and goes nowhere.
+	const button = page ? `<a class="act main" ${kofiLink(ctx, item, page)}>${label}</a>` : `<span class="act main todo">${label}</span>`
+	const heading = title ? `<h2 id="${esc(id)}">${esc(item.title)}</h2>` : ''
+	const note = item.note.trim() ? `<p class="note">${esc(item.note)}</p>` : ''
+	return `<section class="panel kofi" ${title ? `aria-labelledby="${esc(id)}"` : 'aria-label="Ko-fi"'}><div class="kofi-head"><span class="kofi-cup" aria-hidden="true">${iconSvg('cup', 28, 1.8)}</span><div class="kofi-text">${heading}${note}</div></div>${button}</section>`
+}
+
 function itemHtml(ctx: Context, item: Item): string {
 	switch (item.kind) {
 		case 'link':
@@ -750,6 +864,8 @@ function itemHtml(ctx: Context, item: Item): string {
 			return productHtml(ctx, item)
 		case 'hours':
 			return hoursHtml(ctx, item)
+		case 'kofi':
+			return kofiHtml(ctx, item)
 	}
 }
 
@@ -836,8 +952,14 @@ export function renderBioPage(source: PageContent, options: RenderOptions): stri
 	const lineButton = lineUrl
 		? `<a class="line-button" ${counted(ctx, { id: 'page' }, LINE_PART, lineUrl)} aria-label="LINE"${ctx.newTab}>${iconSvg('line', 30)}</a>`
 		: ''
+	const kofiName = content.kofiButton?.trim() ? kofiPage(content.kofiButton) : null
+	const kofiButton = kofiName
+		? `<a class="kofi-button" ${kofiLink(ctx, { id: 'page' }, kofiName)} aria-label="${esc(text.kofi)}">${iconSvg('cup', 22, 2)}<span>${esc(text.tip)}</span></a>`
+		: ''
 	// The owner's own text can't match: esc() turns its quotes into entities.
-	const reportsTaps = / ping="/.test(itemsHtml + socials.join('') + lineButton)
+	const reportsTaps = / ping="/.test(itemsHtml + socials.join('') + lineButton + kofiButton)
+	const opensSheet = / data-sheet="/.test(itemsHtml + kofiButton)
+	const showsKofi = Boolean(kofiButton) || items.some((item) => item.kind === 'kofi')
 
 	const body = `${options.draft ? `<p class="draft-note" role="status">${esc(text.draftNote)}</p>` : ''}
 ${backdrop}
@@ -853,9 +975,10 @@ ${cover}
 ${items.length ? `<div class="items">${itemsHtml}</div>` : ''}
 ${footer}
 </main>
-${lineButton}
-${reportsTaps ? `<script>${TAP_SCRIPT}</script>` : ''}
+${lineButton}${kofiButton}${opensSheet ? sheetHtml(text) : ''}
+${reportsTaps ? `<script>${TAP_SCRIPT}</script>` : ''}${opensSheet ? `<script>${SHEET_SCRIPT}</script>` : ''}
 ${options.draft ? draftScript(options.draft) : ''}`
+	const bodyClass = [lineButton && 'has-line', kofiButton && 'has-kofi'].filter(Boolean).join(' ')
 
 	return `<!doctype html>
 <html lang="${text.lang}"${dirAttribute(text.lang)}>
@@ -864,9 +987,9 @@ ${headHtml(look, title, options.fonts, live || options.settled ? body : undefine
 ${meta}
 <style>${pageVars(look)}
 ${BASE_CSS}
-${THEME_CSS[look.theme.id]}${lineButton ? `\n${LINE_BUTTON_CSS}` : ''}${options.mode === 'preview' ? `\n${TODO_CSS}` : ''}${options.draft ? `\n${DRAFT_CSS}` : ''}</style>
+${THEME_CSS[look.theme.id]}${lineButton ? `\n${LINE_BUTTON_CSS}` : ''}${showsKofi ? `\n${KOFI_CSS}` : ''}${options.mode === 'preview' ? `\n${TODO_CSS}` : ''}${options.draft ? `\n${DRAFT_CSS}` : ''}</style>
 </head>
-<body${lineButton ? ' class="has-line"' : ''}>
+<body${bodyClass ? ` class="${bodyClass}"` : ''}>
 ${body}
 </body>
 </html>`

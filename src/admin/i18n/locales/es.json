@@ -961,5 +961,21 @@
 	"頁面上的圖片可以跟網站一起部署，之後訪客看圖片就不算請求和 KV 讀取。這要由你的 AI 在電腦上部署，後台沒有這個按鈕；之後新上傳的圖片，要再部署一次才不算。": "Las imágenes de tu página se pueden desplegar junto con el sitio, y así cargarlas no gasta solicitudes ni lecturas de KV. Lo hace tu IA en tu computadora: aquí no hay botón para eso. Las imágenes que subas después cuentan hasta el siguiente despliegue.",
 	"把頁面上的圖片跟網站一起部署，讓看圖片不算額度": "Despliega las imágenes de mi página junto con el sitio para que no gasten cuota",
 	"站台": "Sitios",
-	"切換站台，目前是 {host}": "Cambiar de sitio (actual: {host})"
+	"切換站台，目前是 {host}": "Cambiar de sitio (actual: {host})",
+	"Ko-fi 帳號": "Cuenta de Ko-fi",
+	"ko-fi.com/你的帳號": "ko-fi.com/tunombre",
+	"找不到 Ko-fi 帳號，請貼上你的 Ko-fi 網址。": "Esa no es una cuenta de Ko-fi. Pega la dirección de tu página de Ko-fi.",
+	"按鈕會打開 ko-fi.com/{name} 的贊助視窗。": "El botón abre el panel de apoyo de ko-fi.com/{name}.",
+	"貼上你的 Ko-fi 網址也可以。訪客按下按鈕，才會載入 Ko-fi。": "También puedes pegar la dirección de tu página de Ko-fi. No se carga nada de Ko-fi hasta que el visitante toca el botón.",
+	"請我喝杯咖啡": "Invítame un café",
+	"例如：每一杯都會變成下一支影片": "Ej.: Cada café se convierte en el próximo video",
+	"Ko-fi 贊助": "Apoyo con Ko-fi",
+	"訪客點一下就能贊助你": "Los visitantes te apoyan con un toque",
+	"右下角 Ko-fi 按鈕": "Botón de Ko-fi abajo a la derecha",
+	"固定在頁面右下角，訪客一點就會打開你的 Ko-fi 贊助視窗。": "Queda fijo abajo a la derecha de la página y abre tu panel de Ko-fi con un toque.",
+	"第 {n} 項 Ko-fi：找不到 Ko-fi 帳號，請填 ko-fi.com/ 後面那段": "Elemento {n} (Ko-fi): no es una cuenta de Ko-fi. Escribe lo que va después de ko-fi.com/",
+	"第 {n} 項 Ko-fi 還沒填帳號": "Elemento {n} (Ko-fi): falta la cuenta",
+	"右下角 Ko-fi 按鈕找不到 Ko-fi 帳號": "El botón de Ko-fi de abajo a la derecha no tiene una cuenta de Ko-fi válida",
+	"Ko-fi 按鈕": "Botón de Ko-fi",
+	"Ko-fi：{title}": "Ko-fi: {title}"
 }
