@@ -60,61 +60,6 @@ addEventListener('DOMContentLoaded', () => {
 		)
 	}
 
-	// The phones in the hero take turns by themselves, while they can be seen, until someone chooses one.
-	const stage = document.querySelector('.stage')
-	const row = document.querySelector('.pick')
-	if (stage && row) {
-		const kinds = radios('use')
-		// Where the pills scroll, keep the one showing in sight. Only the row moves, never the page.
-		const reveal = () => {
-			if (row.scrollWidth <= row.clientWidth) return
-			const pill = row.querySelector(`label[for=${kinds.all.find((radio) => radio.checked).id}]`).getBoundingClientRect()
-			const box = row.getBoundingClientRect()
-			row.scrollBy({ left: pill.left + pill.width / 2 - box.left - box.width / 2, behavior: still ? 'auto' : 'smooth' })
-		}
-		let timer
-		let seen = false
-		let resting = false
-		let chosen = false
-		const play = () => {
-			clearInterval(timer)
-			if (still || !seen || resting || chosen || document.hidden) return
-			timer = setInterval(() => {
-				kinds.step(1)
-				reveal()
-			}, 4000)
-		}
-		const choose = () => {
-			chosen = true
-			play()
-			reveal()
-		}
-		const rest = (on) => () => {
-			resting = on
-			play()
-		}
-		swipe(stage, (by) => {
-			kinds.step(by)
-			choose()
-		})
-		for (const radio of kinds.all) {
-			radio.addEventListener('change', choose)
-			radio.addEventListener('focus', rest(true))
-			radio.addEventListener('blur', rest(false))
-		}
-		for (const part of [stage, row]) {
-			part.addEventListener('pointerenter', (event) => event.pointerType === 'mouse' && rest(true)())
-			part.addEventListener('pointerleave', (event) => event.pointerType === 'mouse' && rest(false)())
-		}
-		document.addEventListener('visibilitychange', play)
-		if ('IntersectionObserver' in window) {
-			new IntersectionObserver((entries) => {
-				seen = entries.at(-1).isIntersecting
-				play()
-			}).observe(stage)
-		}
-	}
-
 	// The templates, where a phone shows one at a time.
 	const templates = document.querySelector('.tpls')
 	if (templates) {

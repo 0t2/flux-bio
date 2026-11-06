@@ -5,7 +5,7 @@
 /// <reference types="vite/client" />
 import { LOCALES, type Locale } from '../src/shared/content'
 import { dirAttribute } from '../src/shared/locale'
-import { logoSvg } from '../src/templates/icons'
+import { LOGO_LIME, LOGO_PATH, logoLights, logoSvg } from '../src/templates/icons'
 import { THEME_LIST } from '../src/templates/themes'
 import { fontsHtml, type ChineseFont } from './fonts'
 
@@ -70,6 +70,12 @@ function themeParts(locale: Locale): Record<string, string> {
 	}
 }
 
+/**
+ * The logo for the headline's last beat, drawn so it can move: its holes filled with ink, then its lights on top in
+ * lime, the bulb and the eyes, which the template's CSS makes glow and blink. A blink closes onto the head.
+ */
+const OCTOBOT = `<svg viewBox="0 0 32 32">${logoLights('currentColor')}<path d="${LOGO_PATH}" fill="currentColor" fill-rule="evenodd"/>${logoLights(LOGO_LIME, 0.3, { bulb: ' class="bulb"', eyes: ' class="eyes"' })}</svg>`
+
 /** The keys a language file must have: every {{key}} in the template. */
 export function templateKeys(template: string): string[] {
 	return [...new Set([...template.matchAll(/\{\{(s\d+)\}\}/g)].map((match) => match[1]!))].sort()
@@ -92,6 +98,7 @@ export function renderLanding(template: string, words: Record<string, string>, l
 		dir: dirAttribute(locale),
 		fonts: fontsHtml(locale, chinese),
 		logo: logoSvg(30),
+		octobot: OCTOBOT,
 		readme: readmeUrl(locale),
 		languages: languageLinks(locale),
 		languageName: NAMES[locale],
