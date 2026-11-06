@@ -34,13 +34,23 @@ jobs:
       - run: pnpm landing
       # The Workers keep their own secrets, so deploys don't pass a secrets file. The token
       # reaches one account only, so cf needs no account id.
+      # With FLUXBIO_TOKEN (a full token made on the live site) and the FLUXBIO_SITE variable, the
+      # site's pictures go out as static files (pnpm deploy:images), so visitors load them without
+      # costing quota. They are downloaded afresh each time, never cached: an Actions cache in a public
+      # repository can be read by pull requests from forks. If that fails, the deploy goes out without them.
       - if: github.event_name == 'push' && github.repository == '0t2/flux-bio'
         run: |
           changed=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}") || changed=unknown
           product=$(printf '%s\n' "$changed" | grep -vE '^(landing/|docs/|tests/|README\.md$|AGENTS\.md$|CLAUDE\.md$|SECURITY\.md$|\.claude/)' || true)
           if [ -n "$product" ]; then
-            pnpm exec cf deploy
+            if [ -n "$FLUXBIO_TOKEN" ] && [ -n "$FLUXBIO_SITE" ]; then
+              pnpm deploy:images --site "$FLUXBIO_SITE" || pnpm exec cf deploy
+            else
+              pnpm exec cf deploy
+            fi
           fi
           pnpm landing:deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          FLUXBIO_TOKEN: ${{ secrets.FLUXBIO_TOKEN }}
+          FLUXBIO_SITE: ${{ vars.FLUXBIO_SITE }}
