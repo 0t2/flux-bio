@@ -946,5 +946,6 @@
 	"整個 Cloudflare 帳號，今天": "Toda a conta da Cloudflare, hoje",
 	"部署到 Cloudflare 後，這裡會顯示整個帳號今天實際用了多少。": "Depois que estiver na Cloudflare, aqui aparece quanto a conta inteira usou de verdade hoje.",
 	"帳號的數字來自 Cloudflare，會晚幾分鐘，包含帳號裡的其他專案。Cloudflare 沒有提供請求數，這裡用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。": "Os números da conta vêm da Cloudflare, com alguns minutos de atraso, e incluem seus outros projetos. A Cloudflare não informa as requisições, então elas são estimadas a partir das {views} visualizações e {clicks} cliques de hoje neste site, sem imagens nem bots.",
-	"請求數用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。": "As requisições são estimadas a partir das {views} visualizações e {clicks} cliques de hoje neste site, sem imagens nem bots."
+	"請求數用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。": "As requisições são estimadas a partir das {views} visualizações e {clicks} cliques de hoje neste site, sem imagens nem bots.",
+	"幫我查 Cloudflare 帳號今天的詳細用量，看是哪個專案用掉的": "Veja o uso detalhado de hoje na minha conta da Cloudflare e qual projeto usou o quê"
 }

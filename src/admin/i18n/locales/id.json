@@ -946,5 +946,6 @@
 	"整個 Cloudflare 帳號，今天": "Seluruh akun Cloudflare, hari ini",
 	"部署到 Cloudflare 後，這裡會顯示整個帳號今天實際用了多少。": "Setelah situs ada di Cloudflare, di sini tampil berapa yang benar-benar dipakai seluruh akun hari ini.",
 	"帳號的數字來自 Cloudflare，會晚幾分鐘，包含帳號裡的其他專案。Cloudflare 沒有提供請求數，這裡用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。": "Angka akun berasal dari Cloudflare, terlambat beberapa menit, dan termasuk proyek lainmu. Cloudflare tidak memberi jumlah permintaan, jadi diperkirakan dari {views} tayangan dan {clicks} klik situs ini hari ini, tanpa gambar dan bot.",
-	"請求數用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。": "Permintaan diperkirakan dari {views} tayangan dan {clicks} klik situs ini hari ini, tanpa gambar dan bot."
+	"請求數用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。": "Permintaan diperkirakan dari {views} tayangan dan {clicks} klik situs ini hari ini, tanpa gambar dan bot.",
+	"幫我查 Cloudflare 帳號今天的詳細用量，看是哪個專案用掉的": "Cek pemakaian rinci akun Cloudflare saya hari ini, dan proyek mana yang memakai apa"
 }
