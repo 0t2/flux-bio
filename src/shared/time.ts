@@ -1,12 +1,28 @@
+/**
+ * A formatter per time zone, made once and kept. Making one costs far more than using it, every counted visit
+ * needs three, and a site has one time zone. A time zone Intl doesn't know still throws, as making one always did.
+ */
+export function formatterPerZone(make: (timeZone: string) => Intl.DateTimeFormat): (timeZone: string) => Intl.DateTimeFormat {
+	const made = new Map<string, Intl.DateTimeFormat>()
+	return (timeZone) => {
+		let formatter = made.get(timeZone)
+		if (!formatter) {
+			formatter = make(timeZone)
+			// Time zones come from a site's settings, so there are only ever a few. This keeps it that way.
+			if (made.size >= 32) made.clear()
+			made.set(timeZone, formatter)
+		}
+		return formatter
+	}
+}
+
+const dayFormatter = formatterPerZone((timeZone) => new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }))
+const hourFormatter = formatterPerZone((timeZone) => new Intl.DateTimeFormat('en-US', { timeZone, hour: '2-digit', hourCycle: 'h23' }))
+
 /** The calendar day ("YYYY-MM-DD") of `at` in the given IANA time zone. */
 export function dayIn(timeZone: string, at: number | Date = Date.now()): string {
 	try {
-		return new Intl.DateTimeFormat('en-CA', {
-			timeZone,
-			year: 'numeric',
-			month: '2-digit',
-			day: '2-digit',
-		}).format(at)
+		return dayFormatter(timeZone).format(at)
 	} catch {
 		return new Date(at).toISOString().slice(0, 10)
 	}
@@ -15,7 +31,7 @@ export function dayIn(timeZone: string, at: number | Date = Date.now()): string 
 /** The hour (0–23) of `at` in the given IANA time zone. */
 export function hourIn(timeZone: string, at: number | Date = Date.now()): number {
 	try {
-		return Number(new Intl.DateTimeFormat('en-US', { timeZone, hour: '2-digit', hourCycle: 'h23' }).format(at)) % 24
+		return Number(hourFormatter(timeZone).format(at)) % 24
 	} catch {
 		return new Date(at).getUTCHours()
 	}

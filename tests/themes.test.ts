@@ -157,7 +157,8 @@ it('the dashboard loads each theme’s fonts with its thumbnails, so they look l
 })
 
 it('the dashboard’s own page loads only the fonts its screens are set in: a stylesheet in its head holds up the first paint', () => {
-	expect(familiesIn(DASHBOARD)).toEqual(['IBM Plex Sans', 'IBM Plex Sans Arabic', 'IBM Plex Mono', 'Noto Sans TC'])
+	// The first stylesheet there. Noto Sans TC comes after it, without being waited for: tests/dashboard.test.ts.
+	expect(familiesIn(DASHBOARD)).toEqual(['IBM Plex Sans', 'IBM Plex Sans Arabic', 'IBM Plex Mono'])
 })
 
 describe('compositions', () => {

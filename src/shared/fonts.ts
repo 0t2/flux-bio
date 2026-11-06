@@ -70,12 +70,23 @@ function parse(line: string): GoogleFont | null {
 	}
 }
 
-/** A family by its exact name, or null. Reads one line of the list, so it is cheap enough for every request. */
+const found = new Map<string, GoogleFont>()
+
+/**
+ * A family by its exact name, or null. Reads one line of the list, and a family that is there is remembered:
+ * a page asks for its few on every request, and looking through the whole list each time was a tenth of a page view.
+ * Names that aren't on the list aren't kept, since anyone can make those up. Callers share what this returns, so
+ * they don't change it.
+ */
 export function findFont(family: string): GoogleFont | null {
+	const known = found.get(family)
+	if (known) return known
 	if (!FONT_FAMILY.test(family)) return null
 	const at = GOOGLE_FONTS.indexOf(`\n${family}|`)
 	if (at < 0) return null
-	return parse(GOOGLE_FONTS.slice(at + 1, GOOGLE_FONTS.indexOf('\n', at + 1)))
+	const font = parse(GOOGLE_FONTS.slice(at + 1, GOOGLE_FONTS.indexOf('\n', at + 1)))
+	if (font) found.set(family, font)
+	return font
 }
 
 let all: GoogleFont[] | null = null
@@ -209,9 +220,9 @@ export const FONT_FILE = /^[A-Za-z0-9-]{8,80}$/
 /**
  * What a Chinese web font is for on a page in a language written without Chinese characters: those characters, kana,
  * and the punctuation and full-width forms set with them. Everything else on such a page is drawn by the fonts
- * named before it (fontStack in templates/themes.ts).
+ * named before it (fontStack in templates/themes.ts). It is asked about one character at a time, so it has no `g`.
  */
-export const CHINESE_FONT_CHARACTERS = /[\u2E80-\u9FFF\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFFEF\u{20000}-\u{3FFFF}]/gu
+export const CHINESE_FONT_CHARACTER = /[\u2E80-\u9FFF\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFFEF\u{20000}-\u{3FFFF}]/u
 
 /**
  * How many different characters Google Fonts cuts a font down to (`&text=`). Asked for one more, it says nothing and

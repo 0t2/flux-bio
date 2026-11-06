@@ -49,7 +49,7 @@ const SOCIALS: [IconName, string][] = [
  * The fonts of the built-in themes. In the dashboard itself only these thumbnails are set in them, so they come with
  * the first thumbnail, not with every screen: this stylesheet is several hundred kilobytes, most of it the list of
  * files Chinese fonts are cut into, and in the page's head it held up the first paint. The dashboard's own fonts are
- * in admin/index.html. Noto Sans TC is in both, in different weights.
+ * in admin/index.html, where Noto Sans TC isn't waited for either. It is in both, in different weights.
  */
 const THEME_FONTS =
 	'https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+TC:wght@900&family=Noto+Serif+TC:wght@500&family=LXGW+WenKai+TC:wght@400&family=Plus+Jakarta+Sans:wght@400..800&family=Manrope:wght@400..800&family=Nunito:wght@400..800&family=Nunito+Sans:wght@400..800&family=DM+Sans:wght@400..800&family=Lora:wght@400..700&display=swap'
