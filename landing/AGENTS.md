@@ -55,7 +55,8 @@ It takes the maintainer's computer, which is signed in to Cloudflare. A session 
    ```
 
    The script stops at a screenshot with Chinese in it in another language, which means dashboard text isn't translated yet
-   (`pnpm i18n check`).
+   (`pnpm i18n check`). The editor's preview is taken as if in the middle of the made-up shop's opening hours, so it says open
+   at whatever hour, and on whatever day, the screenshots are retaken.
 3. Look at them before anyone else does: `pnpm landing`, then open the built page, and show the maintainer.
 4. With the maintainer's yes, `pnpm landing:deploy`. This is the live site.
 5. Check that the site has them: `curl -s https://fluxbio.link/en/dash-links.webp | cmp - landing/public/en/dash-links.webp` says nothing when they match.

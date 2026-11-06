@@ -67,13 +67,33 @@ async function seedPage(category) {
 	await api('PUT', '/settings', { ...(await api('GET', '/state')).settings, timezone: 'Asia/Taipei', locale: args.locale })
 	await api('POST', '/links', { url: 'https://example.com/spring', slug: 'spring', title: 'Spring', utm: { source: 'line', medium: 'broadcast', campaign: 'spring' } })
 	const { links } = await api('GET', '/links')
-	return { pageId: page.id, links }
+	return { pageId: page.id, links, openAt: whileOpen(content) }
 }
 
 const THEMES = { creator: 'brutal', shop: 'jelly', event: 'aurora', pro: 'notebook', org: 'minimal' }
 
 /** The sample site runs on Taipei time, so a day's numbers fall on the day it shows. */
 const taipeiNow = () => Date.now() + 8 * 3_600_000
+
+/**
+ * A moment the made-up shop is open: the middle of its hours on the latest day it has any, in Taipei. The editor's
+ * preview says "open" or "closed" by the clock, so a retake in the evening, or on the day the shop rests, showed a
+ * closed shop on the landing page. Null for a page with no opening hours.
+ */
+function whileOpen(content) {
+	const week = content.items.find((item) => item.kind === 'hours')?.week
+	const minutes = (clock) => Number(clock.slice(0, 2)) * 60 + Number(clock.slice(3, 5))
+	const now = new Date(taipeiNow())
+	for (let back = 0; week && back < 7; back++) {
+		// Midnight of that day, as if Taipei's clock were UTC; a week starts on Monday.
+		const day = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - back))
+		const [opening] = week[(day.getUTCDay() + 6) % 7] ?? []
+		if (!opening) continue
+		const middle = minutes(opening.close) > minutes(opening.open) ? (minutes(opening.open) + minutes(opening.close)) / 2 : minutes(opening.open) + 60
+		return day.getTime() + middle * 60_000 - 8 * 3_600_000
+	}
+	return null
+}
 
 /** Three months of numbers, the same on every run. D1 has no API for this, so they go straight into the local file. */
 function seedStats(state, pageId, links) {
@@ -111,7 +131,7 @@ function insights() {
 	return { ...template, visitorsByDay }
 }
 
-async function takeShots(browser, category, out, links) {
+async function takeShots(browser, category, out, links, openAt) {
 	mkdirSync(out, { recursive: true })
 	const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 4 / 3, locale: args.locale })
 	const page = await context.newPage()
@@ -158,11 +178,15 @@ async function takeShots(browser, category, out, links) {
 		})
 		if (found.length) throw new Error(`Chinese on /admin/${path} in ${args.locale}: ${found.slice(0, 5).join(' / ')}`)
 	}
+	// The editor draws its preview by the browser's clock: for this one screen it says the shop is open (whileOpen).
+	if (openAt) await page.clock.setFixedTime(new Date(openAt))
 	await open('', '.item-pick')
 	await page.locator('.item-pick').first().click()
 	await page.waitForTimeout(900)
 	await page.mouse.move(5, 5)
 	await webp(await page.screenshot(), 'dash-links')
+	// The other screens set times beside now, so they get the real one back.
+	if (openAt) await page.clock.setFixedTime(new Date())
 	await open('stats', '.st-kpis')
 	await webp(await page.screenshot(), 'dash-stats')
 	const pageLink = links.find((link) => link.slug !== 'spring') ?? links[0]
@@ -192,7 +216,7 @@ try {
 		const seeded = await seedPage(category)
 		seedStats(state, seeded.pageId, seeded.links)
 		const out = args.out ? (args.all ? join(args.out, category) : args.out) : join(root, `landing/public/${args.locale}`)
-		await takeShots(browser, category, out, seeded.links)
+		await takeShots(browser, category, out, seeded.links, seeded.openAt)
 	}
 	await browser.close()
 } finally {
