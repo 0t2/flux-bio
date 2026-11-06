@@ -8,7 +8,7 @@ import type { Locale } from './content'
  * the button are links to the account's own page, which is where a tap goes without JavaScript, in a new tab or from a
  * preview, and SHEET_SCRIPT (src/templates/render.ts) gives the panel's frame its address only on the tap.
  *
- * A service is one entry in EMBEDS, and a test. It belongs here only if:
+ * A service is one entry in EMBEDS, and a test (AGENTS.md, "Add a block"). It belongs here only if:
  * - its panel works in the sheet's sandbox (SHEET_SANDBOX: scripts, its own origin, forms and popups, never this page)
  *   at phone width: it sends no X-Frame-Options or frame-ancestors that refuse other sites, and needs no script on our page;
  * - its own page is the same thing without a frame, so the link works when the sheet doesn't;

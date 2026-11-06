@@ -1,0 +1,54 @@
+name: Block request
+description: Ask for a new kind of block on FluxBio pages, or another service for a block to open. 想要新的區塊或服務，請填這份表單。
+title: "Block: "
+labels: ["block-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for asking. Every request goes through three steps, and the answer comes here:
+
+        1. **Is it already possible?** For example, with a link and an icon, a video, a gallery, product cards, opening hours, a Ko-fi or Calendly block, your own HTML page, or a look your AI makes. If it is, you'll get the steps instead of new code.
+        2. **Does it fit a block that exists?** For example, one more service that opens over the page like Ko-fi and Calendly do.
+        3. **Otherwise, a new kind of block.**
+
+        A block also has to load nothing from another site before a visitor taps, cost no more of the free plan than a link does, and work in every theme and language. [AGENTS.md, "Add a block"](https://github.com/0t2/flux-bio/blob/main/AGENTS.md#add-a-block) has the details.
+
+        中文說明：我們會先看現有功能能不能做到，可以的話會在這裡回覆做法。
+  - type: input
+    id: service
+    attributes:
+      label: Service or block
+      description: The service, such as Patreon, Google Forms or Spotify, or the kind of block you have in mind. 服務名稱或想要的區塊。
+      placeholder: e.g. Patreon memberships
+    validations:
+      required: true
+  - type: textarea
+    id: visitor
+    attributes:
+      label: What a visitor should see and do
+      description: What shows on the page, and what happens when a visitor taps it. 訪客在頁面上會看到什麼，點了之後會發生什麼。
+    validations:
+      required: true
+  - type: input
+    id: example
+    attributes:
+      label: An example
+      description: A page or account where it can be seen, or the embed code the service gives out. 範例頁面、帳號，或服務提供的嵌入碼。
+      placeholder: https://
+  - type: dropdown
+    id: stay
+    attributes:
+      label: Must it work without leaving the page?
+      description: Should it open over your page, like the Ko-fi and Calendly blocks, or is a link to the service enough? 一定要在你的頁面上直接用，還是連到對方網站就可以？
+      options:
+        - Yes, visitors should stay on my page
+        - No, a link to the service is enough
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: Who would use it, and what you do today instead. 誰會用到、現在怎麼做。
