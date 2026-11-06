@@ -1,9 +1,5 @@
 import {
 	isScheduledNow,
-	KOFI_PART,
-	kofiPage,
-	kofiPanelUrl,
-	kofiUrl,
 	mapsEmbedUrl,
 	mapsUrl,
 	isHttpUrl,
@@ -14,15 +10,16 @@ import {
 	telHref,
 	videoEmbed,
 	type GalleryItem,
+	type EmbedItem,
 	type HoursItem,
 	type Item,
-	type KofiItem,
 	type LinkItem,
 	type Locale,
 	type PageContent,
 	type ProductItem,
 	type VideoItem,
 } from '../shared/content'
+import { EMBED_ACTIONS, embedAccount, EMBEDS, embedWords, type EmbedProvider } from '../shared/embeds'
 import { CHINESE_FONT_CHARACTER, findFont, FONT_FAMILY, FONT_FILE, fontFileUrl, GOOGLE_TEXT_LIMIT, isSlicedFont, textOf, type HostedFont } from '../shared/fonts'
 import { hoursWords, localTime, openStatus, statusText, weekRows } from '../shared/hours'
 import { dirAttribute } from '../shared/locale'
@@ -84,11 +81,7 @@ interface BioStrings {
 	call: string
 	map: string
 	loadMap: string
-	/** The button of a Ko-fi card, and what the floating Ko-fi button and its panel are called. */
-	kofi: string
-	/** What the floating Ko-fi button says. */
-	tip: string
-	/** Closes the panel a Ko-fi button opens. */
+	/** Closes the panel an embed card or button opens. */
 	close: string
 	/** Joins a label to what it names, e.g. "Play video: <title>". */
 	colon: string
@@ -113,8 +106,6 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: '打電話',
 		map: '地圖',
 		loadMap: '點一下載入地圖',
-		kofi: '到 Ko-fi 贊助我',
-		tip: '贊助我',
 		close: '關閉',
 		colon: '：',
 	},
@@ -136,8 +127,6 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Call',
 		map: 'Map',
 		loadMap: 'Tap to load the map',
-		kofi: 'Support me on Ko-fi',
-		tip: 'Support me',
 		close: 'Close',
 		colon: ': ',
 	},
@@ -159,8 +148,6 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: '打电话',
 		map: '地图',
 		loadMap: '点击加载地图',
-		kofi: '到 Ko-fi 赞助我',
-		tip: '赞助我',
 		close: '关闭',
 		colon: '：',
 	},
@@ -182,8 +169,6 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: '電話する',
 		map: '地図',
 		loadMap: 'タップして地図を表示',
-		kofi: 'Ko-fi で応援する',
-		tip: '応援する',
 		close: '閉じる',
 		colon: '：',
 	},
@@ -205,8 +190,6 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: '전화하기',
 		map: '지도',
 		loadMap: '탭해서 지도 불러오기',
-		kofi: 'Ko-fi에서 후원하기',
-		tip: '후원하기',
 		close: '닫기',
 		colon: ': ',
 	},
@@ -228,8 +211,6 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Llamar',
 		map: 'Mapa',
 		loadMap: 'Toca para cargar el mapa',
-		kofi: 'Apóyame en Ko-fi',
-		tip: 'Apóyame',
 		close: 'Cerrar',
 		colon: ': ',
 	},
@@ -251,8 +232,6 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Ligar',
 		map: 'Mapa',
 		loadMap: 'Toque para carregar o mapa',
-		kofi: 'Me apoie no Ko-fi',
-		tip: 'Me apoie',
 		close: 'Fechar',
 		colon: ': ',
 	},
@@ -274,8 +253,6 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Appeler',
 		map: 'Carte',
 		loadMap: 'Touchez pour charger la carte',
-		kofi: 'Me soutenir sur Ko-fi',
-		tip: 'Me soutenir',
 		close: 'Fermer',
 		colon: '\u00a0: ',
 	},
@@ -297,8 +274,6 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Anrufen',
 		map: 'Karte',
 		loadMap: 'Tippen, um die Karte zu laden',
-		kofi: 'Auf Ko-fi unterstützen',
-		tip: 'Unterstützen',
 		close: 'Schließen',
 		colon: ': ',
 	},
@@ -320,8 +295,6 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Telepon',
 		map: 'Peta',
 		loadMap: 'Ketuk untuk memuat peta',
-		kofi: 'Dukung saya di Ko-fi',
-		tip: 'Dukung saya',
 		close: 'Tutup',
 		colon: ': ',
 	},
@@ -343,8 +316,6 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'โทร',
 		map: 'แผนที่',
 		loadMap: 'แตะเพื่อโหลดแผนที่',
-		kofi: 'สนับสนุนฉันบน Ko-fi',
-		tip: 'สนับสนุนฉัน',
 		close: 'ปิด',
 		colon: ': ',
 	},
@@ -366,8 +337,6 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Gọi điện',
 		map: 'Bản đồ',
 		loadMap: 'Chạm để tải bản đồ',
-		kofi: 'Ủng hộ tôi trên Ko-fi',
-		tip: 'Ủng hộ tôi',
 		close: 'Đóng',
 		colon: ': ',
 	},
@@ -389,8 +358,6 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'اتصال',
 		map: 'الخريطة',
 		loadMap: 'اضغط لتحميل الخريطة',
-		kofi: 'ادعمني على Ko-fi',
-		tip: 'ادعمني',
 		close: 'إغلاق',
 		colon: ': ',
 	},
@@ -597,7 +564,7 @@ function fontsHtml(look: ResolvedAppearance, hosted?: readonly HostedFont[], sho
 
 /** Every built-in word a page can show in a language, for copying the fonts it needs. */
 export function builtInWords(locale: Locale): string {
-	return textOf(STRINGS[locale]) + hoursWords(locale)
+	return textOf(STRINGS[locale]) + textOf(Object.values(EMBED_ACTIONS).map((action) => action.words[locale])) + hoursWords(locale)
 }
 
 function absoluteUrl(path: string, base?: string): string | null {
@@ -615,18 +582,20 @@ const TODO_CSS = '.link.todo,.act.todo{opacity:.62;border-style:dashed;border-wi
 const LINE_BUTTON_CSS = `.has-line main{padding-bottom:88px}
 .line-button{position:fixed;inset-inline-end:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:6;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;background:#06C755;box-shadow:0 4px 14px rgba(0,0,0,.28);text-decoration:none}`
 
+/** An embed card, and the floating embed button, which sits above the LINE button when there is one. */
+const EMBED_CSS = `.embed-head{display:flex;align-items:center;gap:14px}
+.embed-icon{flex:0 0 auto;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:min(var(--radius),14px);color:var(--accent-text);background:color-mix(in srgb,var(--accent) 16%,transparent)}
+.embed-text{min-width:0;display:flex;flex-direction:column;gap:2px}
+.has-embed main{padding-bottom:84px}
+.has-embed.has-line main{padding-bottom:148px}
+.embed-button{position:fixed;inset-inline-end:16px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:6;min-height:48px;padding-inline:14px 18px;display:flex;align-items:center;gap:8px;border-radius:999px;color:var(--ink);background:var(--accent);font:700 15px/1.2 var(--body-font);text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.28)}
+.has-line .embed-button{bottom:calc(84px + env(safe-area-inset-bottom))}`
+
 /**
- * A Ko-fi card, the floating Ko-fi button (above the LINE button when there is one), and the sheet their tap opens. The
- * sheet holds Ko-fi's own panel, which is white whatever the theme, so the sheet is too.
+ * The sheet a tap on an embed opens over a live page: a bottom sheet on phones, centred on wider screens. It holds the
+ * service's own panel, which keeps its own colors whatever the theme, so the sheet takes the panel's (`--paper`).
  */
-const KOFI_CSS = `.kofi-head{display:flex;align-items:center;gap:14px}
-.kofi-cup{flex:0 0 auto;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:min(var(--radius),14px);color:var(--accent-text);background:color-mix(in srgb,var(--accent) 16%,transparent)}
-.kofi-text{min-width:0;display:flex;flex-direction:column;gap:2px}
-.has-kofi main{padding-bottom:84px}
-.has-kofi.has-line main{padding-bottom:148px}
-.kofi-button{position:fixed;inset-inline-end:16px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:6;min-height:48px;padding-inline:14px 18px;display:flex;align-items:center;gap:8px;border-radius:999px;color:var(--ink);background:var(--accent);font:700 15px/1.2 var(--body-font);text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.28)}
-.has-line .kofi-button{bottom:calc(84px + env(safe-area-inset-bottom))}
-.sheet{width:100%;max-width:440px;max-height:100%;margin:auto auto 0;padding:0 0 env(safe-area-inset-bottom);border:0;border-radius:20px 20px 0 0;color:#131416;background:#f9f9f9;box-shadow:0 -8px 40px rgba(0,0,0,.3);overflow:hidden}
+const SHEET_CSS = `.sheet{width:100%;max-width:440px;max-height:100%;margin:auto auto 0;padding:0 0 env(safe-area-inset-bottom);border:0;border-radius:20px 20px 0 0;color:#131416;background:var(--paper,#fff);box-shadow:0 -8px 40px rgba(0,0,0,.3);overflow:hidden}
 .sheet::backdrop{background:rgba(0,0,0,.5)}
 .sheet-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:6px 0;padding-inline:20px 6px}
 .sheet-bar b{font:700 15px/1.3 var(--body-font)}
@@ -667,8 +636,8 @@ export function visibleItems(content: PageContent, now = Date.now(), { unfinishe
 				return item.products.some((product) => product.name.trim())
 			case 'hours':
 				return item.week.some((day) => day.length > 0) || Boolean(item.address.trim())
-			case 'kofi':
-				return Boolean(kofiPage(item.username)) || (unfinished && Boolean(item.title.trim()))
+			case 'embed':
+				return Boolean(embedAccount(item)) || (unfinished && Boolean(item.title.trim()))
 			// A kind this version doesn't know, e.g. in a page published by another version, isn't shown.
 			default:
 				return false
@@ -685,6 +654,14 @@ interface Context {
 	now: number
 	timeZone: string
 	locale: Locale
+	/** The panels a live page's embeds open, filled in as they are drawn: one sheet per address. */
+	sheets: Sheet[]
+}
+
+interface Sheet {
+	id: string
+	provider: EmbedProvider
+	url: string
 }
 
 /** A document for an iframe: shows a picture and loads the real thing only when tapped. */
@@ -703,24 +680,44 @@ export const TAP_SCRIPT = `document.querySelectorAll('a[ping]').forEach(function
 export const TAP_SCRIPT_HASH = 'sha256-ll32O/+80PlnpGmojgn8eAezy4q1giUtfmTb5/iYkwU='
 
 /**
- * The other script, on a page with a Ko-fi card or button: a tap on a link with `data-sheet` opens that address in the
- * sheet's frame, over the page, instead of leaving it. The frame has no address until then, so nothing loads from Ko-fi
- * before a tap. TAP_SCRIPT still counts the tap. Without JavaScript, or a browser without <dialog>, or a tap meant for a
- * new tab, the link goes to the Ko-fi page as any link would. The close button needs no script: it is a dialog form.
+ * The other script, on a page with an embed: a tap on a link with `data-sheet` opens that sheet over the page instead of
+ * leaving it, and gives its frame the panel's address (`data-src`) the first time. Until then the frame has none, so
+ * nothing loads from the service before a tap. TAP_SCRIPT still counts the tap. Without JavaScript, in a browser without
+ * <dialog>, or for a tap meant for a new tab, the link goes to the account's page as any link would. The close button
+ * needs no script: it is a dialog form.
  */
-export const SHEET_SCRIPT = `(function(){var d=document.getElementById('sheet'),f=d&&d.querySelector('iframe');if(!f||!d.showModal)return;document.querySelectorAll('a[data-sheet]').forEach(function(a){a.addEventListener('click',function(e){if(e.button||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;e.preventDefault();var u=a.getAttribute('data-sheet');if(f.getAttribute('src')!==u)f.setAttribute('src',u);d.showModal()})});d.addEventListener('click',function(e){if(e.target===d)d.close()})})()`
-/** Allowed by the CSP like TAP_SCRIPT; tests/kofi.test.ts fails if the two part ways. */
-export const SHEET_SCRIPT_HASH = 'sha256-4nC8NlRWLRWbhLvmMVCEiGVw6GNJaypyCqGygKc6bHs='
+export const SHEET_SCRIPT = `(function(){document.querySelectorAll('a[data-sheet]').forEach(function(a){var d=document.getElementById(a.getAttribute('data-sheet')),f=d&&d.querySelector('iframe');if(!f||!d.showModal)return;a.addEventListener('click',function(e){if(e.button||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;e.preventDefault();if(!f.getAttribute('src'))f.setAttribute('src',f.getAttribute('data-src'));d.showModal()})});document.querySelectorAll('dialog.sheet').forEach(function(d){d.addEventListener('click',function(e){if(e.target===d)d.close()})})})()`
+/** Allowed by the CSP like TAP_SCRIPT, on pages with an embed; tests/embeds.test.ts fails if the two part ways. */
+export const SHEET_SCRIPT_HASH = 'sha256-M2g4mFphpgGNn8+aEuyEKed58F0ekQKPZvgEDoMrUeo='
 
 /**
- * What Ko-fi's panel may do in the sheet's frame: run, keep its own origin (ko-fi.com, never this site's: the frame only
- * ever gets a Ko-fi address), send its form, and open PayPal or a card form in a window of their own. Not navigate this page.
+ * What a panel may do in its frame, whichever service it is: run, keep its own origin (the service's, never this site's:
+ * the frame only ever gets an address the service's entry in EMBEDS built from a checked account), send its forms, and
+ * open PayPal or a card form in a window of their own. Never navigate this page. A service that needs more isn't one.
  */
-const SHEET_SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox'
+export const SHEET_SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox'
 
-function sheetHtml(text: BioStrings): string {
+function sheetHtml(text: BioStrings, sheet: Sheet): string {
+	const service = EMBEDS[sheet.provider]
+	const name = esc(service.name)
 	// autofocus: opening it focuses the sheet itself, not its close button, which a tap would then show ringed.
-	return `<dialog class="sheet" id="sheet" aria-label="${esc(text.kofi)}" autofocus><div class="sheet-bar"><b>Ko-fi</b><form method="dialog"><button class="sheet-close" aria-label="${esc(text.close)}">${iconSvg('close', 22, 2)}</button></form></div><iframe title="Ko-fi" sandbox="${SHEET_SANDBOX}" allow="payment"></iframe></dialog>`
+	return `<dialog class="sheet" id="${sheet.id}" aria-label="${name}" style="--paper:${service.paper}" autofocus><div class="sheet-bar"><b>${name}</b><form method="dialog"><button class="sheet-close" aria-label="${esc(text.close)}">${iconSvg('close', 22, 2)}</button></form></div><iframe title="${name}" sandbox="${SHEET_SANDBOX}" allow="${esc(service.allow)}" data-src="${esc(sheet.url)}"></iframe></dialog>`
+}
+
+/** The sheet for an embed's panel on a live page, made the first time a button opens it. */
+function sheetFor(ctx: Context, provider: EmbedProvider, account: string): Sheet {
+	const url = EMBEDS[provider].panel(account)
+	let sheet = ctx.sheets.find((entry) => entry.url === url)
+	if (!sheet) ctx.sheets.push((sheet = { id: `sheet-${ctx.sheets.length + 1}`, provider, url }))
+	return sheet
+}
+
+/** The services whose panels a live page opens, which its CSP lets it frame: the same ones renderBioPage draws. */
+export function pageEmbeds(content: PageContent, now = Date.now()): EmbedProvider[] {
+	const providers = new Set<EmbedProvider>()
+	for (const item of visibleItems(content, now)) if (item.kind === 'embed') providers.add(item.provider)
+	if (content.embedButton && embedAccount(content.embedButton)) providers.add(content.embedButton.provider)
+	return [...providers]
 }
 
 /** A link to an address the visitor can see before tapping, which reports the tap in live mode. */
@@ -832,22 +829,23 @@ function hoursHtml(ctx: Context, item: HoursItem): string {
 	return `<section class="panel hours" aria-labelledby="${esc(id)}"><h2 id="${esc(id)}">${esc(item.title.trim() || ctx.text.map)}</h2>${rows}${item.note.trim() ? `<p class="note">${esc(item.note)}</p>` : ''}${map}${address ? `<p class="addr">${esc(address)}</p>` : ''}${actions.length ? `<div class="acts${actions.length === 1 ? ' one' : ''}">${actions.join('')}</div>` : ''}</section>`
 }
 
-/** A link to a Ko-fi page. On a live page a tap opens the page's tip panel in the sheet instead (SHEET_SCRIPT). */
-function kofiLink(ctx: Context, item: { id: string }, page: string): string {
-	const sheet = ctx.live ? ` data-sheet="${esc(kofiPanelUrl(page))}"` : ''
-	return `${counted(ctx, item, KOFI_PART, kofiUrl(page))}${sheet}${ctx.newTab}`
+/** A link to an account's page on a service. On a live page a tap opens the service's panel in a sheet instead (SHEET_SCRIPT). */
+function embedLink(ctx: Context, item: { id: string }, provider: EmbedProvider, account: string): string {
+	const sheet = ctx.live ? ` data-sheet="${sheetFor(ctx, provider, account).id}"` : ''
+	return `${counted(ctx, item, provider, EMBEDS[provider].page(account))}${sheet}${ctx.newTab}`
 }
 
-function kofiHtml(ctx: Context, item: KofiItem): string {
-	const page = kofiPage(item.username)
-	const id = `k-${item.id}`
+function embedHtml(ctx: Context, item: EmbedItem): string {
+	const service = EMBEDS[item.provider]
+	const account = embedAccount(item)
+	const id = `e-${item.id}`
 	const title = item.title.trim()
-	const label = esc(ctx.text.kofi)
-	// Only previews get this far without a Ko-fi page: the button shows, and goes nowhere.
-	const button = page ? `<a class="act main" ${kofiLink(ctx, item, page)}>${label}</a>` : `<span class="act main todo">${label}</span>`
+	const label = esc(embedWords(item.provider, ctx.locale).button)
+	// Only previews get this far without an account: the button shows, and goes nowhere.
+	const button = account ? `<a class="act main" ${embedLink(ctx, item, item.provider, account)}>${label}</a>` : `<span class="act main todo">${label}</span>`
 	const heading = title ? `<h2 id="${esc(id)}">${esc(item.title)}</h2>` : ''
 	const note = item.note.trim() ? `<p class="note">${esc(item.note)}</p>` : ''
-	return `<section class="panel kofi" ${title ? `aria-labelledby="${esc(id)}"` : 'aria-label="Ko-fi"'}><div class="kofi-head"><span class="kofi-cup" aria-hidden="true">${iconSvg('cup', 28, 1.8)}</span><div class="kofi-text">${heading}${note}</div></div>${button}</section>`
+	return `<section class="panel embed" ${title ? `aria-labelledby="${esc(id)}"` : `aria-label="${esc(service.name)}"`}><div class="embed-head"><span class="embed-icon" aria-hidden="true">${iconSvg(service.icon, 28, 1.8)}</span><div class="embed-text">${heading}${note}</div></div>${button}</section>`
 }
 
 function itemHtml(ctx: Context, item: Item): string {
@@ -864,8 +862,8 @@ function itemHtml(ctx: Context, item: Item): string {
 			return productHtml(ctx, item)
 		case 'hours':
 			return hoursHtml(ctx, item)
-		case 'kofi':
-			return kofiHtml(ctx, item)
+		case 'embed':
+			return embedHtml(ctx, item)
 	}
 }
 
@@ -887,6 +885,7 @@ export function renderBioPage(source: PageContent, options: RenderOptions): stri
 		now,
 		timeZone: options.timeZone ?? 'UTC',
 		locale,
+		sheets: [],
 	}
 
 	const name = content.profile.name.trim()
@@ -952,14 +951,16 @@ export function renderBioPage(source: PageContent, options: RenderOptions): stri
 	const lineButton = lineUrl
 		? `<a class="line-button" ${counted(ctx, { id: 'page' }, LINE_PART, lineUrl)} aria-label="LINE"${ctx.newTab}>${iconSvg('line', 30)}</a>`
 		: ''
-	const kofiName = content.kofiButton?.trim() ? kofiPage(content.kofiButton) : null
-	const kofiButton = kofiName
-		? `<a class="kofi-button" ${kofiLink(ctx, { id: 'page' }, kofiName)} aria-label="${esc(text.kofi)}">${iconSvg('cup', 22, 2)}<span>${esc(text.tip)}</span></a>`
-		: ''
+	const floating = content.embedButton
+	const floatingAccount = floating ? embedAccount(floating) : null
+	const floatingWords = floating && floatingAccount ? embedWords(floating.provider, locale) : null
+	const embedButton =
+		floating && floatingAccount && floatingWords
+			? `<a class="embed-button" ${embedLink(ctx, { id: 'page' }, floating.provider, floatingAccount)} aria-label="${esc(floatingWords.button)}">${iconSvg(EMBEDS[floating.provider].icon, 22, 2)}<span>${esc(floatingWords.float)}</span></a>`
+			: ''
 	// The owner's own text can't match: esc() turns its quotes into entities.
-	const reportsTaps = / ping="/.test(itemsHtml + socials.join('') + lineButton + kofiButton)
-	const opensSheet = / data-sheet="/.test(itemsHtml + kofiButton)
-	const showsKofi = Boolean(kofiButton) || items.some((item) => item.kind === 'kofi')
+	const reportsTaps = / ping="/.test(itemsHtml + socials.join('') + lineButton + embedButton)
+	const showsEmbed = Boolean(embedButton) || items.some((item) => item.kind === 'embed')
 
 	const body = `${options.draft ? `<p class="draft-note" role="status">${esc(text.draftNote)}</p>` : ''}
 ${backdrop}
@@ -975,10 +976,10 @@ ${cover}
 ${items.length ? `<div class="items">${itemsHtml}</div>` : ''}
 ${footer}
 </main>
-${lineButton}${kofiButton}${opensSheet ? sheetHtml(text) : ''}
-${reportsTaps ? `<script>${TAP_SCRIPT}</script>` : ''}${opensSheet ? `<script>${SHEET_SCRIPT}</script>` : ''}
+${lineButton}${embedButton}${ctx.sheets.map((sheet) => sheetHtml(text, sheet)).join('')}
+${reportsTaps ? `<script>${TAP_SCRIPT}</script>` : ''}${ctx.sheets.length ? `<script>${SHEET_SCRIPT}</script>` : ''}
 ${options.draft ? draftScript(options.draft) : ''}`
-	const bodyClass = [lineButton && 'has-line', kofiButton && 'has-kofi'].filter(Boolean).join(' ')
+	const bodyClass = [lineButton && 'has-line', embedButton && 'has-embed'].filter(Boolean).join(' ')
 
 	return `<!doctype html>
 <html lang="${text.lang}"${dirAttribute(text.lang)}>
@@ -987,7 +988,7 @@ ${headHtml(look, title, options.fonts, live || options.settled ? body : undefine
 ${meta}
 <style>${pageVars(look)}
 ${BASE_CSS}
-${THEME_CSS[look.theme.id]}${lineButton ? `\n${LINE_BUTTON_CSS}` : ''}${showsKofi ? `\n${KOFI_CSS}` : ''}${options.mode === 'preview' ? `\n${TODO_CSS}` : ''}${options.draft ? `\n${DRAFT_CSS}` : ''}</style>
+${THEME_CSS[look.theme.id]}${lineButton ? `\n${LINE_BUTTON_CSS}` : ''}${showsEmbed ? `\n${EMBED_CSS}` : ''}${ctx.sheets.length ? `\n${SHEET_CSS}` : ''}${options.mode === 'preview' ? `\n${TODO_CSS}` : ''}${options.draft ? `\n${DRAFT_CSS}` : ''}</style>
 </head>
 <body${bodyClass ? ` class="${bodyClass}"` : ''}>
 ${body}

@@ -25,7 +25,7 @@ function mapItem(item: Item, text: (value: string) => string): Item {
 		case 'product':
 			return { ...item, title: text(item.title), products: item.products.map((product) => ({ ...product, name: text(product.name), price: text(product.price) })) }
 		case 'hours':
-		case 'kofi':
+		case 'embed':
 			return { ...item, title: text(item.title), note: text(item.note) }
 	}
 }

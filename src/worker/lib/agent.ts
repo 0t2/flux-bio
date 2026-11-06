@@ -1,5 +1,6 @@
 import document from 'virtual:fluxbio-openapi'
 import { BUTTON_IDS, FONT_IDS, ITEM_KINDS, LOCALES, newItem, SOCIAL_PLATFORMS, THEME_IDS } from '../../shared/content'
+import { EMBED_PROVIDERS, EMBEDS } from '../../shared/embeds'
 import { RESERVED_SLUGS } from '../../shared/slug'
 import { VERSIONS_KEPT } from './mode'
 import { OPERATIONS } from './openapi'
@@ -241,7 +242,7 @@ The owner can also make one without you: Settings → Download backup saves one 
 - \`socials\`: up to 12 of ${SOCIAL_PLATFORMS.join(', ')}, each \`{ id, platform, url }\`.
 - \`items\`: the page from top to bottom. Each has a unique \`id\` of 4–32 characters from \`A-Za-z0-9_-\`; make new ids up (e.g. 8 random letters) and keep existing ones, because stats are counted per id.
 - \`seo\`, \`showBadge\` ("Made with ♥️ and FluxBio" in the footer).
-- \`lineButton\`, \`kofiButton\`: buttons floating at the bottom right, Ko-fi's above LINE's. LINE takes an address like \`https://lin.ee/…\` or an official account's \`@id\`: offer it to a shop, or anyone whose customers use LINE, as in Taiwan, Japan and Thailand. Ko-fi takes a username as in \`ko-fi.com/<username>\`, or the address: offer it, or a \`kofi\` card, to anyone who takes tips there.
+- \`lineButton\`, \`embedButton\`: buttons floating at the bottom right. LINE takes an address like \`https://lin.ee/…\` or an official account's \`@id\`: offer it to a shop, or anyone whose customers use LINE, as in Taiwan, Japan and Thailand.
 - \`countSocials\`: \`true\` also counts taps on social icons, at one Worker request and one KV read per click. Email icons never count.
 
 A link's button shows its real address, and a small script reports the tap, so a blocker can hide some of those clicks. \`hideUrl: true\` sends the button through its short link instead, which suits affiliate links, and every click counts. A link with a password, UTM tags, device addresses, \`lineExternal\` or \`inAppPrompt\` always does, because those only happen there. Every link has a short link for sharing elsewhere.
@@ -254,7 +255,7 @@ Rules:
 - Bio links (links on a page) change only through the draft and publish. \`PATCH /api/links/{id}\` takes their password, UTM, smart routing, QR style and slug, but refuses url, title and schedule. A slug changes at once. \`PUT /api/pages/{id}/links/{itemId}/short\` also makes the short link of a link not yet published.
 - A link outside its \`startsAt\`–\`endsAt\` window is hidden from the page; its short URL says "not open yet" or "expired".
 - \`video\` takes a YouTube or Vimeo URL. \`gallery\` holds up to 10 images, \`product\` up to 8 cards. \`hours\` lists the week Monday first.
-- \`kofi\` asks for a tip: \`username\` (or the address), \`title\`, \`note\`. A tap on it or on \`kofiButton\` opens Ko-fi's tip panel over the page; nothing loads from Ko-fi before.
+- \`embed\` opens a service's panel over the page, loading it only on a tap. \`provider\`: ${EMBED_PROVIDERS.map((id) => `\`${id}\` (${EMBEDS[id].about})`).join(', ')}. \`account\` also takes the address or embed code. \`embedButton\` \`{ provider, account }\` floats one at the bottom right. Offer them to anyone taking tips or bookings.
 
 ## Endpoints
 

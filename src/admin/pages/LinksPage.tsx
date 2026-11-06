@@ -13,24 +13,24 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from '@dnd-kit/utilities'
 import {
 	isScheduledNow,
-	ITEM_KINDS,
 	ITEM_LIMIT,
+	newEmbed,
 	newId,
 	newItem,
 	SOCIAL_PLATFORMS,
+	type EmbedItem,
 	type Item,
-	type ItemKind,
-	type KofiItem,
 	type SocialPlatform,
 } from '../../shared/content'
+import { EMBED_PROVIDERS, EMBEDS, type EmbedProvider } from '../../shared/embeds'
 import { STARTER_IDS, STARTER_LABELS, starterContent, starterPreview, type StarterId } from '../../shared/starters'
 import { SOCIAL_META } from '../../templates/icons'
 import { Icon } from '../components/Icon'
 import { PhonePreview } from '../components/PhonePreview'
 import { ConfirmButton, EmptyState, Section, Toggle, useMedia } from '../components/ui'
-import { GalleryEditor, HeadingEditor, KofiEditor, kofiInput, ProductEditor, VideoEditor } from '../editors/BlockEditors'
+import { EmbedAccountField, EmbedEditor, GalleryEditor, HeadingEditor, ProductEditor, VideoEditor } from '../editors/BlockEditors'
 import { HoursEditor } from '../editors/HoursEditor'
-import { itemIcon, itemTitle, KIND_META } from '../editors/kinds'
+import { BLOCK_CHOICES, choiceText, itemIcon, itemTitle, kindText, type BlockChoice } from '../editors/kinds'
 import { LinkEditor } from '../editors/LinkEditor'
 import { t } from '../i18n'
 import { ProfileSection } from '../editors/ProfileSection'
@@ -51,8 +51,8 @@ export function LinksPanel({
 	const page = usePage()
 	const { draft } = page
 
-	function add(kind: ItemKind) {
-		const item = newItem(kind)
+	function add(choice: BlockChoice) {
+		const item = choice.kind === 'embed' ? newEmbed(choice.provider) : newItem(choice.kind)
 		// New items come with zh-TW default titles; start them in the dashboard's language.
 		if (item.title) item.title = t(item.title)
 		page.update((d) => {
@@ -79,7 +79,7 @@ export function LinksPanel({
 				<p>
 					<span className="mobile-only">{t('長按拖曳調整順序，右上角的眼睛可以預覽。')}</span>
 				</p>
-				<button type="button" className="btn" onClick={() => add('link')} disabled={draft.items.length >= ITEM_LIMIT}>
+				<button type="button" className="btn" onClick={() => add({ kind: 'link' })} disabled={draft.items.length >= ITEM_LIMIT}>
 					<Icon name="plus" size={18} stroke={2} />
 					{t('新增連結')}
 				</button>
@@ -87,7 +87,7 @@ export function LinksPanel({
 
 			{draft.items.length === 0 ? (
 				<EmptyState icon="link" title={t('你的頁面還是空的')}>
-					<button type="button" className="btn primary" onClick={() => add('link')}>
+					<button type="button" className="btn primary" onClick={() => add({ kind: 'link' })}>
 						{t('新增第一個連結')}
 					</button>
 					<p className="hint">{t('或從範本開始')}</p>
@@ -99,17 +99,20 @@ export function LinksPanel({
 
 			<Section title={t('新增區塊')}>
 				<div className="kind-grid">
-					{ITEM_KINDS.map((kind) => (
-						<button key={kind} type="button" className="kind-card" onClick={() => add(kind)} disabled={draft.items.length >= ITEM_LIMIT}>
-							<span className="kind-icon" aria-hidden="true">
-								<Icon name={KIND_META[kind].icon} size={16} />
-							</span>
-							<span className="kind-text">
-								<strong>{t(KIND_META[kind].add)}</strong>
-								<small>{t(KIND_META[kind].sub)}</small>
-							</span>
-						</button>
-					))}
+					{BLOCK_CHOICES.map((choice) => {
+						const text = choiceText(choice)
+						return (
+							<button key={choice.kind === 'embed' ? choice.provider : choice.kind} type="button" className="kind-card" onClick={() => add(choice)} disabled={draft.items.length >= ITEM_LIMIT}>
+								<span className="kind-icon" aria-hidden="true">
+									<Icon name={text.icon} size={16} />
+								</span>
+								<span className="kind-text">
+									<strong>{text.add}</strong>
+									<small>{text.sub}</small>
+								</span>
+							</button>
+						)
+					})}
 				</div>
 			</Section>
 
@@ -242,7 +245,8 @@ function ItemRow({
 	const problem = page.problems.some((entry) => entry.path.startsWith(`items.${index}.`))
 	const title = itemTitle(item)
 
-	let meta: string = t(KIND_META[item.kind].sub)
+	const kind = kindText(item)
+	let meta: string = kind.sub
 	let isAddress = false
 	let scheduled = false
 	if (item.kind === 'link') {
@@ -291,7 +295,7 @@ function ItemRow({
 				{item.kind === 'link' && item.featured && <span className="tag">{t('精選')}</span>}
 				{scheduled && <span className="tag cyan">{t('排程')}</span>}
 				{item.hidden && <span className="tag muted">{t('已隱藏')}</span>}
-				{item.kind !== 'link' && <span className="tag outline">{t(KIND_META[item.kind].label)}</span>}
+				{item.kind !== 'link' && <span className="tag outline">{kind.label}</span>}
 			</span>
 			<span className="item-actions">
 				<button type="button" className="icon-btn" aria-label={t('上移')} disabled={index === 0} onClick={() => move(-1)}>
@@ -368,8 +372,8 @@ function ItemEditor({ item }: { item: Item }) {
 		case 'hours':
 			editor = <HoursEditor item={item} set={set} invalid={invalid} />
 			break
-		case 'kofi':
-			editor = <KofiEditor item={item} set={set} invalid={invalid} />
+		case 'embed':
+			editor = <EmbedEditor item={item} set={set} invalid={invalid} />
 			break
 	}
 	return (
@@ -508,40 +512,59 @@ function SocialSection() {
 					}
 				/>
 			)}
+			<EmbedButtonRow />
+		</Section>
+	)
+}
+
+/** The button floating at the bottom right that opens a service's panel, like an embed card's button. */
+function EmbedButtonRow() {
+	const page = usePage()
+	const button = page.draft.embedButton
+	// Brand names, the same in every language.
+	const services = EMBED_PROVIDERS.map((provider) => EMBEDS[provider].name).join(' / ')
+	const set = (patch: Partial<NonNullable<typeof button>>) =>
+		page.update((d) => {
+			if (d.embedButton) Object.assign(d.embedButton, patch)
+		})
+	return (
+		<>
 			<div className="section-row">
 				<div>
-					<p className="section-title">{t('右下角 Ko-fi 按鈕')}</p>
-					<p className="hint" style={{ marginTop: 4 }}>{t('固定在頁面右下角，訪客一點就會打開你的 Ko-fi 贊助視窗。')}</p>
+					<p className="section-title">{t('右下角 {services} 按鈕', { services })}</p>
+					<p className="hint" style={{ marginTop: 4 }}>{t('固定在頁面右下角，訪客一點就會在你的頁面上打開它。')}</p>
 				</div>
 				<Toggle
-					on={page.draft.kofiButton !== undefined}
+					on={button !== undefined}
 					onChange={(on) =>
 						page.update((d) => {
-							// A Ko-fi card on the page already says which account.
-							if (on) d.kofiButton = d.items.find((item): item is KofiItem => item.kind === 'kofi')?.username ?? ''
-							else delete d.kofiButton
+							// An embed card on the page already says which service and account.
+							const card = d.items.find((item): item is EmbedItem => item.kind === 'embed')
+							if (on) d.embedButton = card ? { provider: card.provider, account: card.account } : { provider: EMBED_PROVIDERS[0], account: '' }
+							else delete d.embedButton
 						})
 					}
-					label={t('右下角 Ko-fi 按鈕')}
+					label={t('右下角 {services} 按鈕', { services })}
 				/>
 			</div>
-			{page.draft.kofiButton !== undefined && (
-				<input
-					className="input mono"
-					aria-label={t('Ko-fi 帳號')}
-					aria-invalid={page.problems.some((problem) => problem.path === 'kofiButton') || undefined}
-					autoCapitalize="none"
-					autoCorrect="off"
-					spellCheck={false}
-					value={page.draft.kofiButton}
-					placeholder={t('ko-fi.com/你的帳號')}
-					onChange={(event) =>
-						page.update((d) => {
-							d.kofiButton = kofiInput(event.target.value)
-						})
-					}
-				/>
+			{button && (
+				<div className="embed-row">
+					<select className="select" aria-label={t('服務')} value={button.provider} onChange={(event) => set({ provider: event.target.value as EmbedProvider })}>
+						{EMBED_PROVIDERS.map((provider) => (
+							<option key={provider} value={provider}>
+								{EMBEDS[provider].name}
+							</option>
+						))}
+					</select>
+					<EmbedAccountField
+						id="embed-button-account"
+						provider={button.provider}
+						value={button.account}
+						invalid={page.problems.some((problem) => problem.path.startsWith('embedButton')) || undefined}
+						onChange={(account) => set({ account })}
+					/>
+				</div>
 			)}
-		</Section>
+		</>
 	)
 }

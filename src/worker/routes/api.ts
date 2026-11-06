@@ -26,12 +26,12 @@ import type {
 	SiteJson,
 } from '../../shared/api'
 import { BackupSchema } from '../../shared/backup'
+import { EMBEDS, isEmbedProvider } from '../../shared/embeds'
 import {
 	linkItems,
 	MEDIA_ID,
 	newId,
 	PageContentInputSchema,
-	KOFI_PART,
 	LINE_PART,
 	SOCIAL_PART,
 	randomString,
@@ -293,8 +293,8 @@ function targetLabel(target: string, rows: Map<string, LinkRow>, content: PageCo
 	const deleted = block(labelOf(msg('（已刪除的項目）')))
 	if (!item) {
 		if (part === LINE_PART) return block(labelOf(msg('LINE 按鈕')))
-		// A Ko-fi card that was deleted counts under its own id, the button under the page's.
-		return itemId === pageId && part === KOFI_PART ? block(labelOf(msg('Ko-fi 按鈕'))) : deleted
+		// An embed card that was deleted counts under its own id, the floating button under the page's.
+		return itemId === pageId && isEmbedProvider(part) ? block(labelOf(msg('{name} 按鈕'), { name: EMBEDS[part].name })) : deleted
 	}
 	switch (item.kind) {
 		case 'video':
@@ -310,8 +310,9 @@ function targetLabel(target: string, rows: Map<string, LinkRow>, content: PageCo
 		}
 		case 'hours':
 			return block(labelOf(msg('地圖導航')))
-		case 'kofi':
-			return block(labelOf(msg('Ko-fi：{title}'), { title: named(item.title, msg('未命名')) }))
+		case 'embed':
+			// The service the tap was for, which the card may since have changed.
+			return block(labelOf(msg('{name}：{title}'), { name: EMBEDS[isEmbedProvider(part) ? part : item.provider].name, title: named(item.title, msg('未命名')) }))
 		default:
 			return deleted
 	}

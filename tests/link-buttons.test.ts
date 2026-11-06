@@ -2,7 +2,7 @@ import { env } from 'cloudflare:test'
 import { describe, expect, it } from 'vitest'
 import type { LinkStatsResponse, PageJson, PublishResponse, StatsResponse } from '../src/shared/api'
 import { emptyContent, emptyLink, newItem, type LinkItem, type PageContent, type Social } from '../src/shared/content'
-import { SHEET_SCRIPT_HASH, TAP_SCRIPT, TAP_SCRIPT_HASH } from '../src/templates/render'
+import { TAP_SCRIPT, TAP_SCRIPT_HASH } from '../src/templates/render'
 import { apiJson, IPHONE, visit } from './helpers'
 
 // A button shows where it goes, and a small script reports the tap; hiding the address is the owner's choice.
@@ -38,7 +38,7 @@ describe('a link button', () => {
 		expect(html.match(/<script/g)).toHaveLength(1)
 		expect(html).toContain(`<script>${TAP_SCRIPT}</script>`)
 		const csp = response.headers.get('content-security-policy') ?? ''
-		expect(csp).toContain(`script-src '${TAP_SCRIPT_HASH}' '${SHEET_SCRIPT_HASH}';`)
+		expect(csp).toContain(`script-src '${TAP_SCRIPT_HASH}';`)
 		expect(csp).not.toMatch(/script-src [^;]*unsafe-inline/)
 		expect(csp).toContain("connect-src 'self'")
 	})
@@ -147,7 +147,7 @@ describe('a link that needs its short link', () => {
 		expect((await visit(`/shop-${n}`)).status).toBe(401)
 	})
 
-	it('is safe in a copy of the page written before this existed: it gets rebuilt', async () => {
+	it('is safe in a copy of the page in a shape this version does not write: it gets rebuilt', async () => {
 		const { handle, n } = await makePage((i) => ({ items: [linkItem(i)] }))
 		await apiJson(`/links/link-${n}`, { method: 'PATCH', json: { password: 'open-sesame' } })
 		const { page: copy } = (await env.KV.get(`name:${handle}`, 'json')) as { page: Record<string, unknown> }
