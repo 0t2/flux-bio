@@ -31,7 +31,7 @@ export function sampleOf(draft: PageContent): Sample {
 		// Without a few links there would be little to show the theme's layout on.
 		links: [...links, t('[block]連結'), t('[block]連結'), t('[block]連結')].slice(0, Math.max(links.length, 3)),
 		socials: draft.appearance.showSocial ? Math.min(draft.socials.length, 6) : 0,
-		coverImage: draft.appearance.coverImage ?? null,
+		coverImage: draft.appearance.coverImage,
 	}
 }
 

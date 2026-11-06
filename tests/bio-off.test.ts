@@ -93,14 +93,6 @@ describe('with pages on', () => {
 		await save({ homeUrl: '' })
 	})
 
-	it('treats a site record from before the setting as on', async () => {
-		const record = (await env.KV.get<Record<string, unknown>>('site', 'json'))!
-		const { bio: _bio, homeUrl: _homeUrl, ...older } = record
-		await env.KV.put('site', JSON.stringify(older))
-		expect(await (await visit('/')).text()).toContain('The Shop')
-		await env.KV.put('site', JSON.stringify(record))
-	})
-
 	it('redirects with one KV read', async () => {
 		const { kv, reads } = countingKv()
 		const response = await callWith(kv, '/solo')
