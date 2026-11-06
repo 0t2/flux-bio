@@ -301,9 +301,26 @@ export const OPERATIONS: Operation[] = [
 		description: "Database size, today's views and clicks with what they cost, and how old numbers are kept. Estimates: pictures, bots and other Workers on the account aren't counted.",
 	},
 	{ method: 'get', path: '/api/themes', id: 'listThemes', tag: 'Themes', summary: 'Saved looks' },
-	{ method: 'post', path: '/api/themes', id: 'saveTheme', tag: 'Themes', summary: 'Save a look', body: ThemePresetSchema },
+	{
+		method: 'post',
+		path: '/api/themes',
+		id: 'saveTheme',
+		tag: 'Themes',
+		summary: 'Save a look',
+		description: "A page's appearance with theme as base. coverImage and bgImage are media ids, or null or left out for none, as in an appearance.",
+		body: ThemePresetSchema,
+	},
 	{ method: 'delete', path: '/api/themes/{id}', id: 'deleteTheme', tag: 'Themes', summary: 'Delete a saved look' },
-	{ method: 'get', path: '/api/themes/community', id: 'listCommunityThemes', tag: 'Themes', summary: 'The color sets each theme offers' },
+	{
+		method: 'get',
+		path: '/api/themes/community',
+		id: 'listCommunityThemes',
+		tag: 'Themes',
+		summary: 'The base themes by name, and the color sets each offers',
+		description:
+			'{ source, lang, bases, themes }. bases: every base theme as { id, name, en }, name being what the owner sees on Appearance in lang. themes: the color sets, each with its base theme id in base. source: github, or bundled when GitHub is out of reach.',
+		query: [{ name: 'lang', description: "The language of the names, e.g. ja or zh-TW (default: the site's page language)" }],
+	},
 	{ method: 'post', path: '/api/themes/fetch', id: 'fetchTheme', tag: 'Themes', summary: 'Read a theme file from a GitHub URL', body: ThemeFetchInput },
 	{
 		method: 'get',

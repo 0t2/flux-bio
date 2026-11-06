@@ -15,6 +15,13 @@ import { msg, type Message, type Params } from '../templates/msg'
  * CSS_AT_RULES are allowed), old browsers' script hooks (expression(), behavior, -moz-binding), and strings that look like
  * addresses, which a newer function could one day load.
  *
+ * Except in an attribute selector: `a[href^="https://x.com"]` picks out links by where they go, and a selector only
+ * matches, it never loads. A string counts as one only in the selector's own shape, `[name op "string" i?]`, which no
+ * value takes. Everywhere else an address in a string is still refused, though every loading function is too and a page's
+ * CSP allows pictures only from this site: the same CSS runs in the dashboard's preview, a srcdoc frame under the
+ * dashboard's own CSP, which lets pictures come from any https address. So the check is the line there, and a function
+ * a browser adds later that loads a string would cross it.
+ *
  * The check reads the CSS the way a browser does (CSS Syntax Level 3): comments, strings and url() are found where a
  * browser finds them, and escapes are decoded first, so `u\72l(` is a url( as it is for a browser. Matching text
  * instead would miss things: a comment that starts inside a string would hide whatever follows it. Escapes are
@@ -46,7 +53,7 @@ const SCRIPT_HOOKS = ['behavior', '-ms-behavior', '-moz-binding']
 const ADDRESS = /^(?:(?:[a-z][a-z\d+.-]*:)?\/\/|(?:javascript|vbscript|data|blob|file|filesystem):)/
 
 interface Token {
-	type: 'function' | 'url' | 'string' | 'ident' | 'at' | 'close' | 'other'
+	type: 'function' | 'url' | 'string' | 'ident' | 'at' | 'open' | 'close' | 'other'
 	/** A name as a browser reads it, escapes decoded, in lowercase; a string's or a url's value. */
 	value: string
 	/** Where it starts, for the line number. */
@@ -207,8 +214,10 @@ function read(source: string, again: boolean): Message | null {
 		} else {
 			const character = s[i]!
 			i++
-			if (CLOSE[character]) open.push({ close: CLOSE[character], at })
-			else if (character === ')' || character === ']' || character === '}') {
+			if (CLOSE[character]) {
+				open.push({ close: CLOSE[character], at })
+				tokens.push({ type: 'open', value: character, at })
+			} else if (character === ')' || character === ']' || character === '}') {
 				if (open.pop()?.close !== character) return problem(at, msg('第 {line} 行：「{bracket}」前面沒有對應的括號'), { bracket: character })
 				tokens.push({ type: 'close', value: character, at })
 			} else tokens.push({ type: 'other', value: character, at })
@@ -246,8 +255,8 @@ function read(source: string, again: boolean): Message | null {
 				if (SCRIPT_HOOKS.includes(token.value)) return problem(token.at, msg('第 {line} 行：不能用 {name}'), { name: token.value })
 				break
 			case 'string':
-				if (ADDRESS.test(token.value.replace(/[\t\n\r]/g, '').replace(/^[\0-\x20]+/, '').toLowerCase())) {
-					return problem(token.at, msg('第 {line} 行：「{text}」看起來是網址，CSS 只能用這個網站上傳的圖片'), { text: token.value.slice(0, 80) })
+				if (!inAttributeSelector(tokens, t) && ADDRESS.test(token.value.replace(/[\t\n\r]/g, '').replace(/^[\0-\x20]+/, '').toLowerCase())) {
+					return problem(token.at, msg('第 {line} 行：「{text}」看起來是網址。CSS 不能從別的網址載入東西，網址只能寫在屬性選擇器裡，例如 a[href^="https://…"]'), { text: token.value.slice(0, 80) })
 				}
 				break
 		}
@@ -260,6 +269,33 @@ function read(source: string, again: boolean): Message | null {
 		from = end
 	}
 	return read(rest + s.slice(from), true)
+}
+
+/** What comes before "=" in the operators of an attribute selector: ~= |= ^= $= *=. */
+const MATCHERS = ['~', '|', '^', '$', '*']
+
+/**
+ * Whether the string at `t` is the value of an attribute selector: `[name="…"]`, `[name^="…" i]`, `[ns|name*="…"]`. The
+ * tokens hold no whitespace, so `[name ^= "…"]` reads the same here, where a browser refuses the space inside `^=`;
+ * either way it loads nothing.
+ */
+function inAttributeSelector(tokens: readonly Token[], t: number): boolean {
+	const is = (at: number, type: Token['type'], value?: string) => tokens[at]?.type === type && (value === undefined || tokens[at]!.value === value)
+	// After the string: "]", or a flag and then "]".
+	if (!is(t + 1, 'close', ']') && !(is(t + 1, 'ident') && is(t + 2, 'close', ']'))) return false
+	// Before it: "=", perhaps after one of ~|^$*.
+	let at = t - 1
+	if (!is(at, 'other', '=')) return false
+	at--
+	if (tokens[at]?.type === 'other' && MATCHERS.includes(tokens[at]!.value)) at--
+	// The attribute's name, perhaps with a namespace: name, ns|name, *|name or |name.
+	if (!is(at, 'ident')) return false
+	at--
+	if (is(at, 'other', '|')) {
+		at--
+		if (is(at, 'ident') || is(at, 'other', '*')) at--
+	}
+	return is(at, 'open', '[')
 }
 
 /** The ids of the pictures CSS uses. */

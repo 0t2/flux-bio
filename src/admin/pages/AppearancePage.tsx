@@ -8,7 +8,7 @@ import { AskAi } from '../components/AskAi'
 import { MiniBio, sampleOf } from '../components/MiniBio'
 import { FontHosting } from '../editors/FontHosting'
 import { PageLanguages } from '../editors/PageLanguages'
-import { Dialog, Section, Toggle } from '../components/ui'
+import { Dialog, Section, Segmented, Toggle } from '../components/ui'
 import { t } from '../i18n'
 import { usePreviewFonts } from '../lib/fontPreview'
 import { usePage } from '../state/page'
@@ -134,6 +134,20 @@ export function AppearancePanel() {
 					</div>
 					<Toggle on={appearance.showSocial} onChange={(showSocial) => setAppearance({ showSocial })} label={t('顯示社群圖示')} />
 				</div>
+				{appearance.showSocial && (
+					<div className="field">
+						<span className="label">{t('社群圖示的位置')}</span>
+						<Segmented
+							label={t('社群圖示的位置')}
+							options={[
+								{ value: 'top', label: t('連結上方') },
+								{ value: 'bottom', label: t('連結下方') },
+							]}
+							value={appearance.socialPlace}
+							onChange={(socialPlace) => setAppearance({ socialPlace })}
+						/>
+					</div>
+				)}
 			</section>
 
 			<section className="section" aria-label={t('顯示「用 ♥️ 和 FluxBio 打造」')}>

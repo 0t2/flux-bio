@@ -398,6 +398,7 @@ main{--pad-x:20px;--pad-t:40px;position:relative;max-width:480px;min-height:100v
 .avatar{width:92px;height:92px;flex:0 0 auto;border-radius:var(--avatar-radius);background:var(--accent);color:var(--ink);border:var(--avatar-border);box-shadow:var(--avatar-shadow);display:flex;align-items:center;justify-content:center;overflow:hidden;font-family:var(--head-font);font-weight:700;font-size:28px;letter-spacing:-.02em}
 .avatar img{width:100%;height:100%;object-fit:cover;display:block}
 h1{margin:14px 0 0;font-family:var(--head-font);font-size:28px;font-weight:700;font-synthesis:var(--head-synthesis,weight style);line-height:1.2;letter-spacing:-.01em;text-align:center;overflow-wrap:anywhere}
+.visually-hidden{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;border:0!important;overflow:hidden!important;clip-path:inset(50%)!important;white-space:nowrap!important}
 .bio{margin:6px 0 0;text-align:center;font-size:15px;line-height:1.6;color:var(--muted);white-space:pre-line;overflow-wrap:anywhere}
 .socials{margin-top:16px;display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
 .socials a{width:44px;height:44px;display:flex;text-decoration:none;align-items:center;justify-content:center;color:var(--fg);background:var(--card-bg);border:var(--card-border);border-radius:var(--icon-radius);box-shadow:var(--card-shadow);}
@@ -577,18 +578,30 @@ function absoluteUrl(path: string, base?: string): string | null {
 	}
 }
 
+/**
+ * The social icons as a row after the items (appearance.socialPlace "bottom"). It comes after the theme's rules, whose
+ * spacing and alignment for the icons are made for the header, and at a class's specificity, so a page's own CSS for
+ * `.socials` still has the last word.
+ */
+export const BOTTOM_SOCIALS_CSS = ':where(main)>.socials{align-self:stretch;margin:24px 0 0;justify-content:center}'
+
 /** The items a visitor sees right now: not hidden, inside their schedule, and filled in enough to show. */
 const TODO_CSS = '.link.todo,.act.todo{opacity:.62;border-style:dashed;border-width:1.5px}'
 
-const LINE_BUTTON_CSS = `.has-line main{padding-bottom:88px}
+/**
+ * Floating buttons sit over the page, so main keeps room at its bottom for them: scrolled to the end, the last thing on the
+ * page clears whichever corner they are in. The room is their distance from the bottom plus their height, home indicator
+ * included, with a little to spare.
+ */
+const LINE_BUTTON_CSS = `.has-line main{padding-bottom:calc(88px + env(safe-area-inset-bottom))}
 .line-button{position:fixed;inset-inline-end:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:6;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;background:#06C755;box-shadow:0 4px 14px rgba(0,0,0,.28);text-decoration:none}`
 
 /** An embed card, and the floating embed button, which sits above the LINE button when there is one. */
 const EMBED_CSS = `.embed-head{display:flex;align-items:center;gap:14px}
 .embed-icon{flex:0 0 auto;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:min(var(--radius),14px);color:var(--accent-text);background:color-mix(in srgb,var(--accent) 16%,transparent)}
 .embed-text{min-width:0;display:flex;flex-direction:column;gap:2px}
-.has-embed main{padding-bottom:84px}
-.has-embed.has-line main{padding-bottom:148px}
+.has-embed main{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+.has-embed.has-line main{padding-bottom:calc(148px + env(safe-area-inset-bottom))}
 .embed-button{position:fixed;inset-inline-end:16px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:6;min-height:48px;padding-inline:14px 18px;display:flex;align-items:center;gap:8px;border-radius:999px;color:var(--ink);background:var(--accent);font:700 15px/1.2 var(--body-font);text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.28)}
 .has-line .embed-button{bottom:calc(84px + env(safe-area-inset-bottom))}`
 
@@ -929,7 +942,7 @@ export function renderBioPage(source: PageContent, options: RenderOptions): stri
 		? `<img src="${esc(options.mediaUrl(content.profile.avatar))}" alt="">`
 		: esc(initials(name))
 
-	const socials = content.appearance.showSocial
+	const socialLinks = content.appearance.showSocial
 		? content.socials.flatMap((social) => {
 				const socialUrl = socialHref(social.platform, social.url)
 				if (!socialUrl) return []
@@ -967,7 +980,7 @@ export function renderBioPage(source: PageContent, options: RenderOptions): stri
 			? `<a class="embed-button" ${embedLink(ctx, { id: 'page' }, floating.provider, floatingAccount)} aria-label="${esc(floatingWords.button)}">${iconSvg(EMBEDS[floating.provider].icon, 22, 2)}<span>${esc(floatingWords.float)}</span></a>`
 			: ''
 	// The owner's own text can't match: esc() turns its quotes into entities.
-	const reportsTaps = / ping="/.test(itemsHtml + socials.join('') + lineButton + embedButton)
+	const reportsTaps = / ping="/.test(itemsHtml + socialLinks.join('') + lineButton + embedButton)
 	const showsEmbed = Boolean(embedButton) || items.some((item) => item.kind === 'embed')
 	// The page's own CSS, in a sheet of its own after the theme's, so it wins at the same specificity and nothing in it can
 	// spill into the theme's. It was checked when it came in (src/shared/css.ts); "<" is the one thing that could end the
@@ -975,18 +988,25 @@ export function renderBioPage(source: PageContent, options: RenderOptions): stri
 	const css = content.appearance.css
 	const ownCss = css.trim() && !css.includes('<') ? `\n<style>${css}</style>` : ''
 
+	const socials = socialLinks.length ? `<nav class="socials" aria-label="${esc(text.socials)}">${socialLinks.join('')}</nav>` : ''
+	// Where they show is where they are, so a keyboard and a screen reader reach them in the order the page shows them.
+	const below = content.appearance.socialPlace === 'bottom'
+	// A name kept out of sight stays the page's heading, for screen readers and search engines.
+	const nameClass = content.appearance.showName === false ? ' class="visually-hidden"' : ''
+
 	const body = `${options.draft ? `<p class="draft-note" role="status">${esc(text.draftNote)}</p>` : ''}
 ${backdrop}
 <main>
 <header class="head">
 <div class="avatar" aria-hidden="true">${avatar}</div>
-<h1>${esc(name)}</h1>
+<h1${nameClass}>${esc(name)}</h1>
 ${bio ? `<p class="bio">${esc(bio)}</p>` : ''}
 ${openPill}
-${socials.length ? `<nav class="socials" aria-label="${esc(text.socials)}">${socials.join('')}</nav>` : ''}
+${below ? '' : socials}
 </header>
 ${cover}
 ${items.length ? `<div class="items">${itemsHtml}</div>` : ''}
+${below ? socials : ''}
 ${footer}
 </main>
 ${lineButton}${embedButton}${ctx.sheets.map((sheet) => sheetHtml(text, sheet)).join('')}
@@ -1001,7 +1021,7 @@ ${headHtml(look, title, options.fonts, live || options.settled ? body + ownCss :
 ${meta}
 <style>${pageVars(look)}
 ${BASE_CSS}
-${THEME_CSS[look.theme.id]}${lineButton ? `\n${LINE_BUTTON_CSS}` : ''}${showsEmbed ? `\n${EMBED_CSS}` : ''}${ctx.sheets.length ? `\n${SHEET_CSS}` : ''}${options.mode === 'preview' ? `\n${TODO_CSS}` : ''}${options.draft ? `\n${DRAFT_CSS}` : ''}</style>${ownCss}
+${THEME_CSS[look.theme.id]}${below && socials ? `\n${BOTTOM_SOCIALS_CSS}` : ''}${lineButton ? `\n${LINE_BUTTON_CSS}` : ''}${showsEmbed ? `\n${EMBED_CSS}` : ''}${ctx.sheets.length ? `\n${SHEET_CSS}` : ''}${options.mode === 'preview' ? `\n${TODO_CSS}` : ''}${options.draft ? `\n${DRAFT_CSS}` : ''}</style>${ownCss}
 </head>
 <body${bodyClass ? ` class="${bodyClass}"` : ''}>
 ${body}

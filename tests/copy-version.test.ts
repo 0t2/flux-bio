@@ -19,7 +19,7 @@ const shape = () =>
 	[...paths(defaultContent()), ...ITEM_KINDS.flatMap((kind) => paths(newItem(kind), `items[${kind}].`))].sort()
 
 const WRITTEN_WITH: Record<number, string[]> = {
-	4: [
+	5: [
 		'appearance',
 		'appearance.accent',
 		'appearance.accent2',
@@ -34,7 +34,9 @@ const WRITTEN_WITH: Record<number, string[]> = {
 		'appearance.fg',
 		'appearance.font',
 		'appearance.headFont',
+		'appearance.showName',
 		'appearance.showSocial',
+		'appearance.socialPlace',
 		'appearance.theme',
 		'items',
 		'items[embed].account',
@@ -117,10 +119,13 @@ describe('copies of pages in KV', () => {
 		const { page } = await apiJson<{ page: PageJson }>('/pages', { method: 'POST', json: { handle: 'older-copy', name: 'Mei' } })
 		await apiJson(`/pages/${page.id}/publish`, { method: 'POST', headers: { 'if-match': String(page.draftUpdatedAt) } })
 		const { page: copy } = (await env.KV.get('name:older-copy', 'json')) as { page: { content: { appearance: Record<string, unknown> } } }
-		delete copy.content.appearance.css
+		delete copy.content.appearance.showName
+		delete copy.content.appearance.socialPlace
 		await env.KV.put('name:older-copy', JSON.stringify({ page: { ...copy, v: COPY_VERSION - 1 } }))
 		const response = await visit('/older-copy')
 		expect(response.status).toBe(200)
-		expect(await response.text()).toContain('Mei')
+		expect(await response.text()).toContain('<h1>Mei</h1>')
+		const { page: rebuilt } = (await env.KV.get('name:older-copy', 'json')) as { page: { v: number; content: { appearance: Record<string, unknown> } } }
+		expect(rebuilt).toMatchObject({ v: COPY_VERSION, content: { appearance: { showName: true, socialPlace: 'top' } } })
 	})
 })

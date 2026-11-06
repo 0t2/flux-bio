@@ -13,6 +13,10 @@ export type FontId = (typeof FONT_IDS)[number]
 export const BUTTON_IDS = ['auto', 'pill', 'rounded', 'square', 'shadow'] as const
 export type ButtonId = (typeof BUTTON_IDS)[number]
 
+/** Where the social icons go: under the bio, or after everything else on the page. */
+export const SOCIAL_PLACES = ['top', 'bottom'] as const
+export type SocialPlace = (typeof SOCIAL_PLACES)[number]
+
 export const SOCIAL_PLATFORMS = [
 	'youtube',
 	'instagram',
@@ -245,7 +249,14 @@ export const AppearanceSchema = z.object({
 	/** Everything else. Characters the family lacks (say, Chinese in a Latin font) use `font`. */
 	bodyFont: FontFamilySchema.default(''),
 	button: z.enum(BUTTON_IDS),
+	/**
+	 * false: the name is hidden from sight, for an avatar that is a logo with the name in it. It stays on the page as its
+	 * <h1>, for screen readers and search engines.
+	 */
+	showName: z.boolean().default(true).describe('false hides the name from sight, e.g. when the avatar is a logo that already says it. Screen readers and search engines still read it'),
 	showSocial: z.boolean(),
+	/** "top" puts the social icons under the bio; "bottom" after the items. Either way they come where they show, for keyboards and screen readers too. */
+	socialPlace: z.enum(SOCIAL_PLACES).default('top').describe('Where the social icons go: "top", under the bio, or "bottom", after the items'),
 	/** A large picture at the top of the page. Each theme places it its own way. */
 	coverImage: mediaRef.default(null),
 	/** A picture behind the whole page, under a layer of the background color. */
@@ -407,9 +418,9 @@ export const ThemePresetSchema = z.object({
 	bodyFont: FontFamilySchema.optional().catch(undefined),
 	button: z.enum(BUTTON_IDS),
 	author: z.string().max(40).optional(),
-	/** Pictures uploaded to this deployment; left out, the look has none. */
-	coverImage: mediaId.optional(),
-	bgImage: mediaId.optional(),
+	/** Pictures uploaded to this deployment; null or left out, the look has none, as null is none in an appearance. */
+	coverImage: mediaId.nullish(),
+	bgImage: mediaId.nullish(),
 	bgDim: z.number().min(0.4).max(0.95).optional(),
 	bgTile: z.number().int().min(0).max(2000).optional(),
 	/** The look's own CSS (appearance.css); left out, it has none. */
@@ -498,7 +509,7 @@ export function randomString(length: number, alphabet = ID_ALPHABET): string {
 export const newId = (): string => randomString(10)
 
 export function defaultAppearance(): Appearance {
-	return { theme: 'liquid', accent: '', accent2: '', bg: '', fg: '', font: 'auto', headFont: '', bodyFont: '', button: 'auto', showSocial: true, coverImage: null, bgImage: null, bgDim: 0.75, bgTile: 0, css: '' }
+	return { theme: 'liquid', accent: '', accent2: '', bg: '', fg: '', font: 'auto', headFont: '', bodyFont: '', button: 'auto', showName: true, showSocial: true, socialPlace: 'top', coverImage: null, bgImage: null, bgDim: 0.75, bgTile: 0, css: '' }
 }
 
 export function emptyLink(): LinkItem {

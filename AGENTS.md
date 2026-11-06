@@ -370,6 +370,9 @@ Rules worth knowing:
 - **Buttons show the real address.** In a public page's HTML, link buttons, products, gallery images, the map button and embed buttons are `<a href="<the address>" ping="/_c/<handle>/<id>/<part>">`, so a visitor can see where one goes. `TAP_SCRIPT` in `src/templates/render.ts` takes the attribute off and POSTs to that address on a tap, with `fetch` and `keepalive`, because Firefox ignores `ping` by default and ad blockers stop it; without JavaScript the attribute does the job, and the page works either way. That counts the tap under the same id as a click on the link's short link, and costs what a redirect costs (one Worker request, one KV read). Someone who blocks both goes uncounted. Every link still gets a short link when published, for sharing elsewhere.
 - **Hiding the address.** `hideUrl` on a link makes its button `/<slug>` instead: that suits affiliate links, and every click counts. A link with a password, UTM tags, device addresses, `lineExternal` or `inAppPrompt` does the same whatever `hideUrl` says (`linkNeedsWorker` in `lib/ops.ts`, kept in the page's snapshot as `viaShortLink`), because a button that skipped the redirect would skip those. Changing one of them rewrites the page's snapshot.
 - **The LINE button.** `lineButton` in a page's content floats a LINE button at the bottom right, and a tap on it counts under `<page id>.line`.
+  `main` keeps room at its end for floating buttons, home indicator included (`.has-line main` and `.has-embed main` in
+  `src/templates/render.ts`), so the last thing on a page scrolls clear of them in whichever corner they are; `tests/page-header.test.ts`
+  measures it.
 - **Other services' panels.** An `embed` card's button and the floating `embedButton` (`{ provider, account }`, above the LINE button
   when both are on) link to the account's page on a service from `EMBEDS` in `src/shared/embeds.ts`: Ko-fi's tip panel (`kofi`) or
   Calendly's booking calendar (`calendly`). They count under `<item id>.<provider>` and `<page id>.<provider>`, so a count keeps its
@@ -379,6 +382,10 @@ Rules worth knowing:
   `account()` reads the account out of whatever the owner pasted: the account, its address, or the service's embed code. Adding a
   service is one entry there: see "Add a block".
 - **Social icons.** They're never counted unless `countSocials` is on in a page's content; then they report a tap the way buttons do. Email icons aren't counted. Video players still go through a `/_c` redirect, because they open inside their frame.
+  `appearance.socialPlace` puts them under the bio (`top`, in `.head`) or after the items (`bottom`, `main > .socials`), and
+  they are drawn where they show, so a keyboard and a screen reader reach them in the order the screen has. `appearance.showName`
+  false keeps the name as the page's `<h1>` with `class="visually-hidden"`: out of sight, still read by screen readers and search
+  engines, for an avatar that is a logo with the name in it. The owner has switches for both (外觀, and 內容 under the name).
 - **Short links only.** With `bio` off, a page's address, `/_draft` and `/_c` answer not found with no
   suggestions, `/robots.txt` and `/sitemap.xml` list no pages, and a short link's own system pages don't point
   back to its page. Every short link keeps redirecting and counting, `/media/` stays public, and pages can
@@ -395,7 +402,9 @@ Rules worth knowing:
   elsewhere, e.g. to an app store.
 - **A page's own CSS.** `appearance.css` (up to 20,000 characters) is CSS the owner's AI writes for a page of links, applied after
   its theme's. It never contains `<` and loads nothing but this site's pictures, as `url(/media/<id>)`: `cssProblem` in
-  `src/shared/css.ts` refuses the rest when a draft, a backup or a saved look comes in, and again on publish. The markup it is
+  `src/shared/css.ts` refuses the rest when a draft, a backup or a saved look comes in, and again on publish. A string that
+  looks like an address is refused too, except as the value of an attribute selector (`a[href^="https://x.com"]`), which
+  only matches: the same CSS runs in the dashboard's preview, under the dashboard's CSP, which lets pictures load from anywhere. The markup it is
   written against (class names, structure, the `pageVars()` variables) is in the guide topic `customize`, and
   `tests/custom-css.test.ts` fails when `renderBioPage` changes a class name, so that change is made on purpose and the topic
   with it. Picking a color set on 外觀 clears it, after asking.
@@ -631,7 +640,8 @@ th, vi and ar.
   keys and mismatched `{placeholders}`. The owner picks the language (sidebar, 設定, login page); it
   starts from the browser's.
 - **Text from the API** (errors, publish problems, stats labels) is in English, from `src/shared/serverWords.ts`, with `key` and `params`
-  next to it that the dashboard translates (`src/templates/msg.ts`). So are a starter's words in each language, for pages made through the API.
+  next to it that the dashboard translates (`src/templates/msg.ts`). So are a starter's words in each language, for pages made through the API,
+  and the themes' names (`THEME_WORDS`), which `GET /api/themes/community?lang=` gives an AI to call a theme by the owner's word for it.
   That file is generated from the dashboard's locale files: run `pnpm i18n server` after changing them or adding a key the Worker uses.
 - **Nothing in Chinese reaches anyone who doesn't read it.** `tests/no-chinese.test.ts` checks what the API sends and creates, the guide, and the landing page in
   every other language, and `pnpm shots` refuses a screenshot with Chinese in it.
@@ -658,7 +668,12 @@ composition in a shadow root, and the landing page's lists come from the themes,
 - **A new base theme:** add the id to `THEME_IDS` in `src/shared/content.ts`, its seed to `SEEDS`, its composition to
   `THEME_CSS`, whose sample page suits it to `THEME_SAMPLES` (`landing/previews.ts`), its name to the dashboard's
   locale files, and at least one color set. Every color in a composition must be a variable from `pageVars()` or a mix
-  of them, so it keeps working in colors an AI picks. Then `pnpm test`.
+  of them, so it keeps working in colors an AI picks. A rule that places the social icons in the header names `.head .socials`,
+  so they are still a row after the links with `socialPlace: "bottom"`, and the theme must look right with the name hidden
+  (`showName: false`). Then `pnpm test`, and run `pnpm i18n server` for its name in `THEME_WORDS`.
+- **What `button` does** in each theme is in the guide's topic `look`, read from the compositions (`ownLinkLook` in
+  `src/templates/compositions.ts`): where a theme draws its link buttons' border, corners or shadow itself, `button` leaves
+  that part alone, and the guide says so without anyone writing it down.
 - **What an AI can set** through the API, and the dashboard can't: `accent`, `accent2`, `bg`, `fg`, `font`, `headFont`,
   `bodyFont`, `button`, `bgImage`, `bgDim`, `bgTile` and `css` (CSS of the page's own, see "A page's own CSS") in `appearance`.
   A page with any of these shows on 外觀 as a look made by AI, and picking a color set clears them, after asking when there is

@@ -14,6 +14,9 @@ describe("a share card's key", () => {
 		const key = keyOf(content)
 		for (const appearance of [
 			{ ...content.appearance, showSocial: !content.appearance.showSocial },
+			{ ...content.appearance, socialPlace: 'bottom' as const },
+			// The card keeps the name: it is how a shared link says whose page it is.
+			{ ...content.appearance, showName: false },
 			{ ...content.appearance, coverImage: 'abcdefghijkl.webp' },
 			{ ...content.appearance, bgImage: 'abcdefghijkl.webp', bgDim: 0.4 },
 		]) {

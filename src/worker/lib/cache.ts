@@ -19,7 +19,7 @@ import type { LinkRow } from './db'
  * new field in page content included, raises this: otherwise pages published before it are drawn from copies that
  * lack the field, and fail until published again. `tests/copy-version.test.ts` notices new content fields.
  */
-export const COPY_VERSION = 4
+export const COPY_VERSION = 5
 
 export interface Snapshot {
 	v: typeof COPY_VERSION

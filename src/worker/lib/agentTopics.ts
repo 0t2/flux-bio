@@ -1,8 +1,10 @@
 import { CSS_AT_RULES, CSS_LIMIT } from '../../shared/css'
-import { BUTTON_IDS, FONT_IDS, ITEM_KINDS, newItem, SOCIAL_PLATFORMS } from '../../shared/content'
+import { BUTTON_IDS, defaultAppearance, FONT_IDS, ITEM_KINDS, LOCALES, newItem, SOCIAL_PLACES, SOCIAL_PLATFORMS, THEME_IDS } from '../../shared/content'
 import { EMBED_PROVIDERS, EMBEDS } from '../../shared/embeds'
 import { ENGLISH } from '../../shared/serverWords'
 import { RESERVED_SLUGS } from '../../shared/slug'
+import { ownLinkLook } from '../../templates/compositions'
+import { AVATAR_RADIUS, ICON_RADIUS, RADIUS, resolveAppearance, THEMES, type ButtonKey } from '../../templates/themes'
 import type { GuideNames } from './agent'
 import { KV_OPS_AT_ONCE, VERSIONS_KEPT } from './mode'
 import { OPERATIONS } from './openapi'
@@ -19,7 +21,7 @@ export const GUIDE_TOPICS = [
 	{ id: 'trying-it', title: 'Trying it out', covers: ['Trying it out'], when: 'The owner is new to this or only trying FluxBio, or asks about free quota, coming back later, going public or a domain' },
 	{ id: 'content', title: 'Page content', covers: ['Page content'], when: 'Before you add or change anything on a page: every kind of item and its fields, slugs, social icons, the LINE button, embeds for tips or bookings, and a block FluxBio lacks' },
 	{ id: 'stats', title: 'Stats and sources', covers: ['Report on stats', 'Sources and UTM tags'], when: 'Before you report on views, clicks or visitors, or tag where visitors come from' },
-	{ id: 'look', title: 'Themes and fonts', covers: ['Themes', 'Make a theme', 'Fonts'], when: 'Before you change a theme, colors, pictures, fonts or `hostFonts`: it says what fonts cost' },
+	{ id: 'look', title: 'Themes and fonts', covers: ['Themes', 'Buttons', 'Make a theme', 'Fonts'], when: 'Before you change a theme, colors, pictures, fonts or `hostFonts`: it says what fonts cost' },
 	{
 		id: 'customize',
 		title: 'Customize the look',
@@ -64,6 +66,46 @@ function endpointTable(): string {
 
 const list = (values: readonly string[]) => values.map((value) => `\`${value}\``).join(', ')
 
+/** "a, b and c". */
+const and = (values: readonly string[]) => (values.length < 2 ? values.join('') : `${values.slice(0, -1).join(', ')} and ${values.at(-1)}`)
+
+/** Where an AI can see every theme before picking one: the landing page draws each with a sample page. */
+const THEME_PICTURES = 'https://fluxbio.link'
+
+/**
+ * What each `button` value does, and what a theme draws on its link buttons itself, which `button` then leaves alone.
+ * Read from the themes and their compositions, so it can't fall behind them.
+ */
+function buttonGuide(): string {
+	const round = (radius: string) => (radius === '999px' ? 'round' : radius === '0px' ? 'square' : radius)
+	const shapes = (key: ButtonKey) => `${RADIUS[key] === '999px' ? 'round ends' : `${RADIUS[key]} corners`}, ${round(ICON_RADIUS[key])} icons, ${round(AVATAR_RADIUS[key])} avatar`
+	const hard = resolveAppearance({ ...defaultAppearance(), button: 'shadow' }).vars
+	const pill = THEME_IDS.filter((id) => THEMES[id].button === 'pill').map((id) => THEMES[id].en)
+	const own = THEME_IDS.flatMap((id) => {
+		const look = ownLinkLook(id)
+		if (look.bare) return []
+		const parts = [look.border && 'border', look.corners === true && 'corners', typeof look.corners === 'number' && `corners up to ${look.corners}px`, look.shadow && 'shadow'].filter(Boolean)
+		return parts.length ? [`${THEMES[id].en} (${parts.join(', ')})`] : []
+	})
+	const bare = THEME_IDS.filter((id) => ownLinkLook(id).bare).map((id) => THEMES[id].en)
+	const all = THEME_IDS.filter((id) => {
+		const look = ownLinkLook(id)
+		return !look.border && !look.corners && !look.shadow
+	}).map((id) => THEMES[id].en)
+	// An example of what that means, from a theme that keeps its own shadow but takes the border.
+	const example = THEME_IDS.find((id) => {
+		const look = ownLinkLook(id)
+		return look.shadow && !look.border && !look.bare
+	})
+	const so = example ? ` So on ${THEMES[example].en} only \`shadow\` gives link buttons a border, over the theme's own shadow rather than the offset one.` : ''
+	return `**Buttons.** \`button\` sets the shape of link buttons, panels, social icons and the avatar, through the variables in "Page markup" (\`--radius\`, \`--icon-radius\`, \`--avatar-radius\`, and for \`shadow\` the borders and shadows):
+- \`auto\`: the theme's own, which is \`pill\` on ${and(pill)}, and \`rounded\` on the others.
+${(['pill', 'rounded', 'square'] as const).map((key) => `- \`${key}\`: ${shapes(key)}. No border.`).join('\n')}
+- \`shadow\`: ${shapes('shadow')}, and a ${hard['--card-border']!.split(' ')[0]} border in the text color with a hard ${hard['--card-shadow']!.split(' ')[0]} offset shadow on buttons, panels, icons and the avatar. The only value that draws a border.
+
+Some themes draw part of their link buttons themselves, and that part stays the theme's whatever \`button\` is: ${and(own)}. ${and(bare)} ${bare.length > 1 ? 'have' : 'has'} no buttons at all, so \`button\` changes only ${bare.length > 1 ? 'their' : 'its'} panels, icons and avatar. ${and(all)} take all of it.${so} Featured links, panels and social icons follow the variables too unless the theme draws them itself, and in many themes the social icons are plain symbols with nothing around them. To be sure, read the theme's rules in the \`<style>\` of \`GET /api/pages/{id}/preview\`; for more than this, see "Customize the look".`
+}
+
 function bodies({ origin, host, worker, liveWorker, tokenVar, skill, otherSites }: GuideNames): Record<GuideTopicId, string> {
 	return {
 		customize: `**Customize the look.** Go up this ladder one step at a time, and only as far as the owner's request needs:
@@ -74,7 +116,7 @@ function bodies({ origin, host, worker, liveWorker, tokenVar, skill, otherSites 
 
 **\`appearance.css\`.** A string of up to ${CSS_LIMIT.toLocaleString('en')} characters in the draft's \`appearance\`: \`PUT\` the draft and publish as usual. It goes in a \`<style>\` of its own after the theme's, on the public page, in preview links and in the dashboard's preview. System pages (not found, an expired link) don't get it. Saving refuses CSS that could break out of the page or load something, with a 400 whose \`problems[]\` has \`path: "appearance.css"\` and a message that names the line and the reason:
 - \`<\` anywhere. Inside a string, write \`\\3c \` instead, as in an \`@property\` syntax: \`syntax: "\\3c color>"\`.
-- Anything that loads from an address, apart from this site's pictures written out plainly as \`url(/media/<id>)\` or \`url("/media/<id>")\`. So no other \`url()\`, no \`@import\` or \`@font-face\`, no \`image()\`, \`image-set()\`, \`src()\`, \`cross-fade()\`, \`element()\` or \`paint()\`, and no strings that look like addresses (\`"https://…"\`, \`"//…"\`, \`"data:…"\`).
+- Anything that loads from an address, apart from this site's pictures written out plainly as \`url(/media/<id>)\` or \`url("/media/<id>")\`. So no other \`url()\`, no \`@import\` or \`@font-face\`, no \`image()\`, \`image-set()\`, \`src()\`, \`cross-fade()\`, \`element()\` or \`paint()\`, and no strings that look like addresses (\`"https://…"\`, \`"//…"\`, \`"data:…"\`) except as the value of an attribute selector, which matches and loads nothing: \`a[href^="https://x.com"]\` is fine.
 - At-rules other than ${CSS_AT_RULES.map((rule) => `\`@${rule}\``).join(', ')}.
 - \`expression()\`, \`behavior\` and \`-moz-binding\`, and strings, comments or brackets left open.
 
@@ -91,13 +133,14 @@ Escapes are fine (\`content: "\\2192"\`). The browser holds the same line: a pag
 <main>
   <header class="head">
     <div class="avatar"><img> or the initials</div>
-    <h1>name</h1>
+    <h1>name</h1>                         <h1 class="visually-hidden"> with appearance.showName false: out of sight, still read
     <p class="bio">
     <p class="open-pill"><i></i><b>Open now</b><span>until 18:00</span></p>    with opening hours; "open-pill closed" when closed
-    <nav class="socials"><a aria-label="Instagram"><svg></a>…</nav>
+    <nav class="socials"><a aria-label="Instagram"><svg></a>…</nav>    here with appearance.socialPlace "top", the default
   </header>
   <figure class="cover"><img></figure>    appearance.coverImage
   <div class="items">                     one element per item, in the draft's order
+  <nav class="socials">                   here instead with socialPlace "bottom": .socials is either, main > .socials only this one
   <footer><a class="badge">               showBadge
 </main>
 <a class="line-button"><svg></a>          lineButton
@@ -122,15 +165,19 @@ The theme's colors and shapes are variables on \`:root\`. Use them rather than f
 Writing it:
 - Your CSS comes after the theme's, so a selector as specific as the theme's wins. Read the theme's rules in the \`<style>\` of \`GET /api/pages/{id}/preview\` before you override them, and use \`!important\` only where you must.
 - Use logical properties (\`margin-inline-start\`, \`padding-inline\`, \`inset-inline-end\`, \`border-inline-start\`, \`text-align: start\`), never \`left\` or \`right\`: pages in Arabic run right to left, and \`[dir=rtl]\` selects them. An arrow you draw with \`content:\` doesn't turn round by itself, so give it a \`[dir=rtl]\` rule too.
-- Items have no ids. To pick out one, use its position (\`.items > :nth-child(3)\`) or its address (\`a.link[href*="shop.example"]\`; a link that goes through its short link has \`href="/<slug>…"\`), and remember that it moves when the page changes.
+- Items have no ids. To pick out one, use its position (\`.items > :nth-child(3)\`) or its address (\`a.link[href*="shop.example"]\`, \`.socials a[href^="https://x.com"]\`; a link that goes through its short link has \`href="/<slug>…"\`), and remember that it moves when the page changes.
+- Put the social icons after the links with \`socialPlace: "bottom"\`, and hide the name with \`showName: false\` (see "Themes"), not with CSS: moving things with \`display: contents\` and \`order\` leaves a keyboard and a screen reader going through them in another order than the screen shows.
+- The floating buttons (\`.line-button\`, \`.embed-button\`) sit over the bottom corner of the screen, and \`body.has-line main\` and \`body.has-embed main\` keep room at the end of the page (\`padding-bottom\`, home indicator included) so the last thing on it scrolls clear of them, whichever corner they are in. Moving one to the other corner needs nothing more; if you make one taller or raise it, make that room as much bigger. Set \`--pad-x\` and \`--pad-t\` on \`main\`, never a \`padding\` that takes the room away.
 - Keep buttons at least 44 px tall and focus outlines visible, and put motion inside \`@media (prefers-reduced-motion: no-preference)\`.
 - Leave what the owner decides to the content: don't hide a link, the badge or the social icons with \`display: none\`, change the draft. Text in \`content:\` isn't translated, so keep words out of it and use it for symbols and decoration.
 
 **Match a reference picture.** When the owner sends a picture and says "make it look like this":
 1. Read the picture: the layout (centered or to one side, a card or the whole screen), the header, the buttons (shape, fill, border, shadow), colors, type, the background (flat, a gradient, a pattern, a photo) and the spacing.
-2. Pick the base theme whose layout is closest (see "Themes"), then get as near as the fields allow: \`accent\`, \`accent2\`, \`bg\` and \`fg\` from the picture, \`headFont\` and \`bodyFont\` (see "Fonts"), \`button\`, \`coverImage\`, \`bgImage\`, \`bgDim\` and \`bgTile\` (see "Make a theme").
+2. Pick the base theme whose layout is closest (see "Themes"), from the pictures of all 24 at ${THEME_PICTURES}/en/#themes, not by switching the draft through them. Then get as near as the fields allow: \`accent\`, \`accent2\`, \`bg\` and \`fg\` from the picture, \`headFont\` and \`bodyFont\` (see "Fonts"), \`button\`, \`coverImage\`, \`bgImage\`, \`bgDim\` and \`bgTile\` (see "Make a theme").
 3. Write \`appearance.css\` for the rest, against "Page markup", a few rules at a time. Upload any picture it needs first (see "The owner's pictures and links"). A pattern is often a gradient (\`repeating-linear-gradient\`, \`radial-gradient\`), which needs no picture at all.
-4. \`PUT\` the draft, make a preview link (see "Show the owner a draft"), and take screenshots at phone width (\`"viewport":{"width":390,"height":844}\`) and on a wide screen (1280 × 800), with \`"screenshotOptions":{"fullPage":true}\`, by the command in "Share image" or with a browser on this computer such as Playwright. For right to left, add \`?lang=ar\` if Arabic is turned on; otherwise add \`html{direction:rtl}\` with \`addStyleTag\` (in your own browser, set \`dir="rtl"\` on \`<html>\`), which shows whether the layout turns round.
+4. \`PUT\` the draft, make a preview link (see "Show the owner a draft"), and take screenshots at phone width (\`"viewport":{"width":390,"height":844}\`) and on a wide screen (1280 × 800), with \`"screenshotOptions":{"fullPage":true}\`, by the command in "Share image" or with a browser on this computer such as Playwright. For right to left, add \`?lang=ar\` if Arabic is turned on; otherwise add \`html{direction:rtl}\` with \`addStyleTag\` (in your own browser, set \`dir="rtl"\` on \`<html>\`), which shows whether the layout turns round. Two things in these screenshots aren't the page:
+   - A preview link has a bar at the top, \`.draft-note\`, that pushes everything down by its height. Hide it before you compare positions, with \`.draft-note{display:none}\` in \`addStyleTag\`.
+   - A full-page screenshot draws what is fixed to the screen once, over the first screen: the background (\`.page-bg\`, and the field some themes draw behind the page) and the floating buttons. Below the first screen the background looks missing, and a floating button can sit over the middle of the page. On a phone they stay put as the page scrolls, so judge them on screen-sized shots, one at the top and one scrolled to the end.
 5. Put the screenshot beside the reference, list what differs, fix the biggest difference first, and repeat. Three or four rounds are usually enough; each screenshot uses a few seconds of the 10 minutes of browser time a day.
 6. Check before you show the owner: text reads at 4.5:1 against what is behind it, a background picture included; nothing overflows at 320 px; long titles wrap; right to left looks right.
 7. Send the owner the preview link, and say where it differs from the picture on purpose (what the page has that the picture doesn't). Publish on their yes, and save the look with \`POST /api/themes\`, which keeps its \`css\`, so you can put it back later.
@@ -142,9 +189,9 @@ Writing it:
 
 **What custom CSS can't do, and what to tell the owner.** It can't load anything from elsewhere (fonts, pictures, stylesheets) or run scripts, and it doesn't change what the page says: links, their order, translations and counting stay the owner's, in the dashboard. Tell the owner once, in plain words, that changes to this look go through you; that picking a color set or another theme on Appearance takes it away, after the dashboard asks; and that a published version or a saved look brings it back.`,
 		content: `**Page content.** A page's \`draft\` is a \`PageContent\` (the full schema is in the OpenAPI document under \`components.schemas.PageContent\`):
-- \`profile\`: \`name\`, \`bio\`, \`avatar\` (a media id, or null).
+- \`profile\`: \`name\`, \`bio\`, \`avatar\` (a media id, or null). \`appearance.showName: false\` keeps the name out of sight (see "Themes").
 - \`appearance\`: the theme and the rest of the look (see "Themes").
-- \`socials\`: up to 12 of ${SOCIAL_PLATFORMS.join(', ')}, each \`{ id, platform, url }\`, shown while \`appearance.showSocial\` is on. \`countSocials: true\` also counts taps on them, at one Worker request and one KV read per tap; email icons never count.
+- \`socials\`: up to 12 of ${SOCIAL_PLATFORMS.join(', ')}, each \`{ id, platform, url }\`, shown while \`appearance.showSocial\` is on: under the bio, or after the items with \`appearance.socialPlace: "bottom"\`. \`countSocials: true\` also counts taps on them, at one Worker request and one KV read per tap; email icons never count.
 - \`items\`: the page from top to bottom, below. Each has a unique \`id\` of 4–32 characters from \`A-Za-z0-9_-\`. Make new ones up (e.g. 8 random letters) and keep existing ones, because stats are counted per id.
 - \`seo\`: the share preview's \`title\`, \`description\` and picture (see "Share image"). \`showBadge\`: "Made with ♥️ and FluxBio" in the footer.
 - \`lineButton\`, \`embedButton\`: buttons floating at the bottom right, the embed one above LINE's. LINE takes an address like \`https://lin.ee/…\` or an official account's \`@id\`. \`embedButton\` is \`{ provider, account }\`, as on an \`embed\` item (below).
@@ -266,7 +313,9 @@ When the owner asks what you can do, answer with what the dashboard leaves to yo
 - **Do I need the dashboard:** no. Anything they want done, they can ask you for. It is there if they like to look around.
 - **Without an AI:** pages, appearance, short links, QR codes, stats and downloading a backup all work in the dashboard; settings without a screen (domain, time zone, restoring a backup, a look with their own colors and pictures) go through the API described here.
 - **Visitor tracking:** no cookies, no IP addresses and no full user-agent strings. Each visit leaves an event for 90 days with the time, source, device, browser, language, network and a location rounded to about 10 km (Cloudflare's estimate from the IP), and a one-way hash that changes daily; the totals stay. Known bots and link previews are not counted. Fonts load from Google unless \`hostFonts\` is on, and YouTube thumbnails come from Google, so visitors' browsers connect there.`,
-		look: `**Themes.** A page's look is its \`draft.appearance\`: \`theme\`; \`accent\`, \`accent2\`, \`bg\` (background) and \`fg\` (text), each \`#rrggbb\` or "" for the theme's own; \`font\` (${list(FONT_IDS)}); \`headFont\` and \`bodyFont\` (see "Fonts"); \`button\` (${list(BUTTON_IDS)}); \`showSocial\`; and \`coverImage\`, \`bgImage\`, \`bgDim\` and \`bgTile\` (see "Make a theme"). There are 24 base themes, and each is a layout of its own, not only colors: \`liquid\` Neon (a deep night, pills that glow), \`editorial\` Vista (the cover fills the screen, white outlined pills), \`brutal\` Tiles (a big bright square per social account, on a dark blurred cover), \`jelly\` Candy (a soft field, every link its own bright color; good for shops), \`minimal\` Airy (white space, a small avatar beside the name, pastel rows), \`aurora\` Aurora (a gradient across the page, buttons two to a row; good for events), \`notebook\` Card (one card floating on a color, a square portrait at its head), \`boutique\` Frost (a blurred cover under frosted rows; good for shops), \`sunset\` Sunset (a card whose top is a gradient, the avatar overlapping it), \`sky\` Sky (a gradient behind a card, an oval portrait beside the name), \`pop\` Pop (a loud field, a bright card, pastel pills in many colors), \`portrait\` Portrait (a large black-and-white picture on a dark page, one bright button), \`sheet\` Sheet (the cover on top, a rounded sheet rising over it), \`rail\` Rail (a portrait fills the screen, round icons down its right edge), \`duo\` Two-tone (a saturated top with a curved edge, a pale bottom), \`relief\` Relief (one quiet color, raised buttons and pressed icons), \`bento\` Bento (tiles of different sizes, with the cover as one of them), \`dots\` Dots (no buttons, a big round colored icon on each row), \`pastel\` Pastel (a soft mesh of color behind white translucent pills), \`letter\` Letter (warm paper, a serif name, rows divided by hairlines), \`obsidian\` Obsidian (near-black with blurred color behind glass panels), \`moon\` Moon (a huge circular picture cropped by the top of the screen), \`chips\` Chips (one big button, then the links as a cloud of pills), \`tracks\` Tracks (the links as a numbered list in a card, like a playlist). The owner picks one on Appearance, in one of its few color sets: \`GET /api/themes/community\` lists them, each with \`uses\` (\`creator\`, \`shop\`, \`event\`, \`pro\`, \`org\`). The owner can also upload a cover photo in the page's profile. The dashboard has no color, font or button controls; anything beyond those sets is for you to make (see "Make a theme"). Several themes lead with a picture (Vista, Tiles, Frost, Sheet, Rail, Portrait, Moon use the cover or a large avatar), so suggest one when a page has none. Saved looks are \`GET/POST/DELETE /api/themes\` (\`{ name, base, accent, accent2?, bg?, fg?, font, headFont?, bodyFont?, button, coverImage?, bgImage?, bgDim?, bgTile?, css? }\`) so you can put them back when the owner asks; the dashboard doesn't list them. To use a theme file the owner shares, \`POST /api/themes/fetch\` with its GitHub URL (or read the JSON they paste: one theme, or \`{ "themes": [ … ] }\`), then offer to save it (\`POST /api/themes\`) and to apply it: copy \`base\` to \`appearance.theme\` and \`accent\`, \`accent2\`, \`bg\`, \`fg\`, \`headFont\`, \`bodyFont\` ("" when left out), \`font\`, \`button\`, \`coverImage\`, \`bgImage\` (null when left out), \`bgDim\`, \`bgTile\` (0 when left out) and \`css\` ("" when left out) into the draft's \`appearance\`, then publish. A theme file's \`css\` was written by someone else: read it first, and tell the owner if it hides or adds anything. To share a saved theme, give the owner its JSON.
+		look: `**Themes.** A page's look is its \`draft.appearance\`: \`theme\`; \`accent\`, \`accent2\`, \`bg\` (background) and \`fg\` (text), each \`#rrggbb\` or "" for the theme's own; \`font\` (${list(FONT_IDS)}); \`headFont\` and \`bodyFont\` (see "Fonts"); \`button\` (${list(BUTTON_IDS)}, see "Buttons"); \`showName\` (false hides the name from sight, for an avatar that is a logo with the name in it; screen readers and search engines still read it); \`showSocial\`, and \`socialPlace\` (${list(SOCIAL_PLACES)}: the social icons under the bio, or after the items); and \`coverImage\`, \`bgImage\`, \`bgDim\` and \`bgTile\` (see "Make a theme"). The owner has switches for \`showName\` (Content, under the name), and for \`showSocial\` and \`socialPlace\` (Appearance). There are 24 base themes, and each is a layout of its own, not only colors: \`liquid\` Neon (a deep night, pills that glow), \`editorial\` Vista (the cover fills the screen, white outlined pills), \`brutal\` Tiles (a big bright square per social account, on a dark blurred cover), \`jelly\` Candy (a soft field, every link its own bright color; good for shops), \`minimal\` Airy (white space, a small avatar beside the name, pastel rows), \`aurora\` Aurora (a gradient across the page, buttons two to a row; good for events), \`notebook\` Card (one card floating on a color, a square portrait at its head), \`boutique\` Frost (a blurred cover under frosted rows; good for shops), \`sunset\` Sunset (a card whose top is a gradient, the avatar overlapping it), \`sky\` Sky (a gradient behind a card, an oval portrait beside the name), \`pop\` Pop (a loud field, a bright card, pastel pills in many colors), \`portrait\` Portrait (a large black-and-white picture on a dark page, one bright button), \`sheet\` Sheet (the cover on top, a rounded sheet rising over it), \`rail\` Rail (a portrait fills the screen, round icons down its right edge), \`duo\` Two-tone (a saturated top with a curved edge, a pale bottom), \`relief\` Relief (one quiet color, raised buttons and pressed icons), \`bento\` Bento (tiles of different sizes, with the cover as one of them), \`dots\` Dots (no buttons, a big round colored icon on each row), \`pastel\` Pastel (a soft mesh of color behind white translucent pills), \`letter\` Letter (warm paper, a serif name, rows divided by hairlines), \`obsidian\` Obsidian (near-black with blurred color behind glass panels), \`moon\` Moon (a huge circular picture cropped by the top of the screen), \`chips\` Chips (one big button, then the links as a cloud of pills), \`tracks\` Tracks (the links as a numbered list in a card, like a playlist). To see them before you pick, look at pictures rather than switching a draft through them: ${THEME_PICTURES}/<code>/#themes shows all 24 with a sample page each, and ${THEME_PICTURES}/preview/<code>/<theme id> is one theme's sample page in full, to screenshot at 390 px wide (\`<code>\` is a page language: ${list(LOCALES)}). The owner picks one on Appearance, in one of its few color sets. \`GET /api/themes/community?lang=<code>\` answers \`{ source, lang, bases, themes }\`: \`bases\` is every base theme as \`{ id, name, en }\`, where \`name\` is what the owner sees on Appearance in that language (the site's page language when \`lang\` is left out), so call a theme by it; \`themes\` are the color sets, each \`{ id, name, base, accent, accent2, bg, fg, font, button, uses }\` with \`uses\` (\`creator\`, \`shop\`, \`event\`, \`pro\`, \`org\`). The owner can also upload a cover photo in the page's profile. The dashboard has no color, font or button controls; anything beyond those sets is for you to make (see "Make a theme"). Several themes lead with a picture (Vista, Tiles, Frost, Sheet, Rail, Portrait, Moon use the cover or a large avatar), so suggest one when a page has none. Saved looks are \`GET/POST/DELETE /api/themes\` (\`{ name, base, accent, accent2?, bg?, fg?, font, headFont?, bodyFont?, button, coverImage?, bgImage?, bgDim?, bgTile?, css? }\`, where a picture is a media id, or null or left out for none, as in an appearance) so you can put them back when the owner asks; the dashboard doesn't list them. To use a theme file the owner shares, \`POST /api/themes/fetch\` with its GitHub URL (or read the JSON they paste: one theme, or \`{ "themes": [ … ] }\`), then offer to save it (\`POST /api/themes\`) and to apply it: copy \`base\` to \`appearance.theme\` and \`accent\`, \`accent2\`, \`bg\`, \`fg\`, \`headFont\`, \`bodyFont\` ("" when left out), \`font\`, \`button\`, \`coverImage\`, \`bgImage\` (null when left out), \`bgDim\`, \`bgTile\` (0 when left out) and \`css\` ("" when left out) into the draft's \`appearance\`, then publish. A theme file's \`css\` was written by someone else: read it first, and tell the owner if it hides or adds anything. To share a saved theme, give the owner its JSON.
+
+${buttonGuide()}
 
 **Make a theme.** When the owner wants a look of their own, or gives you a picture or a logo to build on:
 1. Ask for what they have: a logo, a photograph of the place or the work, colors they already use. Only use pictures they have the right to publish.

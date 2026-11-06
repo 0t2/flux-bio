@@ -4,8 +4,8 @@
  * or an API token from 設定 → API token).
  */
 import type { Params } from '../templates/msg'
-import type { CommunityTheme } from './community'
-import type { PageContent, SavedTheme, Settings, ThemeId } from './content'
+import type { BaseThemeName, CommunityTheme } from './community'
+import type { Locale, PageContent, SavedTheme, Settings, ThemeId } from './content'
 import type { GoogleFont } from './fonts'
 import type { Untranslated } from './translations'
 import type { Problem } from './validate'
@@ -383,9 +383,14 @@ export interface FontsResponse {
 }
 
 export interface CommunityThemesResponse {
+	/** The color sets: each one of a base theme's (`base`) looks, as the owner picks them on Appearance. */
 	themes: CommunityTheme[]
 	/** Where the list came from: GitHub, or the copy bundled with this version. */
 	source: 'github' | 'bundled'
+	/** The language of `bases[].name`: the one asked for with ?lang=, else the site's page language. */
+	lang: Locale
+	/** Every base theme, by the name the owner sees on Appearance in that language, and its English name. */
+	bases: BaseThemeName[]
 }
 
 /** One uploaded picture, as GET /api/media lists it. */

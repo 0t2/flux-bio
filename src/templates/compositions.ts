@@ -33,6 +33,44 @@ const floating = (shadow: string) => `main{width:calc(100% - 36px);max-width:430
 /** Social icons with no button around them. */
 const plainIcons = `.socials a{background:none;border:0;box-shadow:none;color:var(--accent-text)}`
 
+/** What a theme draws on its link buttons itself, whatever `button` says. */
+export interface OwnLinkLook {
+	/** Its own border, or none: `shadow`'s border doesn't show. */
+	border: boolean
+	/** Its own corners; or, as a number, `button`'s corners up to that many pixels. */
+	corners: boolean | number
+	/** Its own shadow, or none: `shadow`'s offset shadow doesn't show. */
+	shadow: boolean
+	/** No button at all: no background, border or shadow. */
+	bare: boolean
+}
+
+/** A rule that reaches every link that isn't featured. Rules for some links (every other one, say) don't count. */
+const PLAIN_LINK = /^(?:\.items>a)?\.link(?::not\(\.feat\))?$/
+
+/**
+ * What `theme` draws on its link buttons itself, read from its composition, so the guide's word on `button` (the topic
+ * "look") can't fall behind a change to a theme.
+ */
+export function ownLinkLook(theme: ThemeId): OwnLinkLook {
+	const own: OwnLinkLook = { border: false, corners: false, shadow: false, bare: false }
+	let background = ''
+	for (const [, selectors, body] of THEME_CSS[theme].matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+		if (!selectors!.split(',').some((selector) => PLAIN_LINK.test(selector.trim()))) continue
+		for (const declaration of body!.split(';')) {
+			const [property = '', ...rest] = declaration.split(':')
+			const name = property.trim()
+			const value = rest.join(':').trim()
+			if (name === 'background') background = value
+			else if (name === 'border-radius') own.corners = value.includes('var(--radius)') ? Number(value.match(/(\d+)px\)/)?.[1] ?? 0) || false : true
+			else if (/^border(-|$)/.test(name) && !value.includes('var(--card-border)')) own.border = true
+			else if (name === 'box-shadow' && !value.includes('var(--card-shadow)')) own.shadow = true
+		}
+	}
+	own.bare = background === 'none' && own.border && own.shadow
+	return own
+}
+
 export const THEME_CSS: Record<ThemeId, string> = {
 	// Neon: a deep night with two soft glows, and pills that give off light.
 	liquid: `${field(`radial-gradient(70% 38% at 12% 6%,${see('--accent', 30)},transparent 72%),radial-gradient(80% 42% at 92% 100%,${see('--accent2', 24)},transparent 72%),var(--bg)`)}
@@ -71,7 +109,8 @@ main{--pad-t:36px}
 ${sideHead(72)}
 h1{font-size:26px}
 .bio{color:var(--fg)}
-.head .socials{grid-column:1/-1;justify-self:stretch;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:20px}
+.socials{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.head .socials{grid-column:1/-1;justify-self:stretch;margin-top:20px}
 .socials:has(a:nth-child(2):last-child),.socials:has(a:nth-child(4):last-child){grid-template-columns:repeat(2,minmax(0,1fr))}
 .socials a:only-child{grid-column:1/-1}
 .socials a:nth-child(5):last-child{grid-column:span 2}
@@ -212,8 +251,10 @@ main{padding:22px 18px 12px}
 .avatar{grid-row:span 2;align-self:center;width:120px;height:152px;margin:0;border-radius:50%}
 .head h1{align-self:end;margin:0;font-size:26px;text-align:start}
 .head .bio{align-self:start;margin-top:6px;text-align:start}
+.head:has(h1.visually-hidden) .bio{grid-row:span 2;align-self:center;margin-top:0}
 .head .open-pill{grid-column:1/-1;justify-self:start}
-.head .socials{grid-column:1/-1;justify-self:center;margin-top:12px;gap:8px}
+.socials{gap:8px}
+.head .socials{grid-column:1/-1;justify-self:center;margin-top:12px}
 ${plainIcons}
 .items{margin-top:12px;gap:9px}
 .link{min-height:50px;background:color-mix(in srgb,var(--accent) 14%,var(--bg))}
@@ -232,8 +273,10 @@ main{padding:22px 18px 12px}
 .avatar{grid-row:span 2;width:84px;height:84px;margin:0}
 .head h1{align-self:end;margin:0;font-size:26px;text-align:start}
 .head .bio{align-self:start;margin-top:4px;text-align:start}
+.head:has(h1.visually-hidden) .bio{grid-row:span 2;align-self:center;margin-top:0}
 .head .open-pill{grid-column:1/-1;justify-self:start}
-.head .socials{grid-column:1/-1;justify-self:center;margin-top:16px;gap:10px}
+.socials{gap:10px}
+.head .socials{grid-column:1/-1;justify-self:center;margin-top:16px}
 .socials a{background:var(--bg);border:0;box-shadow:0 2px 10px ${see('--fg', 18)}}
 .items{margin-top:16px;gap:9px}
 .link{min-height:50px;background:color-mix(in srgb,var(--c4) 28%,var(--bg))}
@@ -295,7 +338,7 @@ main:not(:has(.cover)) .head:not(:has(img)){padding-top:64px}
 .head h1,.head .bio{text-align:start}
 h1{margin-top:0;font-size:28px;font-weight:600}
 .bio{margin-top:4px;color:var(--fg)}
-.socials{position:absolute;top:var(--pad-t);inset-inline-end:var(--pad-x);flex-direction:column;gap:10px;margin:0}
+.head .socials{position:absolute;top:var(--pad-t);inset-inline-end:var(--pad-x);flex-direction:column;gap:10px;margin:0}
 .socials a{background:var(--fg);color:var(--bg);border:0;box-shadow:0 4px 14px ${see('--bg', 50)}}
 .items{margin-top:14px;gap:8px}
 .link{min-height:48px;background:${see('--accent2', 68)};border:1px solid ${see('--fg', 14)};backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
@@ -343,6 +386,7 @@ h1{margin-top:18px}
 .items>a.link.feat{grid-column:1/-1;order:1;min-height:94px;background:var(--accent);color:var(--ink)}
 .link .t b{font-size:16px;font-weight:700}
 .cover{order:2;grid-column:2;margin:0;height:100%;min-height:124px;aspect-ratio:auto;border-radius:min(var(--radius),22px)}
+:where(main)>.socials{grid-column:1/-1;order:4}
 footer{grid-column:1/-1;order:9}
 .panel,.product{background:var(--panel);box-shadow:none}`,
 
