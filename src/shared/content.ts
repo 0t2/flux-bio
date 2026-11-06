@@ -1,5 +1,6 @@
 import { z } from './zod'
 import { msg } from '../templates/msg'
+import { CSS_LIMIT, cssProblem } from './css'
 import { EMBED_ACTIONS, EMBED_PROVIDERS, EMBEDS, type EmbedProvider } from './embeds'
 import { findFont } from './fonts'
 
@@ -208,6 +209,19 @@ export const FontFamilySchema = z
 	.refine((name) => name === '' || findFont(name) !== null, { message: msg('Google Fonts 沒有這個字型') })
 
 /**
+ * Refuses CSS that cssProblem() (src/shared/css.ts) refuses, where it comes in: a draft saved, a backup imported, a
+ * look saved, and again when a page is published (publishProblems). Not where it is read back from D1, which happens
+ * for many pages and looks at once and must stay cheap: what is stored has been through this.
+ */
+export function refuseBadCss<T>(cssOf: (value: T) => string | undefined, path: PropertyKey[]) {
+	return (value: T, ctx: z.RefinementCtx): void => {
+		const css = cssOf(value)
+		const problem = css && cssProblem(css)
+		if (problem) ctx.addIssue({ code: 'custom', path, message: problem.key, params: problem.params })
+	}
+}
+
+/**
  * A page's look. The fields with a default may be left out, and get the theme's own: an AI building a look through
  * the API can send the theme and only the colors, fonts or pictures it means to set.
  */
@@ -243,6 +257,11 @@ export const AppearanceSchema = z.object({
 	 * (its height follows), so a pattern looks the same on a phone and a wide screen.
 	 */
 	bgTile: z.number().int().min(0).max(2000).default(0),
+	/**
+	 * The page's own CSS, after the theme's, so it can change anything the theme draws. It is written against the
+	 * page's markup (the guide topic "customize"), and may load nothing but this site's pictures: url(/media/<id>).
+	 */
+	css: z.string().max(CSS_LIMIT).default('').describe("The page's own CSS, applied after its theme's: written against the markup in /api/guide/customize. No \"<\", no @import or @font-face, and url() only for this site's pictures, as url(/media/<id>)"),
 })
 export type Appearance = z.infer<typeof AppearanceSchema>
 
@@ -317,6 +336,9 @@ export const PageContentSchema = z.object({
 })
 export type PageContent = z.infer<typeof PageContentSchema>
 
+/** PageContentSchema for content coming in, a draft or a backup: its CSS is checked too. */
+export const PageContentInputSchema = PageContentSchema.superRefine(refuseBadCss((content) => content.appearance.css, ['appearance', 'css']))
+
 /**
  * Stored content with fonts no longer on the list dropped: a page saved with a
  * family that a newer list leaves out still opens, in its theme's font,
@@ -390,11 +412,16 @@ export const ThemePresetSchema = z.object({
 	bgImage: mediaId.optional(),
 	bgDim: z.number().min(0.4).max(0.95).optional(),
 	bgTile: z.number().int().min(0).max(2000).optional(),
+	/** The look's own CSS (appearance.css); left out, it has none. */
+	css: z.string().max(CSS_LIMIT).optional(),
 })
 export type ThemePreset = z.infer<typeof ThemePresetSchema>
+/** A look coming in, from the API or a theme file: its CSS is checked. */
+export const ThemePresetInputSchema = ThemePresetSchema.superRefine(refuseBadCss((preset) => preset.css, ['css']))
 
 export const SavedThemeSchema = ThemePresetSchema.extend({ id: itemId, createdAt: z.number().int() })
 export type SavedTheme = z.infer<typeof SavedThemeSchema>
+export const SavedThemeInputSchema = SavedThemeSchema.superRefine(refuseBadCss((theme) => theme.css, ['css']))
 
 export function presetFromAppearance(name: string, appearance: Appearance): ThemePreset {
 	return {
@@ -410,6 +437,7 @@ export function presetFromAppearance(name: string, appearance: Appearance): Them
 		button: appearance.button,
 		...(appearance.coverImage && { coverImage: appearance.coverImage }),
 		...(appearance.bgImage && { bgImage: appearance.bgImage, bgDim: appearance.bgDim, ...(appearance.bgTile && { bgTile: appearance.bgTile }) }),
+		...(appearance.css && { css: appearance.css }),
 	}
 }
 
@@ -430,13 +458,14 @@ export function appearanceFromPreset(preset: ThemePreset, current: Appearance): 
 		bgImage: preset.bgImage ?? null,
 		bgDim: preset.bgDim ?? 0.75,
 		bgTile: preset.bgTile ?? 0,
+		css: preset.css ?? '',
 	}
 }
 
 const sameColor = (a: string | undefined, b: string | undefined) => (a ?? '').toUpperCase() === (b ?? '').toUpperCase()
 
 export function samePreset(
-	a: Pick<ThemePreset, 'base' | 'accent' | 'accent2' | 'bg' | 'fg' | 'font' | 'headFont' | 'bodyFont' | 'button' | 'coverImage' | 'bgImage' | 'bgTile'>,
+	a: Pick<ThemePreset, 'base' | 'accent' | 'accent2' | 'bg' | 'fg' | 'font' | 'headFont' | 'bodyFont' | 'button' | 'coverImage' | 'bgImage' | 'bgTile' | 'css'>,
 	appearance: Appearance,
 ): boolean {
 	return (
@@ -452,7 +481,8 @@ export function samePreset(
 		(!a.coverImage || a.coverImage === appearance.coverImage) &&
 		(a.bgImage ?? null) === appearance.bgImage &&
 		// How a background repeats only matters when there is one.
-		(!a.bgImage || (a.bgTile ?? 0) === appearance.bgTile)
+		(!a.bgImage || (a.bgTile ?? 0) === appearance.bgTile) &&
+		(a.css ?? '') === appearance.css
 	)
 }
 
@@ -468,7 +498,7 @@ export function randomString(length: number, alphabet = ID_ALPHABET): string {
 export const newId = (): string => randomString(10)
 
 export function defaultAppearance(): Appearance {
-	return { theme: 'liquid', accent: '', accent2: '', bg: '', fg: '', font: 'auto', headFont: '', bodyFont: '', button: 'auto', showSocial: true, coverImage: null, bgImage: null, bgDim: 0.75, bgTile: 0 }
+	return { theme: 'liquid', accent: '', accent2: '', bg: '', fg: '', font: 'auto', headFont: '', bodyFont: '', button: 'auto', showSocial: true, coverImage: null, bgImage: null, bgDim: 0.75, bgTile: 0, css: '' }
 }
 
 export function emptyLink(): LinkItem {

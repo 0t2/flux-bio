@@ -66,6 +66,13 @@ export const LinkListQuery = z.object({
 	q: z.string().trim().max(100).optional().describe('Part of the slug, the address or the title'),
 })
 
+/** GET /api/media: KV lists at most 1,000 keys a call. */
+export const MEDIA_PER_PAGE = 1000
+export const MediaListQuery = z.object({
+	limit: z.coerce.number().int().min(1).max(MEDIA_PER_PAGE).optional().describe(`How many, ${MEDIA_PER_PAGE} at most, which is also the default`),
+	cursor: z.string().max(1000).optional().describe('nextCursor from the page before'),
+})
+
 const MONTH = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/)
 
 /** GET /api/stats/export */

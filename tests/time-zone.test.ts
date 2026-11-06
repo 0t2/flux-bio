@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { StateResponse } from '../src/shared/api'
 import { emptyContent, emptyLink, newItem, type Settings } from '../src/shared/content'
 import { dayIn } from '../src/shared/time'
+import { COPY_VERSION } from '../src/worker/lib/cache'
 import { api, apiJson, visit } from './helpers'
 
 // In KV the time zone lives in the "site" record only, so changing it rewrites no short link or page copy.
@@ -39,7 +40,7 @@ describe('time zone', () => {
 		expect(site.timezone).toBe(EAST)
 		await env.KV.put('site', JSON.stringify({ ...site, v: 2, timezone: undefined }))
 		await visit('/')
-		expect(JSON.parse((await env.KV.get('site')) ?? '{}')).toMatchObject({ v: 3, timezone: EAST })
+		expect(JSON.parse((await env.KV.get('site')) ?? '{}')).toMatchObject({ v: COPY_VERSION, timezone: EAST })
 	})
 
 	it('shows opening hours in the new time zone without rewriting the page', async () => {

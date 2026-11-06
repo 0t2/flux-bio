@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { appearanceFromPreset, defaultAppearance, THEME_IDS, type Appearance, type ThemeId, type ThemePreset } from '../../shared/content'
 import type { CommunityTheme } from '../../shared/community'
 import { SOCIAL_META } from '../../templates/icons'
@@ -7,7 +8,7 @@ import { AskAi } from '../components/AskAi'
 import { MiniBio, sampleOf } from '../components/MiniBio'
 import { FontHosting } from '../editors/FontHosting'
 import { PageLanguages } from '../editors/PageLanguages'
-import { Section, Toggle } from '../components/ui'
+import { Dialog, Section, Toggle } from '../components/ui'
 import { t } from '../i18n'
 import { usePreviewFonts } from '../lib/fontPreview'
 import { usePage } from '../state/page'
@@ -17,9 +18,9 @@ const COLOR_SETS = Object.fromEntries(
 	THEME_IDS.map((id) => [id, (list.themes as CommunityTheme[]).filter((theme) => theme.base === id)]),
 ) as Record<ThemeId, CommunityTheme[]>
 
-/** The color set a page is in, or null when its look was made through the API: other colors, fonts or pictures. */
+/** The color set a page is in, or null when its look was made through the API: other colors, fonts, pictures or CSS. */
 function colorSetOf(appearance: Appearance): CommunityTheme | null {
-	if (appearance.font !== 'auto' || appearance.headFont || appearance.bodyFont || appearance.button !== 'auto' || appearance.bgImage) return null
+	if (appearance.font !== 'auto' || appearance.headFont || appearance.bodyFont || appearance.button !== 'auto' || appearance.bgImage || appearance.css) return null
 	const look = resolveAppearance(appearance)
 	return (
 		COLOR_SETS[appearance.theme]?.find(
@@ -49,7 +50,10 @@ export function AppearancePanel() {
 		update((d) => {
 			Object.assign(d.appearance, patch)
 		})
-	const pick = (preset: ThemePreset) => setAppearance(appearanceFromPreset(preset, appearance))
+	// CSS an AI wrote can't be made again here, so taking it away is asked about first.
+	const [asking, setAsking] = useState<ThemePreset | null>(null)
+	const apply = (preset: ThemePreset) => setAppearance(appearanceFromPreset(preset, appearance))
+	const pick = (preset: ThemePreset) => (appearance.css && !preset.css ? setAsking(preset) : apply(preset))
 
 	return (
 		<>
@@ -88,7 +92,31 @@ export function AppearancePanel() {
 						</button>
 					))}
 				</div>
-				<AskAi say={t('用這張圖幫我做一個主題，配色和字型一起挑')} />
+				<AskAi say={t('把我的頁面做成這張圖的樣子')} />
+				<Dialog
+					open={asking !== null}
+					title={t('要拿掉 AI 寫的樣式嗎？')}
+					onClose={() => setAsking(null)}
+					actions={
+						<>
+							<button type="button" className="btn" onClick={() => setAsking(null)}>
+								{t('取消')}
+							</button>
+							<button
+								type="button"
+								className="btn danger"
+								onClick={() => {
+									if (asking) apply(asking)
+									setAsking(null)
+								}}
+							>
+								{t('還是要換')}
+							</button>
+						</>
+					}
+				>
+					<p>{t('換了以後，AI 為這一頁寫的樣式會拿掉。發布過的版本還在發布紀錄裡，也可以再請 AI 做。')}</p>
+				</Dialog>
 			</Section>
 
 			<Section title={t('字型')}>

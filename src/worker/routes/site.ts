@@ -17,7 +17,7 @@ import {
 	type PageContent,
 	type Settings,
 } from '../../shared/content'
-import { embedAccount, EMBEDS, type EmbedProvider } from '../../shared/embeds'
+import { embedAccount, EMBEDS } from '../../shared/embeds'
 import { FONT_FILE } from '../../shared/fonts'
 import { requestedLocale, resolveLocale } from '../../shared/locale'
 import { normalizeSlug, slugProblem } from '../../shared/slug'
@@ -43,22 +43,38 @@ type SiteContext = Context<AppEnv>
 
 /** Videos and maps load in frames only after a tap; everything else on public pages is plain HTML. */
 const FRAMES = "'self' https://www.youtube-nocookie.com https://player.vimeo.com https://maps.google.com https://www.google.com"
-const csp = (ancestors: string, script = "'none'", frames = FRAMES) =>
-	`default-src 'none'; script-src ${script}; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; frame-src ${frames}; form-action 'self'; base-uri 'none'; frame-ancestors ${ancestors}`
+const csp = (ancestors: string, script = "'none'", frames = FRAMES, images = "'self'") =>
+	`default-src 'none'; script-src ${script}; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src ${images}; frame-src ${frames}; form-action 'self'; base-uri 'none'; frame-ancestors ${ancestors}`
 const PAGE_CSP = csp("'none'")
+
+/**
+ * Where a page of links may load pictures from: its own uploads (a tiled background and its own CSS's pictures among
+ * them), and for a YouTube video the thumbnail its frame shows, because a srcdoc frame loads under the policy of the page
+ * around it. Nothing else on a page is a picture from elsewhere, so nothing else is allowed. That covers the page's own
+ * CSS (appearance.css) too: it was checked for this when it came in (src/shared/css.ts), and this has the browser hold
+ * the same line. An embed's panel is a frame of the service's own, under its own policy. System pages show no pictures
+ * from elsewhere at all.
+ */
+function pageImages(content: PageContent): string {
+	const youtube = content.items.some((item) => item.kind === 'video' && !item.hidden && videoEmbed(item.url)?.provider === 'youtube')
+	return youtube ? "'self' https://i.ytimg.com" : "'self'"
+}
+
 /**
  * A page of links: the script that reports a tap, by its hash, and somewhere for it and the ping attribute to report to.
  * A page with an embed also runs the one that opens its panel, and may frame that service, and only that one: its
  * panel loads only after a tap.
  */
-function bioCsp(embeds: readonly EmbedProvider[]): string {
-	if (!embeds.length) return `${csp("'none'", `'${TAP_SCRIPT_HASH}'`)}; connect-src 'self'`
+function bioCsp(content: PageContent): string {
+	const embeds = pageEmbeds(content)
+	const images = pageImages(content)
+	if (!embeds.length) return `${csp("'none'", `'${TAP_SCRIPT_HASH}'`, FRAMES, images)}; connect-src 'self'`
 	const frames = new Set(embeds.flatMap((provider) => EMBEDS[provider].origins))
-	return `${csp("'none'", `'${TAP_SCRIPT_HASH}' '${SHEET_SCRIPT_HASH}'`, [FRAMES, ...frames].join(' '))}; connect-src 'self'`
+	return `${csp("'none'", `'${TAP_SCRIPT_HASH}' '${SHEET_SCRIPT_HASH}'`, [FRAMES, ...frames].join(' '), images)}; connect-src 'self'`
 }
 
 /** The dashboard's preview tab; it may be framed by the dashboard. */
-export const PREVIEW_CSP = csp("'self'")
+export const previewCsp = (content: PageContent) => csp("'self'", "'none'", FRAMES, pageImages(content))
 /**
  * Someone's own HTML, scripts and all. Without allow-same-origin it runs as if from nowhere: no cookies, no storage and
  * no way into the dashboard or the API, which share this address.
@@ -198,7 +214,7 @@ site.get('/_draft/:token', async (c) => {
 		timeZone: settings.timezone,
 		draft: { nonce, versionUrl: `/_draft/${encodeURIComponent(token)}/version`, version: page.draftUpdatedAt },
 	})
-	return c.html(html, 200, { ...draftHeaders, 'content-security-policy': `${csp("'none'", `'nonce-${nonce}'`)}; connect-src 'self'` })
+	return c.html(html, 200, { ...draftHeaders, 'content-security-policy': `${csp("'none'", `'nonce-${nonce}'`, FRAMES, pageImages(page.draft))}; connect-src 'self'` })
 })
 
 // The open preview asks this while it is on screen, and reloads when the answer changes.
@@ -334,7 +350,7 @@ async function serveBio(c: SiteContext, snapshot: Snapshot): Promise<Response> {
 		url: '',
 		page: snapshot.pageId,
 	})
-	return c.html(html, 200, { 'cache-control': 'no-cache', 'content-security-policy': bioCsp(pageEmbeds(snapshot.content)), ...varyByLanguage(languages.languages) })
+	return c.html(html, 200, { 'cache-control': 'no-cache', 'content-security-policy': bioCsp(snapshot.content), ...varyByLanguage(languages.languages) })
 }
 
 /** A page whose built-in text can follow the visitor's browser differs by Accept-Language, which caches must know. */

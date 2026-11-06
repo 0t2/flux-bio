@@ -1,5 +1,6 @@
 import { fill, msg, type Message, type Params } from '../templates/msg'
 import { isHttpUrl, socialHref, videoEmbed, type PageContent } from './content'
+import { cssProblem } from './css'
 import { embedAccount, EMBEDS } from './embeds'
 import { normalizeSlug, SLUG_PROBLEM_TEXT, slugProblem } from './slug'
 
@@ -101,6 +102,10 @@ export function publishProblems(content: PageContent, handle: string): Problem[]
 	if (content.lineButton?.trim() && !socialHref('line', content.lineButton)) report('lineButton', msg('右下角 LINE 按鈕的網址格式不正確'), {})
 	const button = content.embedButton
 	if (button?.account.trim() && !embedAccount(button)) report('embedButton.account', msg('右下角 {name} 按鈕找不到 {name} 帳號'), { name: EMBEDS[button.provider].name })
+
+	// Checked when the draft was saved; again here, so a draft saved under an older check can't go live without this one.
+	const css = content.appearance.css ? cssProblem(content.appearance.css) : null
+	if (css) report('appearance.css', css.key, css.params ?? {})
 
 	return problems
 }
