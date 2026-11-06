@@ -375,7 +375,7 @@ Rules worth knowing:
   (`SHEET_SCRIPT`), in a frame sandboxed by `SHEET_SANDBOX` that has no address until then: nothing on the page loads from the service
   before a tap, its own widget script never runs on it, and the page's CSP may frame only the services on that page. Each service's
   `account()` reads the account out of whatever the owner pasted: the account, its address, or the service's embed code. Adding a
-  service is one entry there, if it meets the conditions written above `EMBED_PROVIDERS`.
+  service is one entry there: see "Add a block".
 - **Social icons.** They're never counted unless `countSocials` is on in a page's content; then they report a tap the way buttons do. Email icons aren't counted. Video players still go through a `/_c` redirect, because they open inside their frame.
 - **Short links only.** With `bio` off, a page's address, `/_draft` and `/_c` answer not found with no
   suggestions, `/robots.txt` and `/sitemap.xml` list no pages, and a short link's own system pages don't point
@@ -653,6 +653,106 @@ composition in a shadow root, and the landing page's lists come from the themes,
   4.5:1 falls back to the theme's, and secondary text, panels and lines are worked out from them. In themes that put text on it (`TEXT_ON_SECOND_COLOR`), `accent2` moves toward the background until that text reads, and so do tinted buttons (`ACCENT_TINT`). A new theme with text on its second color goes on that list, which `tests/themes.test.ts` checks.
 - **Stored ids stay.** Theme ids are in every saved page, so a theme's look and name can change but its id can't. That
   is why `liquid` is Neon and `brutal` is Tiles.
+
+### Add a block
+
+Requests for new blocks come in as issues from the block request form (`.github/ISSUE_TEMPLATE/block-request.yml`, label
+`block-request`). An agent takes each one down this ladder, stops at the first step that answers it, and says on the issue
+which step that was and why.
+
+1. **It is already possible.** Say how, and build nothing. That covers:
+   - a link, with an icon from `LINK_ICONS`
+   - the `video`, `gallery`, `product`, `hours` and `embed` blocks
+   - social icons and the LINE button
+   - a page of the owner's own HTML or a redirect (`custom`)
+   - a look the owner's AI makes: colors, fonts and pictures
+2. **It fits a mechanism that exists.** Add to it, not a new kind:
+   - a service whose panel opens over the page: an entry in `EMBEDS` (`src/shared/embeds.ts`)
+   - a player shown in place: a host in `videoEmbed()` (`src/shared/content.ts`)
+   - an icon under the name: a platform in `SOCIAL_PLATFORMS`
+3. **A new kind**, only when the data has a shape no kind holds.
+
+**Gates.** A block that can't pass all of these isn't built, whichever step it reached. Say which gate it fails, and the
+nearest thing that works.
+
+- Nothing loads from another site before a visitor taps: no script, picture, font or frame address. A page's CSP names
+  only the services on that page.
+- A view and a tap each cost one KV read and write nothing (`tests/kv-cost.test.ts`), and stay within 10 ms of CPU: no
+  image processing, no rendering framework, no request to another site while drawing a page.
+- No Cloudflare product beyond Workers, D1, KV and Analytics Engine.
+- It works in all 24 themes, with colors only from `pageVars()` or mixes of them; right to left, in logical properties
+  (`tests/rtl.test.ts`); and in all 13 languages.
+- Taps are counted through `counted()` and `/_c`, and have a readable label in the stats.
+- The API can do everything the dashboard can: the block is in `PageContentSchema`, a new route in `OPERATIONS`, and the
+  guide says what it is in one line.
+- Nothing stored identifies a visitor.
+- Another service's panel runs in `SHEET_SANDBOX` and never gets this site's origin, and its account is read with a strict
+  pattern, so the frame only ever gets an address on that service's origins.
+
+**A new service in `EMBEDS`** is a few lines. The `embed` kind is the reference implementation:
+- `src/shared/embeds.ts`;
+- `embedHtml`, `SHEET_SCRIPT` and `pageEmbeds` in `src/templates/render.ts`;
+- `bioCsp` in `src/worker/routes/site.ts`;
+- `tests/embeds.test.ts`.
+
+1. Check it first. Frame its panel address, from another origin, in an iframe with `SHEET_SANDBOX` at 390 px wide in
+   WebKit, and look at a screenshot. Read its `X-Frame-Options` and CSP `frame-ancestors`, and use the step through it a
+   visitor would, such as picking a time.
+2. Add the id to `EMBED_PROVIDERS` and the entry to `EMBEDS`, following the conditions in the comment above them. Draw its
+   icon in `ICONS` (`src/templates/icons.ts`) if none fits: our own drawing, never the service's mark.
+3. If its `action` is new, add it to `EmbedAction` and `EMBED_ACTIONS`:
+   - a new card's title, as `msg()`
+   - its button words in all 13 languages
+
+   Then add its dashboard words to `ACTION_META` in `src/admin/editors/kinds.ts`. An existing action needs no new words.
+4. Add tests to `tests/embeds.test.ts`:
+   - reading the account out of its address and embed code
+   - refusing the service's own paths
+   - its panel address
+   - its CSP `frame-src`
+
+   The registry tests cover the rest by themselves.
+
+Rendering, `/_c`, the stats label, the dashboard's block list and editor, the OpenAPI document and the guide all read the
+registry, so nothing else changes.
+
+**A new kind** touches these, in order:
+
+1. **Schema.** `<Kind>ItemSchema` in `src/shared/content.ts`, `ITEM_KINDS` and `ItemSchema`. Give `.describe()` to anything
+   an AI could get wrong.
+2. **`makeItem()`.** The guide's example and the dashboard's new item both come from it. Its titles are `msg()` keys.
+3. **Publish checks.** In `publishProblems` (`src/shared/validate.ts`).
+4. **Render.** `visibleItems` and `itemHtml` in `src/templates/render.ts`. Its links go through `counted()`, its CSS uses
+   `pageVars()` colors and logical properties, and its built-in words go in `STRINGS`.
+5. **`/_c`.** `blockTarget` in `src/worker/routes/site.ts`, so a tap is counted and goes where it should.
+6. **Stats label.** `targetLabel` in `src/worker/routes/api.ts`.
+7. **Dashboard.**
+   - `KIND_META` and `itemTitle` in `src/admin/editors/kinds.ts`
+   - an editor in `src/admin/editors/`, wired in `ItemEditor` (`src/admin/pages/LinksPage.tsx`)
+   - the 新增區塊 list reads `BLOCK_CHOICES`
+8. **Translations.**
+   - The owner's text: `mapItem` in `src/shared/translations.ts`, plus the "Translated" list of the `translate` guide topic
+     (`src/worker/lib/agentTopics.ts`).
+   - Dashboard keys: every locale file, then `pnpm i18n server`.
+9. **API.** `PageContentSchema` carries it into `/api/openapi.json`. A new route also goes in `OPERATIONS`
+   (`src/worker/lib/openapi.ts`).
+10. **Guide.** One line under "Page content" in `src/worker/lib/agent.ts`, within `tests/agent.test.ts`'s size limit.
+11. **AGENTS.md.** The kinds under "Rules worth knowing", and any new stats target.
+12. **Tests.** A `tests/<kind>.test.ts` like `tests/embeds.test.ts`, and these, which have to pass:
+    - `tests/kv-cost.test.ts`, with its tap added
+    - `tests/rtl.test.ts`
+    - `tests/no-chinese.test.ts`
+    - `tests/i18n.test.ts`
+    - `tests/agent.test.ts`
+
+Then:
+1. Run `pnpm typecheck`, `pnpm test` and `pnpm i18n check`.
+2. Show it to the owner on `pnpm dev` or their local demo sites, in WebKit at phone width:
+   - a light theme and a dark theme
+   - right to left
+   - any panel open
+3. Open a pull request. The owner merges it.
+4. If the dashboard changed, its screenshots on fluxbio.link need retaking (section 3).
 
 ### Fonts and the free plan
 

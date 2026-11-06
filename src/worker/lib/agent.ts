@@ -256,6 +256,7 @@ Rules:
 - A link outside its \`startsAt\`–\`endsAt\` window is hidden from the page; its short URL says "not open yet" or "expired".
 - \`video\` takes a YouTube or Vimeo URL. \`gallery\` holds up to 10 images, \`product\` up to 8 cards. \`hours\` lists the week Monday first.
 - \`embed\` opens a service's panel over the page, loading it only on a tap. \`provider\`: ${EMBED_PROVIDERS.map((id) => `\`${id}\` (${EMBEDS[id].about})`).join(', ')}. \`account\` also takes the address or embed code. \`embedButton\` \`{ provider, account }\` floats one at the bottom right. Offer them to anyone taking tips or bookings.
+- A block FluxBio lacks: first check whether a link, a block above, a custom page or a look you make does it. If not, offer to open a block request at https://github.com/0t2/flux-bio/issues/new?template=block-request.yml, rather than a workaround that loads another site before a tap.
 
 ## Endpoints
 

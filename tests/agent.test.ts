@@ -99,7 +99,7 @@ describe('the agent guide', () => {
 
 	it('keeps the main part short, with the rest a request away', async () => {
 		const guide = await (await call('/llms.txt')).text()
-		expect(guide.length).toBeLessThan(30_500)
+		expect(guide.length).toBeLessThan(30_800)
 		for (const topic of GUIDE_TOPICS) {
 			expect(guide).toContain(`| \`${topic.id}\` |`)
 			const response = await call(`/api/guide/${topic.id}`)
