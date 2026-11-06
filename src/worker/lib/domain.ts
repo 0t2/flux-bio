@@ -30,7 +30,12 @@ export interface DomainCheck {
 
 const check = (ok: boolean, key: string, params: Params): DomainCheck => ({ ok, message: fill(key, params), key, params })
 
-export async function verifyDomain(env: Env, domain: string): Promise<DomainCheck> {
+/**
+ * `via` is the hostname the request asking for the check came in at. When it is the domain, the domain has already
+ * reached this deployment: the request did, so there is nothing to ask.
+ */
+export async function verifyDomain(env: Env, domain: string, via?: string): Promise<DomainCheck> {
+	if (via && via.toLowerCase() === domain) return check(true, msg('{domain} 已經接到這個 Worker。'), { domain })
 	const nonce = randomString(24)
 	let response: Response
 	try {

@@ -9,6 +9,7 @@ export default defineConfig({
 		cloudflareTest({
 			miniflare: {
 				compatibilityDate: '2026-10-15',
+				compatibilityFlags: ['global_fetch_strictly_public'],
 				// A second site beside the main one, as sites.json would make it (tests/sites.test.ts). Every other test runs at
 				// bio.example, which is the main site's, so they see what a Worker with one site sees.
 				d1Databases: ['DB', 'DB_LINK'],
