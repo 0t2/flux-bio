@@ -190,33 +190,37 @@ export const FontFamilySchema = z
 	.max(60)
 	.refine((name) => name === '' || findFont(name) !== null, { message: msg('Google Fonts 沒有這個字型') })
 
+/**
+ * A page's look. The fields with a default may be left out, and get the theme's own: an AI building a look through
+ * the API can send the theme and only the colors, fonts or pictures it means to set.
+ */
 export const AppearanceSchema = z.object({
 	theme: z.enum(THEME_IDS),
 	/** Empty string means "use the theme's own accent". */
 	accent: color,
 	/** The theme's second color (bands, panels, rules), "" for the theme's own. */
-	accent2: color,
+	accent2: color.default(''),
 	/**
 	 * The page background, "" for the theme's own. Dark themes keep a dark
 	 * background and light themes a light one: other colors are darkened or
 	 * lightened to fit (fitBackground in src/templates/themes.ts).
 	 */
-	bg: color,
+	bg: color.default(''),
 	/** The text color, "" for the theme's own. Ignored when it reads below 4.5:1 on the background. */
-	fg: color,
+	fg: color.default(''),
 	font: z.enum(FONT_IDS),
 	/** Headings and the name; "" follows `bodyFont`, or the theme's heading font when that is "" too. */
-	headFont: FontFamilySchema,
+	headFont: FontFamilySchema.default(''),
 	/** Everything else. Characters the family lacks (say, Chinese in a Latin font) use `font`. */
-	bodyFont: FontFamilySchema,
+	bodyFont: FontFamilySchema.default(''),
 	button: z.enum(BUTTON_IDS),
 	showSocial: z.boolean(),
 	/** A large picture at the top of the page. Each theme places it its own way. */
-	coverImage: mediaRef,
+	coverImage: mediaRef.default(null),
 	/** A picture behind the whole page, under a layer of the background color. */
-	bgImage: mediaRef,
+	bgImage: mediaRef.default(null),
 	/** How much of that layer covers the picture: enough for the page's text to stay readable on it. */
-	bgDim: z.number().min(0.4).max(0.95),
+	bgDim: z.number().min(0.4).max(0.95).default(0.75),
 })
 export type Appearance = z.infer<typeof AppearanceSchema>
 
