@@ -150,8 +150,7 @@
 	"s182": "Sự kiện thống kê",
 	"s183": "Workers Paid, mỗi tháng",
 	"s184": "Khoảng {cost}",
-	"s185": "US$5 mỗi tháng, phần vượt quá mức đã gồm tính phí theo sử dụng. Sự kiện thống kê (Analytics Engine) hiện chưa tính phí, và thời gian CPU đã gồm 30 triệu mili giây mỗi tháng; cả hai không được tính ở đây. Lượt ghi KV khi đăng trang và tạo liên kết rút gọn cũng không tính, vì chúng không tăng theo lưu lượng. Mức dùng của mỗi lượt xem và lượt nhấp được đo trực tiếp trên FluxBio; giá theo công bố của Cloudflare vào tháng 11 năm 2026.",
-	"s186": "{used}, đã gồm {included}",
+	"s185": "Đây là ước tính sơ bộ. Muốn biết trang của bạn thực sự dùng bao nhiêu, hãy hỏi AI của bạn.",
 	"s187": "Miễn phí",
 	"s188": "Gói"
 }
