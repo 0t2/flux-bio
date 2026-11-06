@@ -31,7 +31,8 @@ writeFileSync(
 		// Files only: /zh-TW/ is zh-TW/index.html, and /preview/en/moon is preview/en/moon.html.
 		assets: { htmlHandling: 'auto-trailing-slash', notFoundHandling: '404-page' },
 		domains: ['fluxbio.link'],
-		workersDev: true,
+		// One address: with the workers.dev one on, the whole site was there a second time.
+		workersDev: false,
 		previewUrls: false,
 	}),
 )
