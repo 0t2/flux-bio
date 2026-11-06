@@ -1,6 +1,12 @@
 @AGENTS.md
 
-## Working on this repository with Claude Code
+## With Claude Code
+
+**Helping someone with their own FluxBio**, whether deploying it, changing their pages or changing the code in their own folder:
+AGENTS.md is all of it, and nothing below applies. There is no pull request to open, nothing here is deployed for them, and their
+Cloudflare account and what is on it are theirs to decide about.
+
+**Working on FluxBio itself**, in the `0t2/flux-bio` repository:
 
 - Run `pnpm typecheck` and `pnpm test` before finishing. Both work in cloud sessions
   (claude.ai/code), where `.claude/hooks/session-start.sh` installs the dependencies first.
