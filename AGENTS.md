@@ -309,6 +309,7 @@ Rules worth knowing:
 - **Nobody overwrites anybody.** The owner in the dashboard and their AI edit the same drafts. `PUT /api/pages/:id/draft` needs `If-Match` with the `draftUpdatedAt` that was read (`428`
   without it), and answers `409` `draft-changed` if the draft has moved on. The save is one atomic `UPDATE`, and `draft_updated_at` only goes up. Publishing takes `If-Match` too, and gives the new version.
   The dashboard sends it with every autosave, asks which copy to keep on a `409`, and loads a newer draft when its window gets focus, if it has no edits of its own.
+  It asks with `If-None-Match` and the version it holds, and `GET /api/pages/:id` answers `304` while the draft is still that one, without reading the page.
 - **Going back.** Every publish leaves a row in `page_versions`, the last 20 per page, with who published it (`owner`, or `token:<name>`). `POST /api/pages/:id/versions/:versionId/restore` puts one in
   the draft; going live is an ordinary publish, so links come back through the same code. Versions aren't in backups, and an import clears them. The first publish on a page without any also saves what was live.
 - **Items.** `draft.items` is the page, top to bottom. Each item has a `kind`: `link`, `heading`,

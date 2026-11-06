@@ -78,7 +78,7 @@ export const OPERATIONS: Operation[] = [
 		id: 'getPage',
 		tag: 'Pages',
 		summary: "A page's draft and published content",
-		description: 'untranslated lists, per language turned on in settings.languages, the texts in the draft with no translation yet. See saveDraft for how to add them.',
+		description: 'untranslated lists, per language turned on in settings.languages, the texts in the draft with no translation yet. See saveDraft for how to add them. With If-None-Match set to a draftUpdatedAt you hold, answers 304 while the draft is still that one.',
 	},
 	{
 		method: 'patch',

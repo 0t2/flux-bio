@@ -46,6 +46,8 @@ export async function request<T>(path: string, options: { method?: string; json?
 		throw new ApiError(0, 'network', t('連不上伺服器，請檢查網路連線'))
 	}
 
+	// Only requestIfNewer asks in a way that can be answered like this.
+	if (response.status === 304) return null as T
 	const isJson = response.headers.get('content-type')?.includes('application/json')
 	const data: unknown = isJson ? await response.json() : null
 	if (!response.ok) {
@@ -56,4 +58,9 @@ export async function request<T>(path: string, options: { method?: string; json?
 		throw new ApiError(response.status, error.error ?? 'error', message, problems)
 	}
 	return data as T
+}
+
+/** Reads something the caller already holds a version of; null when that is still the one, which costs the Worker next to nothing. */
+export function requestIfNewer<T>(path: string, version: number): Promise<T | null> {
+	return request<T | null>(path, { headers: { 'if-none-match': `"${version}"` } })
 }

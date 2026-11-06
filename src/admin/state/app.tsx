@@ -19,6 +19,8 @@ interface AppStore {
 	pages: PageSummary[]
 	/** Reloads the page list (names, counts, publish state). */
 	refresh: () => Promise<void>
+	/** Changes one page's line in the list to what the dashboard has just been told, with no request. */
+	patchPage: (id: string, patch: Partial<PageSummary>) => void
 	currentId: string | null
 	current: PageSummary | null
 	selectPage: (id: string) => void
@@ -75,6 +77,10 @@ export function AppProvider({ initial, children }: { initial: StateResponse; chi
 		}
 	}, [])
 
+	const patchPage = useCallback((id: string, patch: Partial<PageSummary>) => {
+		setState((previous) => ({ ...previous, pages: previous.pages.map((page) => (page.id === id ? { ...page, ...patch } : page)) }))
+	}, [])
+
 	const setSettings = useCallback((settings: Settings) => setState((previous) => ({ ...previous, settings })), [])
 
 	const store = useMemo<AppStore>(() => {
@@ -89,6 +95,7 @@ export function AppProvider({ initial, children }: { initial: StateResponse; chi
 			setSettings,
 			pages: state.pages,
 			refresh,
+			patchPage,
 			currentId,
 			current: state.pages.find((page) => page.id === currentId) ?? null,
 			selectPage,
@@ -96,7 +103,7 @@ export function AppProvider({ initial, children }: { initial: StateResponse; chi
 			pageDisplay: (page) => pageDisplayUrl(host, { handle: page.handle, home: isHome(page) }),
 			analytics: state.analytics,
 		}
-	}, [state, currentId, refresh, selectPage, setSettings])
+	}, [state, currentId, refresh, patchPage, selectPage, setSettings])
 
 	return <AppContext.Provider value={store}>{children}</AppContext.Provider>
 }

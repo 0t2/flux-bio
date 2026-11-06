@@ -1,12 +1,12 @@
 import { createContext, Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { LinkJson, PageJson, PublishResponse, ShortLinkResponse } from '../../shared/api'
+import type { LinkJson, PageJson, PageSummary, PublishResponse, ShortLinkResponse } from '../../shared/api'
 import { linkItems, type PageContent } from '../../shared/content'
 import type { Problem } from '../../shared/validate'
-import { ApiError, request } from '../api'
+import { ApiError, request, requestIfNewer } from '../api'
 import { Loading } from '../components/Loading'
 import { toast } from '../components/ui'
 import { t } from '../i18n'
-import { refreshShareImage } from '../lib/ogImage'
+import { refreshShareImage, shareImageIsStale } from '../lib/ogImage'
 import { useApp } from './app'
 
 export type SaveStatus = 'saved' | 'pending' | 'saving' | 'error'
@@ -63,6 +63,18 @@ export function useOptionalPage(): PageStore | null {
 }
 
 const AUTOSAVE_DELAY = 700
+
+/** A page's line in the list, as far as its content decides it: what the Worker would work out, without asking it. */
+function summaryOf(content: PageContent): Pick<PageSummary, 'name' | 'avatar' | 'theme' | 'kind' | 'items' | 'links'> {
+	return {
+		name: content.profile.name,
+		avatar: content.profile.avatar,
+		theme: content.appearance.theme,
+		kind: content.custom?.kind ?? 'links',
+		items: content.items.length,
+		links: linkItems(content).filter((link) => link.url.trim()).length,
+	}
+}
 
 /** Loads the page the dashboard is set to and remounts the editor when it changes. */
 export function CurrentPage({ children, fallback }: { children: ReactNode; fallback: ReactNode }) {
@@ -200,6 +212,8 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 	}, [])
 
 	const readLatest = useCallback(async () => (await request<{ page: PageJson }>(`/pages/${id}`)).page, [id])
+	/** The page, if its draft has moved on from the one this copy is based on; null, and nearly free, when it hasn't. */
+	const readIfNewer = useCallback(async () => (await requestIfNewer<{ page: PageJson }>(`/pages/${id}`, version.current))?.page ?? null, [id])
 
 	const shortLink = useCallback(
 		async (itemId: string, slug?: string) => {
@@ -244,11 +258,12 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 		setPublishError(null)
 		setProblems([])
 		try {
-			// With no edits here and a newer draft there, this screen hasn't shown what would go live.
-			// Look before drawing the share card below, which would count as an edit of its own.
-			if (statusRef.current === 'saved') {
-				const fresh = await readLatest()
-				if (fresh.draftUpdatedAt > version.current) {
+			// With no edits here and a newer draft there, this screen hasn't shown what would go live. Publishing
+			// says which draft it means, so the Worker refuses then (see the catch below). But a share card drawn
+			// first would count as an edit of its own, saved over the newer draft, so that case looks beforehand.
+			if (statusRef.current === 'saved' && shareImageIsStale(latest.current, displayUrl)) {
+				const fresh = await readIfNewer()
+				if (fresh && fresh.draftUpdatedAt > version.current) {
 					adopt(fresh)
 					setPublishError(t('這個頁面剛被改過，已載入最新版本。確認後再發布一次。'))
 					return false
@@ -273,7 +288,8 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 			version.current = result.draftUpdatedAt
 			setPublished(result.content)
 			setPublishedAt(result.publishedAt)
-			if (JSON.stringify(latest.current) === before) {
+			const unchanged = JSON.stringify(latest.current) === before
+			if (unchanged) {
 				// The server filled in short link slugs; take its version as-is.
 				savedJson.current = JSON.stringify(result.content)
 				latest.current = result.content
@@ -291,7 +307,14 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 				})
 				schedule()
 			}
-			void app.refresh().catch(() => {})
+			// The answer has everything the page's line in the list shows, so the list isn't read again.
+			app.patchPage(id, {
+				...summaryOf(result.content),
+				publishedAt: result.publishedAt,
+				draftUpdatedAt: result.draftUpdatedAt,
+				dirty: !unchanged,
+				untranslated: Object.values(result.untranslated).reduce((sum, texts) => sum + texts.length, 0),
+			})
 			return true
 		} catch (error) {
 			if (error instanceof ApiError && error.code === 'draft-changed') {
@@ -309,7 +332,7 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 			publishingRef.current = false
 			setPublishing(false)
 		}
-	}, [adopt, app, displayUrl, id, readLatest, save, schedule])
+	}, [adopt, app, displayUrl, id, readIfNewer, readLatest, save, schedule])
 
 	const loadLatest = useCallback(async () => {
 		adopt(await readLatest())
@@ -339,9 +362,9 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 			if (Date.now() - lookedAt < 5000 || statusRef.current !== 'saved' || inConflict.current || publishingRef.current) return
 			lookedAt = Date.now()
 			try {
-				const fresh = await readLatest()
+				const fresh = await readIfNewer()
 				// An edit started meanwhile finds out for itself when it saves.
-				if (fresh.draftUpdatedAt <= version.current || statusRef.current !== 'saved' || publishingRef.current) return
+				if (!fresh || fresh.draftUpdatedAt <= version.current || statusRef.current !== 'saved' || publishingRef.current) return
 				adopt(fresh)
 				toast(t('這個頁面剛被改過，已載入最新版本'))
 				void app.refresh().catch(() => {})
@@ -351,13 +374,13 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 		}
 		window.addEventListener('focus', look)
 		return () => window.removeEventListener('focus', look)
-	}, [adopt, app, readLatest])
+	}, [adopt, app, readIfNewer])
 
 	const rename = useCallback(
 		async (next: string) => {
 			const result = await request<{ page: PageJson }>(`/pages/${id}`, { method: 'PATCH', json: { handle: next } })
 			setHandle(result.page.handle)
-			await app.refresh()
+			app.patchPage(id, { handle: result.page.handle })
 		},
 		[app, id],
 	)
