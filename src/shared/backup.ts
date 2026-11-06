@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from './zod'
 import { MEDIA_ID, PageContentInputSchema, SavedThemeSchema, SettingsSchema } from './content'
 import { QR_MEDIA_ID } from './qr'
 

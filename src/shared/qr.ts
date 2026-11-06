@@ -3,7 +3,7 @@
  * downloads) and the Worker, so nothing in here may touch the DOM.
  */
 import { encode, QrCodeDataType } from 'uqr'
-import { z } from 'zod'
+import { z } from './zod'
 import { logoTile } from '../templates/icons'
 import { msg } from '../templates/msg'
 

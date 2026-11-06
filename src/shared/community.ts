@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from './zod'
 import { ThemePresetSchema } from './content'
 import { STARTER_IDS } from './starters'
 
