@@ -39,6 +39,12 @@ writeFileSync(
 cpSync(join(here, 'public'), assets, { recursive: true })
 for (const icon of ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png']) cpSync(join(root, 'public', icon), join(assets, icon))
 
+// The dashboard screenshots are not in git: a checkout without them builds pages that ask for pictures it doesn't
+// have. A deploy fetches them first (scripts/landing-pictures.mjs), so this only says so.
+const screens = [...new Set([...template.matchAll(/\/dash-([\w-]+)\.webp/g)].map((match) => match[1]))]
+const absent = readdirSync(join(here, 'locales')).filter((name) => name.endsWith('.json')).flatMap((name) => screens.filter((screen) => !existsSync(join(assets, name.replace('.json', ''), `dash-${screen}.webp`))))
+if (absent.length) console.log(`${absent.length} dashboard screenshots are not here: pnpm landing:pictures fetches them from fluxbio.link.`)
+
 // The pages' own fonts come from this site (fonts.ts). IBM Plex is in public/fonts/ and went out with the copy above.
 const { module: fonts } = await runnerImport('./landing/fonts.ts')
 for (const file of fonts.plexFiles()) {

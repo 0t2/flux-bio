@@ -37,7 +37,7 @@
 - 运行在你自己的 Cloudflare 账号上，免费方案就够用，数据都在你手里。
 - [把一段话贴给 AI](#自己部署一个)，它会帮你部署好。之后在后台修改，或者直接告诉 AI 就行。
 
-<img src="../landing/public/zh-CN/dash-links.webp" alt="FluxBio 后台：一边编辑 bio 页，一边看实时预览">
+<img src="https://fluxbio.link/zh-CN/dash-links.webp" alt="FluxBio 后台：一边编辑 bio 页，一边看实时预览">
 
 做几个符合你风格的 bio 页：选一种主题和配色，或让 AI 用你的图片做一套，还能放视频、商品和营业时间。页面上的每个链接也都有短链接，可以看到每个链接的点击，以及来自 IG、Threads 还是 LINE。
 
@@ -79,8 +79,8 @@
 
 <table>
   <tr>
-    <td width="50%"><img src="../landing/public/zh-CN/dash-stats.webp" alt="数据：近 30 天的浏览、点击、点击率和独立访客"></td>
-    <td width="50%"><img src="../landing/public/zh-CN/dash-qr.webp" alt="为短链接设计二维码"></td>
+    <td width="50%"><img src="https://fluxbio.link/zh-CN/dash-stats.webp" alt="数据：近 30 天的浏览、点击、点击率和独立访客"></td>
+    <td width="50%"><img src="https://fluxbio.link/zh-CN/dash-qr.webp" alt="为短链接设计二维码"></td>
   </tr>
   <tr>
     <td align="center"><sub>数据，与上一期对比</sub></td>

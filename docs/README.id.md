@@ -37,7 +37,7 @@ Link in bio + tautan pendek open source yang seluruhnya berjalan di akun Cloudfl
 - Berjalan di akun Cloudflare milikmu sendiri. Paket gratis sudah cukup, dan datamu tetap milikmu.
 - [Tempel satu prompt ke AI-mu](#pasang-sendiri), lalu AI menyiapkan semuanya. Setelah itu, edit di dasbor atau cukup minta ke AI-mu.
 
-<img src="../landing/public/id/dash-links.webp" alt="Dasbor FluxBio: menyunting halaman bio di samping pratinjau langsungnya">
+<img src="https://fluxbio.link/id/dash-links.webp" alt="Dasbor FluxBio: menyunting halaman bio di samping pratinjau langsungnya">
 
 Buat beberapa halaman bio sesuai gayamu: pilih tema dan warnanya, atau minta AI-mu membuatkan satu dengan gambarmu, dan kamu juga bisa menambahkan video, produk, serta jam buka. Setiap tautan di halaman juga punya tautan pendek, dan kamu bisa melihat apa yang diklik dan apakah pengunjung datang dari IG, Threads, atau LINE.
 
@@ -79,8 +79,8 @@ Buat beberapa halaman bio sesuai gayamu: pilih tema dan warnanya, atau minta AI-
 
 <table>
   <tr>
-    <td width="50%"><img src="../landing/public/id/dash-stats.webp" alt="Statistik: tayangan, klik, rasio klik, dan pengunjung unik selama 30 hari"></td>
-    <td width="50%"><img src="../landing/public/id/dash-qr.webp" alt="Mendesain kode QR untuk tautan pendek"></td>
+    <td width="50%"><img src="https://fluxbio.link/id/dash-stats.webp" alt="Statistik: tayangan, klik, rasio klik, dan pengunjung unik selama 30 hari"></td>
+    <td width="50%"><img src="https://fluxbio.link/id/dash-qr.webp" alt="Mendesain kode QR untuk tautan pendek"></td>
   </tr>
   <tr>
     <td align="center"><sub>Statistik, dibandingkan dengan periode sebelumnya</sub></td>

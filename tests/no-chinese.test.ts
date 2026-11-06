@@ -18,7 +18,6 @@ const dictionaries = import.meta.glob<Record<string, string>>('../src/admin/i18n
 const workerCode = import.meta.glob<string>(['../src/worker/**/*.ts', '../src/shared/*.ts', '!../src/shared/googleFonts.ts', '!../src/shared/serverWords.ts'], { query: '?raw', import: 'default', eager: true })
 const words = import.meta.glob<Record<string, string>>('../landing/locales/*.json', { import: 'default', eager: true })
 const samples = import.meta.glob<unknown>('../landing/sample/*.json', { import: 'default', eager: true })
-const shots = import.meta.glob('../landing/public/*/dash-*.webp', { query: '?url' })
 
 /** A response without its translation keys, which are in Chinese on purpose: they're for the dashboard. */
 function withoutKeys(value: unknown): unknown {
@@ -138,10 +137,11 @@ describe('the landing page', () => {
 	}
 
 	for (const locale of LOCALES) {
+		// The files are not in git (scripts/landing-pictures.mjs): what can be checked here is that the page asks for its own language's.
 		it(`shows the dashboard in ${locale} in its screenshots`, () => {
-			const names = Object.keys(shots).filter((path) => path.includes(`/public/${locale}/`)).map((path) => path.split('/').pop()).sort()
-			expect(names).toEqual(['dash-appearance.webp', 'dash-links.webp', 'dash-qr.webp', 'dash-stats.webp'])
-			expect(renderLanding(template, words[`../landing/locales/${locale}.json`]!, locale)).toContain(`/${locale}/dash-links.webp`)
+			const page = renderLanding(template, words[`../landing/locales/${locale}.json`]!, locale)
+			const names = [...new Set([...page.matchAll(/src="\/([\w-]+)\/(dash-[\w-]+\.webp)"/g)].map((match) => `${match[1]}/${match[2]}`))].sort()
+			expect(names).toEqual(['dash-appearance.webp', 'dash-links.webp', 'dash-qr.webp', 'dash-stats.webp'].map((name) => `${locale}/${name}`))
 		})
 	}
 })

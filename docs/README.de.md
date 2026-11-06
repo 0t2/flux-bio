@@ -37,7 +37,7 @@ Open-Source-Link-in-Bio mit Kurzlinks, das komplett auf deinem eigenen Cloudflar
 - Läuft in deinem eigenen Cloudflare-Konto. Der kostenlose Tarif reicht, und deine Daten bleiben bei dir.
 - [Füge einen Prompt in deine KI ein](#selbst-hosten), und sie richtet alles ein. Danach bearbeitest du im Dashboard oder sagst es einfach deiner KI.
 
-<img src="../landing/public/de/dash-links.webp" alt="Das FluxBio-Dashboard: eine Bio-Seite bearbeiten, daneben die Live-Vorschau">
+<img src="https://fluxbio.link/de/dash-links.webp" alt="Das FluxBio-Dashboard: eine Bio-Seite bearbeiten, daneben die Live-Vorschau">
 
 Bau dir Bio-Seiten in deinem Stil: Wähle ein Theme und seine Farben oder lass deine KI eines mit deinen Bildern bauen, dazu kommen Videos, Produkte und Öffnungszeiten. Jeder Link auf der Seite hat auch einen Kurzlink, und du siehst, was angeklickt wird und ob die Besucher von IG, Threads oder LINE kommen.
 
@@ -79,8 +79,8 @@ Bau dir Bio-Seiten in deinem Stil: Wähle ein Theme und seine Farben oder lass d
 
 <table>
   <tr>
-    <td width="50%"><img src="../landing/public/de/dash-stats.webp" alt="Statistiken: Aufrufe, Klicks, Klickrate und eindeutige Besucher über 30 Tage"></td>
-    <td width="50%"><img src="../landing/public/de/dash-qr.webp" alt="Einen QR-Code für einen Kurzlink gestalten"></td>
+    <td width="50%"><img src="https://fluxbio.link/de/dash-stats.webp" alt="Statistiken: Aufrufe, Klicks, Klickrate und eindeutige Besucher über 30 Tage"></td>
+    <td width="50%"><img src="https://fluxbio.link/de/dash-qr.webp" alt="Einen QR-Code für einen Kurzlink gestalten"></td>
   </tr>
   <tr>
     <td align="center"><sub>Statistiken im Vergleich zum Zeitraum davor</sub></td>

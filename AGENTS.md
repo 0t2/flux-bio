@@ -381,7 +381,11 @@ Worker requests, D1 or KV, and it can't touch the account's quota.
   once the page shows a character it lacks, the page links the font at Google. The Arabic page links IBM Plex Sans Arabic there too, and the
   sample pages in the phones load each theme's fonts as any FluxBio page does.
 - **Pictures.** `landing/public/` holds what is copied as it is: `images/`, and the dashboard screenshots in `<code>/dash-*.webp`, showing the made-up shop.
-  `pnpm shots --locale <code>` retakes a language's set, and `pnpm shots --category creator --out <dir>` another kind of page. No real person's page or data belongs on the
+  `pnpm shots --locale <code>` retakes a language's set, and `pnpm shots --category creator --out <dir>` another kind of page.
+  The screenshots are not in git, because every retake would add megabytes to the repository for good: they are on the maintainer's computer
+  and on the site. `pnpm landing:deploy` first fetches from fluxbio.link the ones a checkout lacks (`pnpm landing:pictures`), which is how a
+  deploy from GitHub Actions keeps them, and stops if one can't be had. New ones reach the site by deploying from the computer that took them.
+  The READMEs show them from fluxbio.link. No real person's page or data belongs on the
   landing page. The photographs in `images/` were made with an image generator, and the people and places in them are invented; `link-web.webp` comes from `pnpm brand`.
   Pictures on it are WebP at quality 80, and `pnpm shots` and `pnpm brand` save theirs that way.
 
@@ -396,6 +400,7 @@ pnpm build       # builds into .cloudflare/output
 pnpm i18n check  # lists dashboard text that isn't translated yet
 pnpm landing     # builds the landing page (see "The landing page"); pnpm landing:deploy also deploys it
 pnpm landing:fonts  # makes the Traditional Chinese landing page's font from the characters it shows now (a deploy does this itself)
+pnpm landing:pictures  # fetches from fluxbio.link the dashboard screenshots this checkout lacks (pnpm landing:deploy does this itself; --check only lists them)
 pnpm shots       # retakes the landing page's dashboard screenshots from the sample pages, in a throwaway local site
 pnpm brand       # remakes the favicon, app icons and the landing page's logo pictures from LOGO_PATH in src/templates/icons.ts
 pnpm deploy:images --site <url>  # deploy with the site's pictures as static files, which cost no quota (--no-deploy, --mode staging)

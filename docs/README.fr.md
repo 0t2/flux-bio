@@ -37,7 +37,7 @@ Pages bio et liens courts en open source, qui tournent entièrement sur votre pr
 - Il tourne sur votre propre compte Cloudflare. L’offre gratuite suffit, et vos données restent les vôtres.
 - [Collez un message dans votre IA](#installer-le-vôtre) et elle installe tout. Ensuite, modifiez dans le tableau de bord ou demandez simplement à votre IA.
 
-<img src="../landing/public/fr/dash-links.webp" alt="Le tableau de bord FluxBio : modifier une page bio à côté de son aperçu en direct">
+<img src="https://fluxbio.link/fr/dash-links.webp" alt="Le tableau de bord FluxBio : modifier une page bio à côté de son aperçu en direct">
 
 Créez des pages bio à votre image : choisissez un thème et ses couleurs, ou demandez à votre IA d’en créer un avec vos images, et ajoutez-y des vidéos, des produits et vos horaires d’ouverture. Chaque lien de la page a aussi son lien court, et vous voyez sur quoi on clique, et si les visites viennent d’IG, de Threads ou de LINE.
 
@@ -79,8 +79,8 @@ Créez des pages bio à votre image : choisissez un thème et ses couleurs, ou 
 
 <table>
   <tr>
-    <td width="50%"><img src="../landing/public/fr/dash-stats.webp" alt="Statistiques : vues, clics, taux de clic et visiteurs uniques sur 30 jours"></td>
-    <td width="50%"><img src="../landing/public/fr/dash-qr.webp" alt="Créer un QR code pour un lien court"></td>
+    <td width="50%"><img src="https://fluxbio.link/fr/dash-stats.webp" alt="Statistiques : vues, clics, taux de clic et visiteurs uniques sur 30 jours"></td>
+    <td width="50%"><img src="https://fluxbio.link/fr/dash-qr.webp" alt="Créer un QR code pour un lien court"></td>
   </tr>
   <tr>
     <td align="center"><sub>Les statistiques, comparées à la période précédente</sub></td>

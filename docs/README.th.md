@@ -37,7 +37,7 @@ Link in bio และลิงก์สั้นแบบโอเพนซอ�
 - ทำงานบนบัญชี Cloudflare ของคุณเอง แพ็กเกจฟรีก็พอ และข้อมูลยังเป็นของคุณ
 - [วางข้อความเดียวให้ AI ของคุณ](#ติดตั้งเอง) แล้ว AI จะติดตั้งให้ทั้งหมด จากนั้นแก้ไขในแดชบอร์ด หรือบอก AI ได้เลย
 
-<img src="../landing/public/th/dash-links.webp" alt="แดชบอร์ด FluxBio: แก้ไขหน้า bio พร้อมดูตัวอย่างสด">
+<img src="https://fluxbio.link/th/dash-links.webp" alt="แดชบอร์ด FluxBio: แก้ไขหน้า bio พร้อมดูตัวอย่างสด">
 
 สร้างหน้า bio ในสไตล์ของคุณได้หลายหน้า: เลือกธีมและชุดสี หรือให้ AI ทำธีมจากรูปของคุณ ใส่วิดีโอ สินค้า และเวลาทำการได้ด้วย ทุกลิงก์บนหน้ามีลิงก์สั้นด้วย และเห็นได้ว่าคนคลิกอะไร และมาจาก IG, Threads หรือ LINE
 
@@ -79,8 +79,8 @@ Link in bio และลิงก์สั้นแบบโอเพนซอ�
 
 <table>
   <tr>
-    <td width="50%"><img src="../landing/public/th/dash-stats.webp" alt="สถิติ: การเข้าชม การคลิก อัตราการคลิก และผู้เข้าชมไม่ซ้ำใน 30 วัน"></td>
-    <td width="50%"><img src="../landing/public/th/dash-qr.webp" alt="ออกแบบ QR Code ให้ลิงก์สั้น"></td>
+    <td width="50%"><img src="https://fluxbio.link/th/dash-stats.webp" alt="สถิติ: การเข้าชม การคลิก อัตราการคลิก และผู้เข้าชมไม่ซ้ำใน 30 วัน"></td>
+    <td width="50%"><img src="https://fluxbio.link/th/dash-qr.webp" alt="ออกแบบ QR Code ให้ลิงก์สั้น"></td>
   </tr>
   <tr>
     <td align="center"><sub>สถิติเทียบกับช่วงก่อนหน้า</sub></td>

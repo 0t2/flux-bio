@@ -37,7 +37,7 @@
 - 自分の Cloudflare アカウントで動きます。無料プランで十分で、データは自分の手元に残ります。
 - [AI にプロンプトを貼り付ける](#自分で立てる)だけで準備完了。あとは管理画面で編集するか、AI に頼むだけです。
 
-<img src="../landing/public/ja/dash-links.webp" alt="FluxBio の管理画面：bio ページを編集しながらライブプレビューを確認">
+<img src="https://fluxbio.link/ja/dash-links.webp" alt="FluxBio の管理画面：bio ページを編集しながらライブプレビューを確認">
 
 自分らしい bio ページをいくつでも作れます。テーマと配色を選ぶか、AI に自分の画像でテーマを作ってもらえて、動画や商品、営業時間も載せられます。ページのリンクにはどれも短縮URLが付き、どのリンクがクリックされたのか、IG・Threads・LINE のどこから来たのかがわかります。
 
@@ -79,8 +79,8 @@
 
 <table>
   <tr>
-    <td width="50%"><img src="../landing/public/ja/dash-stats.webp" alt="分析：直近 30 日の閲覧数、クリック数、クリック率、ユニーク訪問者"></td>
-    <td width="50%"><img src="../landing/public/ja/dash-qr.webp" alt="短縮URL の QR コードをデザイン"></td>
+    <td width="50%"><img src="https://fluxbio.link/ja/dash-stats.webp" alt="分析：直近 30 日の閲覧数、クリック数、クリック率、ユニーク訪問者"></td>
+    <td width="50%"><img src="https://fluxbio.link/ja/dash-qr.webp" alt="短縮URL の QR コードをデザイン"></td>
   </tr>
   <tr>
     <td align="center"><sub>前の期間と比べた分析</sub></td>
