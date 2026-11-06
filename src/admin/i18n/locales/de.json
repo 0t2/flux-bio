@@ -918,10 +918,7 @@
 	"每天的瀏覽和點擊次數保留 {months} 個月，更早的月份只留每月總數。": "Tägliche Aufrufe und Klicks werden {months} Monate aufbewahrt. Ältere Monate behalten nur ihre Monatssumme.",
 	"下載成 CSV 檔，Excel 和 Google 試算表都能開。下載不會刪掉任何資料。": "Eine CSV-Datei, die sich in Excel oder Google Tabellen öffnen lässt. Der Download löscht nichts.",
 	"下載點擊數據": "Statistiken herunterladen",
-	"資料庫已用 {used}，這個方案最多 {limit}。": "Die Datenbank belegt {used} von {limit}, die dieser Tarif erlaubt.",
 	"正在清除 {month} 以前的點擊數據，每次打開後台會清掉一部分。": "Statistiken vor {month} werden gelöscht. Jedes Mal, wenn das Dashboard geöffnet wird, verschwindet ein Teil.",
-	"我換成 Cloudflare 付費方案了，幫我更新 FluxBio 的方案設定": "Ich bin auf einen kostenpflichtigen Cloudflare-Tarif gewechselt. Bitte aktualisiere die Tarif-Einstellung von FluxBio",
-	"我換回 Cloudflare 免費方案了，幫我更新 FluxBio 的方案設定": "Ich bin zurück im kostenlosen Cloudflare-Tarif. Bitte aktualisiere die Tarif-Einstellung von FluxBio",
 	"清除舊數據": "Alte Daten löschen",
 	"已下載，舊數據會在接下來幾次打開後台時陸續清除": "Heruntergeladen. Die alten Statistiken werden in den nächsten Malen, wenn du das Dashboard öffnest, nach und nach gelöscht.",
 	"沒有完成，請再試一次": "Das wurde nicht abgeschlossen. Bitte versuche es erneut.",
@@ -934,5 +931,13 @@
 	"對象": "Element",
 	"次數": "Anzahl",
 	"只能清除 {month} 以前的點擊數據，比這更新的還會顯示在數據頁": "Nur Statistiken vor {month} können gelöscht werden. Neuere erscheinen noch auf den Statistikseiten.",
-	"清除點擊數據": "Statistiken löschen"
+	"清除點擊數據": "Statistiken löschen",
+	"今天的請求": "Anfragen heute",
+	"今天的 KV 讀取": "KV-Lesevorgänge heute",
+	"今天的資料庫寫入": "Datenbank-Schreibvorgänge heute",
+	"用量": "Nutzung",
+	"Cloudflare 方案：Workers Paid。超過內含的額度會照用量計費，網站不會停。": "Cloudflare-Tarif: Workers Paid. Was über das Inklusivvolumen hinausgeht, wird nach Verbrauch berechnet, und die Seite läuft weiter.",
+	"Cloudflare 方案：免費。每天的額度用完，網站會停到 {time} 重新計算。": "Cloudflare-Tarif: kostenlos. Ist ein Tageslimit aufgebraucht, steht die Seite bis {time} still, dann beginnt es neu.",
+	"今天到目前有 {views} 次瀏覽、{clicks} 次點擊。今天的數字是這個網站自己估的，圖片、機器人和帳號裡的其他專案沒有算進去。": "Heute bisher: {views} Aufrufe und {clicks} Klicks. Die heutigen Zahlen schätzt die Seite selbst: Bilder, Bots und andere Projekte in deinem Konto sind nicht mitgezählt.",
+	"幫我查 Cloudflare 帳號今天實際用了多少": "Schau nach, wie viel mein Cloudflare-Konto heute tatsächlich verbraucht hat"
 }

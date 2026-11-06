@@ -918,10 +918,7 @@
 	"每天的瀏覽和點擊次數保留 {months} 個月，更早的月份只留每月總數。": "Las visitas y los clics diarios se guardan {months} meses. Los meses anteriores conservan solo su total mensual.",
 	"下載成 CSV 檔，Excel 和 Google 試算表都能開。下載不會刪掉任何資料。": "Un archivo CSV que se abre en Excel o Google Sheets. Descargarlo no borra nada.",
 	"下載點擊數據": "Descargar estadísticas",
-	"資料庫已用 {used}，這個方案最多 {limit}。": "La base de datos usa {used} de los {limit} que permite este plan.",
 	"正在清除 {month} 以前的點擊數據，每次打開後台會清掉一部分。": "Borrando las estadísticas anteriores a {month}. Se borra una parte cada vez que abres el panel.",
-	"我換成 Cloudflare 付費方案了，幫我更新 FluxBio 的方案設定": "Me cambié a un plan de pago de Cloudflare. Actualiza el plan en la configuración de FluxBio",
-	"我換回 Cloudflare 免費方案了，幫我更新 FluxBio 的方案設定": "Volví al plan gratuito de Cloudflare. Actualiza el plan en la configuración de FluxBio",
 	"清除舊數據": "Borrar datos antiguos",
 	"已下載，舊數據會在接下來幾次打開後台時陸續清除": "Descargado. Las estadísticas antiguas se borrarán en las próximas veces que abras el panel.",
 	"沒有完成，請再試一次": "No terminó. Inténtalo de nuevo.",
@@ -934,5 +931,13 @@
 	"對象": "Elemento",
 	"次數": "Cantidad",
 	"只能清除 {month} 以前的點擊數據，比這更新的還會顯示在數據頁": "Solo se pueden borrar las estadísticas anteriores a {month}. Las más recientes siguen en las páginas de estadísticas.",
-	"清除點擊數據": "Borrar estadísticas"
+	"清除點擊數據": "Borrar estadísticas",
+	"今天的請求": "Solicitudes de hoy",
+	"今天的 KV 讀取": "Lecturas de KV de hoy",
+	"今天的資料庫寫入": "Escrituras en la base de datos de hoy",
+	"用量": "Uso",
+	"Cloudflare 方案：Workers Paid。超過內含的額度會照用量計費，網站不會停。": "Plan de Cloudflare: Workers Paid. Lo que pase de lo incluido se cobra por uso, y el sitio sigue funcionando.",
+	"Cloudflare 方案：免費。每天的額度用完，網站會停到 {time} 重新計算。": "Plan de Cloudflare: gratuito. Si se agota un límite diario, el sitio se detiene hasta las {time}, cuando se reinicia.",
+	"今天到目前有 {views} 次瀏覽、{clicks} 次點擊。今天的數字是這個網站自己估的，圖片、機器人和帳號裡的其他專案沒有算進去。": "Hoy, hasta ahora: {views} visitas y {clicks} clics. Las cifras de hoy son una estimación del propio sitio: no incluyen imágenes, bots ni otros proyectos de tu cuenta.",
+	"幫我查 Cloudflare 帳號今天實際用了多少": "Revisa cuánto se usó hoy de verdad en mi cuenta de Cloudflare"
 }

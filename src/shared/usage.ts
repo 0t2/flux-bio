@@ -21,6 +21,21 @@ export const D1_DAILY_LIMITS = { rowsRead: 5_000_000, rowsWritten: 100_000 } as 
 export const D1_STORAGE = { database: 500 * 1024 ** 2, account: 5 * 1024 ** 3, databases: 10 } as const
 export type D1Measure = keyof typeof D1_DAILY_LIMITS
 
+/** One of the account's subscriptions, as `cf accounts subscriptions get` lists them. */
+export interface Subscription {
+	state?: string
+	rate_plan?: { id?: string; public_name?: string }
+}
+
+/** The account's Workers plan: "paid" with a live Workers Paid (Standard) subscription, else "free". */
+export function workersPlan(subscriptions: readonly Subscription[]): 'free' | 'paid' {
+	const paid = subscriptions.some((entry) => {
+		const plan = `${entry.rate_plan?.id ?? ''} ${entry.rate_plan?.public_name ?? ''}`
+		return /workers/i.test(plan) && /paid|standard|bundled|unbound/i.test(plan) && !/cancel|expired/i.test(entry.state ?? '')
+	})
+	return paid ? 'paid' : 'free'
+}
+
 /** One row from the D1 analytics query: one database's rows, summed. */
 export interface D1Row {
 	readRows: number | string

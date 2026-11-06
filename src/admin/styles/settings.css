@@ -450,48 +450,49 @@
 	border-radius: 6px;
 }
 
-/* QR Code default pictures */
-.set-qr-defaults {
-	display: flex;
-	flex-direction: column;
-	margin: 12px 0 0;
+/* Usage */
+.usage-meters {
+	display: grid;
+	gap: 14px;
+	margin: 14px 0;
 	padding: 0;
 	list-style: none;
 }
-.set-qr-defaults li {
+.usage-meter-head {
 	display: flex;
 	flex-wrap: wrap;
-	align-items: center;
-	gap: 12px;
-	padding-block: 12px;
-	border-top: 1px solid var(--line);
+	justify-content: space-between;
+	gap: 4px 12px;
+	font-size: 14px;
 }
-.set-qr-defaults li > div:not(.set-qr-actions) {
-	flex: 1 1 200px;
-	min-width: 0;
+.usage-meter-head .mono {
+	color: var(--muted);
 }
-.set-qr-defaults .hint {
-	margin: 2px 0 0;
-}
-.set-qr-thumb {
-	flex: 0 0 auto;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 44px;
-	height: 44px;
+.usage-meter-bar {
+	display: block;
+	height: 6px;
+	margin-top: 6px;
 	overflow: hidden;
-	border-radius: var(--r-control);
+	border-radius: 999px;
 	background: var(--raised-2);
-	color: var(--text-2);
 }
-.set-qr-thumb img {
-	width: 100%;
+.usage-meter-bar > span {
+	display: block;
 	height: 100%;
-	object-fit: contain;
+	border-radius: inherit;
+	background: var(--accent);
 }
-.set-qr-actions {
+.usage-meter-bar.mid > span {
+	background: var(--warning);
+}
+.usage-meter-bar.high > span {
+	background: var(--danger);
+}
+/* Stacked buttons, as wide as the wider of them, beside the text like the backup row's one. */
+.set-backup-row > .set-stats-actions {
+	flex: none;
 	display: flex;
-	flex-wrap: wrap;
+	flex-direction: column;
+	align-items: stretch;
 	gap: 8px;
 }
