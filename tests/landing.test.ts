@@ -147,6 +147,14 @@ describe('the site', () => {
 		expect(previewPage('en', 'minimal')).not.toContain('class="cover"')
 	})
 
+	it('loads a Chinese font in a sample page only where the page is in Chinese', () => {
+		const chinese = /family=(Noto\+Sans\+TC|Noto\+Serif\+TC|LXGW\+WenKai\+TC)/
+		for (const theme of THEME_IDS) {
+			expect(previewPage('en', theme), theme).not.toMatch(chinese)
+			expect(previewPage('zh-TW', theme), theme).toMatch(chinese)
+		}
+	})
+
 	it('lets a preview be someone else\'s page, with their own picture, in any theme', () => {
 		expect(previewPage('en', 'liquid', 'shop')).toContain('<img src="/images/cover-corner.webp"')
 		expect(previewPage('en', 'minimal', 'pro')).not.toContain('class="cover"')
