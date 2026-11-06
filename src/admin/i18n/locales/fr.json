@@ -959,5 +959,7 @@
 	"部署後顯示": "Affiché une fois déployé",
 	"讓圖片不算額度": "Des images qui ne coûtent pas de quota",
 	"頁面上的圖片可以跟網站一起部署，之後訪客看圖片就不算請求和 KV 讀取。這要由你的 AI 在電腦上部署，後台沒有這個按鈕；之後新上傳的圖片，要再部署一次才不算。": "Les images de votre page peuvent être déployées avec le site : les charger ne coûte alors ni requêtes ni lectures KV. C’est votre IA qui s’en charge, sur votre ordinateur : il n’y a pas de bouton ici. Les images ajoutées ensuite comptent jusqu’au déploiement suivant.",
-	"把頁面上的圖片跟網站一起部署，讓看圖片不算額度": "Déploie les images de ma page avec le site, pour qu’elles ne coûtent pas de quota"
+	"把頁面上的圖片跟網站一起部署，讓看圖片不算額度": "Déploie les images de ma page avec le site, pour qu’elles ne coûtent pas de quota",
+	"站台": "Sites",
+	"切換站台，目前是 {host}": "Changer de site (actuel : {host})"
 }

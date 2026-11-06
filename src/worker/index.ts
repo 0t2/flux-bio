@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { fill, msg, setWords } from '../templates/msg'
 import { isTestSite } from './lib/mode'
+import { siteEnv } from './lib/sites'
 import { api } from './routes/api'
 import { site, systemPage } from './routes/site'
 import { ApiError, type AppEnv } from './types'
@@ -49,5 +50,12 @@ app.onError((error, c) => {
 })
 
 export default {
-	fetch: app.fetch,
+	// Which site a request is for is settled here, by its hostname, so every route reads and writes that site's
+	// own database and KV without knowing there are others (lib/sites.ts).
+	fetch(request: Request, env: unknown, ctx: ExecutionContext): Response | Promise<Response> {
+		const own = siteEnv(request, env as Env)
+		// A hostname listed for a site this Worker has no database for: say so, and never answer with another site's.
+		if (!own) return new Response('This site is not set up yet.', { status: 503, headers: { 'cache-control': 'no-store', 'content-type': 'text/plain; charset=utf-8' } })
+		return app.fetch(request, own, ctx)
+	},
 } satisfies ExportedHandler<Env>

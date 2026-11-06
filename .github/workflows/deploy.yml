@@ -63,3 +63,6 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           FLUXBIO_TOKEN: ${{ secrets.FLUXBIO_TOKEN }}
           FLUXBIO_SITE: ${{ vars.FLUXBIO_SITE }}
+          # The other sites the Worker holds, as sites.json would list them: a checkout has no such file, and a deploy
+          # without the list would unbind them (cloudflare.config.ts).
+          FLUXBIO_SITES: ${{ vars.FLUXBIO_SITES }}

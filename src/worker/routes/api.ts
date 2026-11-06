@@ -23,6 +23,7 @@ import type {
 	UnusedMediaResponse,
 	UsageResponse,
 	PreviewLinkResponse,
+	SiteJson,
 } from '../../shared/api'
 import { BackupSchema } from '../../shared/backup'
 import {
@@ -49,7 +50,7 @@ import { SOCIAL_META } from '../../templates/icons'
 import { renderBioPage } from '../../templates/render'
 import communityThemes from '../../../themes/community.json'
 import { CommunityListSchema } from '../../shared/community'
-import { guideNames, openApi, workerNameOf } from '../lib/agent'
+import { guideNames, guideSite, openApi, workerNameOf } from '../lib/agent'
 import { guideTopic } from '../lib/agentTopics'
 import { accountUse, countsSince, insights, type Insights } from '../lib/analytics'
 import { D1_DAILY_LIMITS, D1_STORAGE, KV_DAILY_LIMITS } from '../../shared/usage'
@@ -97,6 +98,7 @@ import {
 } from '../lib/db'
 import { verifyDomain } from '../lib/domain'
 import { adminPassword, isTestSite } from '../lib/mode'
+import { siteId, sitesOf } from '../lib/sites'
 import {
 	createPage,
 	createSoloLinks,
@@ -312,6 +314,18 @@ function insightsJson(details: Insights | null, label: (target: string) => Label
 	return details && { ...details, recent: details.recent.map((event) => ({ ...event, ...label(event.target) })) }
 }
 
+/** The sites this Worker holds, for the dashboard to move between: none when this is the only one. */
+function siteList(c: Context<AppEnv>): SiteJson[] {
+	const sites = sitesOf(c.env)
+	if (sites.length < 2) return []
+	const current = siteId(c.env)
+	return sites.flatMap((site) => {
+		// A site is opened at the first hostname listed for it. This one is at least where the request came in.
+		const host = site.hosts[0] ?? (site.id === current ? new URL(c.req.url).hostname : '')
+		return host ? [{ id: site.id, host, current: site.id === current }] : []
+	})
+}
+
 const deny = (message: string | Message) => new ApiError(403, 'forbidden', message)
 
 /** Throws unless the caller signed in with the admin password (not a token). */
@@ -366,7 +380,7 @@ api.get('/openapi.json', (c) => c.json(openApi(new URL(c.req.url).origin), 200, 
 
 // The parts of the guide an agent reads when it needs them. Public, like /llms.txt.
 api.get('/guide/:topic', (c) => {
-	const text = guideTopic(c.req.param('topic'), guideNames(new URL(c.req.url).origin, workerNameOf(c.env)))
+	const text = guideTopic(c.req.param('topic'), guideNames(new URL(c.req.url).origin, workerNameOf(c.env), guideSite(c.env)))
 	if (!text) throw new ApiError(404, 'not-found', msg('找不到'))
 	return c.text(text, 200, { 'cache-control': 'public, max-age=300' })
 })
@@ -415,6 +429,7 @@ api.get('/state', async (c) => {
 		role: c.get('auth').role,
 		settings,
 		pages: await pageSummaries(db, settings),
+		sites: siteList(c),
 		analytics: Boolean((c.env as { ANALYTICS_SQL?: unknown }).ANALYTICS_SQL),
 		testSite: isTestSite(c.env),
 	}

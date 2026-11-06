@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
-import type { PageSummary, Role, StateResponse } from '../../shared/api'
+import type { PageSummary, Role, SiteJson, StateResponse } from '../../shared/api'
 import { pageDisplayUrl, type Settings } from '../../shared/content'
 import { request } from '../api'
 
@@ -17,6 +17,8 @@ interface AppStore {
 	settings: Settings
 	setSettings: (settings: Settings) => void
 	pages: PageSummary[]
+	/** The other sites this Worker holds, and this one: empty when it is the only one. Each has its own dashboard, at its own address. */
+	sites: SiteJson[]
 	/** Reloads the page list (names, counts, publish state). */
 	refresh: () => Promise<void>
 	/** Changes one page's line in the list to what the dashboard has just been told, with no request. */
@@ -94,6 +96,7 @@ export function AppProvider({ initial, children }: { initial: StateResponse; chi
 			settings: state.settings,
 			setSettings,
 			pages: state.pages,
+			sites: state.sites ?? [],
 			refresh,
 			patchPage,
 			currentId,

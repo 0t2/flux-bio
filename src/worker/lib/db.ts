@@ -13,6 +13,7 @@ import {
 } from '../../shared/content'
 import type { HostedFont } from '../../shared/fonts'
 import { parseHostedFonts } from './fonts'
+import { perSite, siteOfDb } from './sites'
 
 /**
  * The schema is created by the Worker on first use, so a fresh deploy needs
@@ -125,14 +126,20 @@ const MIGRATIONS: string[][] = [
 /** How many migrations a database has run once it is up to date. */
 export const SCHEMA_VERSION = MIGRATIONS.length
 
-let ready: Promise<void> | null = null
+/** One check per database in a copy of the Worker: each site has its own (lib/sites.ts). */
+const ready = perSite<Promise<void>>()
 
 export function ensureSchema(db: D1Database): Promise<void> {
-	ready ??= migrate(db).catch((error: unknown) => {
-		ready = null
-		throw error
-	})
-	return ready
+	const site = siteOfDb(db)
+	let checked = ready.get(site)
+	if (!checked) {
+		checked = migrate(db).catch((error: unknown) => {
+			ready.delete(site)
+			throw error
+		})
+		ready.set(site, checked)
+	}
+	return checked
 }
 
 /**
@@ -342,11 +349,14 @@ export interface PublicName {
 	endsAt: number | null
 }
 
-let publicNamesMemo: { names: PublicName[]; until: number } | null = null
+const publicNamesMemo = perSite<{ names: PublicName[]; until: number }>()
 
-/** Forgets the list below; every write that changes what's public calls this. Other copies of the Worker catch up within 5 minutes. */
+/**
+ * Forgets the list below; every write that changes what's public calls this. Other copies of the Worker catch up within
+ * 5 minutes. Every site's list goes, since a write doesn't say which it was for and the list is only there to save a read.
+ */
 export function forgetPublicNames(): void {
-	publicNamesMemo = null
+	publicNamesMemo.clear()
 }
 
 /**
@@ -355,7 +365,9 @@ export function forgetPublicNames(): void {
  * and no more than 20,000 of them: past that, a typo may just get no suggestion.
  */
 export async function publicNames(db: D1Database, now = Date.now()): Promise<PublicName[]> {
-	if (publicNamesMemo && publicNamesMemo.until > now) return publicNamesMemo.names
+	const site = siteOfDb(db)
+	const kept = publicNamesMemo.get(site)
+	if (kept && kept.until > now) return kept.names
 	const { results } = await db
 		.prepare(
 			`SELECT handle AS name, NULL AS startsAt, NULL AS endsAt FROM pages WHERE published IS NOT NULL AND handle IS NOT NULL
@@ -371,7 +383,7 @@ export async function publicNames(db: D1Database, now = Date.now()): Promise<Pub
 			LIMIT 20000`,
 		)
 		.all<PublicName>()
-	publicNamesMemo = { names: results, until: now + 5 * 60 * 1000 }
+	publicNamesMemo.set(site, { names: results, until: now + 5 * 60 * 1000 })
 	return results
 }
 
@@ -515,7 +527,7 @@ export async function loadThemes(db: D1Database): Promise<SavedTheme[]> {
 
 export const saveThemesStatement = (db: D1Database, themes: SavedTheme[]) => writeMetaStatement(db, 'themes', themes)
 
-let secret: Promise<string> | null = null
+const secrets = perSite<Promise<string>>()
 
 /**
  * A random secret for this deployment, made on first use and never shown or
@@ -524,7 +536,10 @@ let secret: Promise<string> | null = null
  * Wiping the data (clearAllData in backup.ts) keeps it.
  */
 export function deploymentSecret(db: D1Database): Promise<string> {
-	secret ??= (async () => {
+	const site = siteOfDb(db)
+	let secret = secrets.get(site)
+	if (secret) return secret
+	secret = (async () => {
 		// Asked for alongside the schema check, not after it. Only a database's very first request finds no table
 		// to ask: that one reads again below, once the table is made.
 		const [existing] = await Promise.all([readMeta(db, 'secret').catch(() => undefined), ensureSchema(db)])
@@ -534,9 +549,10 @@ export function deploymentSecret(db: D1Database): Promise<string> {
 		if (typeof stored !== 'string') throw new Error('Could not create the deployment secret')
 		return stored
 	})().catch((error: unknown) => {
-		secret = null
+		secrets.delete(site)
 		throw error
 	})
+	secrets.set(site, secret)
 	return secret
 }
 
