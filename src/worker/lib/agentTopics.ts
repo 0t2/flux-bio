@@ -18,7 +18,7 @@ export const GUIDE_TOPICS = [
 	{ id: 'test-site', title: 'Test site', covers: ['Test site'], when: 'Trying a change before it goes live: on the owner\'s computer, or on a second site' },
 	{ id: 'quota', title: 'How much free quota is left', covers: ['How much free quota is left'], when: 'Before anything that writes a lot, or when the owner asks about quota' },
 	{ id: 'move', title: 'Restore, or move to another FluxBio', covers: ['Restore, or move to another FluxBio'], when: 'Restoring a backup, or moving to another deployment' },
-	{ id: 'domain', title: 'Use a custom domain', covers: ['Use a custom domain'], when: 'Setting up or changing a custom domain' },
+	{ id: 'domain', title: 'Use a custom domain', covers: ['Use a custom domain', 'More sites'], when: 'Setting up or changing a custom domain, or adding a second site' },
 	{ id: 'short-links-only', title: 'Short links only', covers: ['Short links only'], when: 'Switching pages off or on, or a site with no pages' },
 	{ id: 'update', title: 'Update FluxBio', covers: ['Update FluxBio'], when: 'The owner asks for the latest version, or a problem they reported has been fixed' },
 	{ id: 'remove', title: 'Remove FluxBio', covers: ['Remove FluxBio'], when: 'The owner doesn\'t want FluxBio any more, or asks how to delete it all' },
@@ -26,7 +26,7 @@ export const GUIDE_TOPICS = [
 
 export type GuideTopicId = (typeof GUIDE_TOPICS)[number]['id']
 
-function bodies({ origin, host, worker, liveWorker }: GuideNames): Record<GuideTopicId, string> {
+function bodies({ origin, host, worker, liveWorker, otherSites }: GuideNames): Record<GuideTopicId, string> {
 	return {
 		'custom-page': `**Custom page.** A page doesn't have to be links. Set \`custom\` in its draft and publish as usual. Each page chooses for itself, and any of them can be the home page. The draft's links stay where they are, so taking \`custom\` away brings that page back, and its short links keep working all the while: say so if they expect those to stop.
 - **Their own HTML:** \`{ "kind": "html", "html": "<!doctype html>…" }\`, up to 250,000 characters. Nothing is added to it, so write a whole document with its own title, viewport and share preview tags. Themes, translations and the automatic share card don't apply.
@@ -69,7 +69,7 @@ The picture doesn't follow the page, so take a new one when the look or the top 
 **QR code pictures.** A link's \`qr.logo\` of \`default\`, which is what a link with no saved style has, shows its page's picture, else the site's, else nothing. Upload with \`POST /api/media\`, then set a page's with \`PATCH /api/pages/{id}\` and \`qrLogo\`, or the site's with \`qrLogo\` in \`PUT /api/settings\`. Every code following it changes in the dashboard and in new downloads, but printed ones and files already saved don't, so say that. Codes with their own picture, or set to none, don't follow it.`,
 		update: `**Update FluxBio.** When the owner asks, or a problem they reported has been fixed. Their pages, links and stats are on Cloudflare, and updating leaves them alone. The code is in their FluxBio folder (\`$FLUXBIO_DIR\`).
 1. Back up (see "Back up"). If the site has visitors, ask whether to try it on a test site first (see "Test site").
-2. If the folder has \`.git\`, run \`git pull\`. If not, download the new code next to it and swap the folders: \`mkdir ../flux-bio.new && curl -fsSL https://github.com/0t2/flux-bio/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 -C ../flux-bio.new\`, copy over any \`.secrets*\` files and \`.dev.vars\`, and move the old folder aside until it works. If the old \`cloudflare.config.ts\` has another \`WORKER_NAME\`, set the same one.
+2. If the folder has \`.git\`, run \`git pull\`. If not, download the new code next to it and swap the folders: \`mkdir ../flux-bio.new && curl -fsSL https://github.com/0t2/flux-bio/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 -C ../flux-bio.new\`, copy over any \`.secrets*\` files, \`.dev.vars\` and \`sites.json\` (without it, the other sites this Worker holds go offline: see "More sites"), and move the old folder aside until it works. If the old \`cloudflare.config.ts\` has another \`WORKER_NAME\`, set the same one.
 3. Run \`pnpm install\`, then \`pnpm deploy:images --site ${origin}\`, which deploys and keeps the pictures as static files (see "How much free quota is left"); \`pnpm run deploy\` would put them back on the quota.
 4. Check that the site answers, read \`/llms.txt\` again, and save the new guide over the old skill: \`curl -fsSL ${origin}/skill.md -o ~/.claude/skills/fluxbio/SKILL.md\`.
 5. Say in a line what changed. Then delete the old folder.`,
@@ -174,7 +174,29 @@ What fonts cost with \`hostFonts\` on, on the free Cloudflare plan (per day, sha
 - Translated: the name, bio, share preview title and description, link titles and subtitles, headings, video, gallery and product titles, image descriptions, product names and prices, and the title and note of opening hours. Addresses, phone numbers, URLs and slugs stay as written, and the share image stays one picture.
 - Keep the owner's tone and keep it short, since titles sit on buttons. Leave brand names and the owner's name as they are, unless the owner says otherwise, and still list them, with the same text, so they stop showing as untranslated. A price stays a price: convert a currency only if the owner asks.
 - Visitors get the language their browser prefers, and anything untranslated in the original. \`?lang=<code>\` on a page address shows one language; search engines find it through the sitemap once every text on the page has a translation.`,
-		domain: `**Use a custom domain.** The domain has to reach this Worker before FluxBio can use it, and only the owner can do that part, in Cloudflare: the domain must be on their Cloudflare account, then Workers & Pages → ${worker} → Settings → Domains & Routes → Add → Custom domain. Walk them through it step by step. Then \`POST /api/settings/verify-domain\` with \`{ "domain": "links.example.com" }\`: if \`ok\` is false, show its \`message\` and try again in a few minutes (DNS takes time). When it passes, \`PUT /api/settings\` with the new \`domain\`.`,
+		domain: `**Use a custom domain.** The domain has to reach this Worker before FluxBio can use it, and only the owner can do that part, in Cloudflare: the domain must be on their Cloudflare account, then Workers & Pages → ${worker} → Settings → Domains & Routes → Add → Custom domain. Walk them through it step by step. Then \`POST /api/settings/verify-domain\` with \`{ "domain": "links.example.com" }\`: if \`ok\` is false, show its \`message\` and try again in a few minutes (DNS takes time). When it passes, \`PUT /api/settings\` with the new \`domain\`.
+
+**More sites.** One Worker can hold more than one site. Each has its own pages, short links, stats, settings and API tokens, in a database and a KV namespace of its own, and is reached through its own domain. They share the code, the dashboard and the admin password, and nothing else: a name can be a page at one site and a short link at another, and the dashboard's menu at the top left moves between them. \`sites\` in \`GET /api/state\` lists them, with \`current\` on the one you asked; it is empty when there is only one. ${otherSites.length ? `Here, beside ${host}: ${otherSites.join(', ')}.` : `${host} is the only site here now.`}
+
+It is for a second domain that should be a site of its own: say a shortener at one domain beside pages at another. A second address for the same site needs none of this: see "Use a custom domain".
+
+Tell the owner, in plain words, before you add one:
+- It takes one more D1 database, of the 10 a free account may have, and every site shares the account's daily quota (see "How much free quota is left").
+- All the sites have the same password. Each has its own tokens.
+- Each needs a domain of its own on their Cloudflare account. The \`workers.dev\` address only ever reaches the first site, which is called \`main\`.
+
+To add one, on a computer that can deploy, in their FluxBio folder (\`$FLUXBIO_DIR\`):
+1. Back up (see "Back up").
+2. List the sites in \`sites.json\` in that folder: \`{ "main": ["${host}"], "<id>": ["<the new domain>"] }\`. An id is lowercase letters, digits and hyphens, and goes into the name of its database: keep it short, like \`link\`. Keep every site already listed. A deploy binds exactly what this file lists, so a site left out goes offline and its domain shows the main site instead.
+3. Deploy: \`pnpm exec cf deploy\`, or \`pnpm deploy:images --site ${origin}\` to keep the pictures as static files. Cloudflare makes the new database and namespace.
+4. Have the owner add the domain to the Worker in Cloudflare, as in "Use a custom domain".
+5. Check it with the admin password: \`GET https://<the new domain>/api/auth/me\` answers \`{"ok":true,"role":"admin"}\`, and \`GET https://<the new domain>/api/state\` lists both sites.
+6. Set it up like any new site, through its own address: a first page, or only short links (see "Short links only"), where \`bio: false\` with \`homeUrl\` set to the other site's address sends its home page there.
+7. It has its own guide at \`https://<the new domain>/llms.txt\`, which says which variable its token goes in, and \`/skill.md\` there is a skill under a name of its own, to save beside this one. Make its token there (\`POST /api/tokens\`): one made at ${host} opens nothing at another site.
+
+Updating FluxBio updates every site at once. When the folder is replaced, \`sites.json\` has to come along (see "Update FluxBio").
+
+To take a site out, never delete its database yourself. Back it up through its own address, remove it from \`sites.json\` and deploy, which only unbinds it, and leave deleting the database and the namespace to the owner (see "Remove FluxBio").`,
 	}
 }
 

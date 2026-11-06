@@ -6,6 +6,7 @@ import { OPERATIONS } from './openapi'
 import { GUIDE_TOPICS } from './agentTopics'
 import { VERSION } from './version'
 import { ENGLISH } from '../../shared/serverWords'
+import { bindingSuffix, MAIN_SITE, siteId, sitesOf } from './sites'
 
 // FluxBio is meant to be run by an AI agent on the owner's behalf. This file
 // describes the API to agents in three forms, all served without sign-in:
@@ -56,13 +57,40 @@ export interface GuideNames {
 	host: string
 	worker: string
 	liveWorker: string
+	/** The environment variable this site's token is kept in: each site a Worker holds has its own (lib/sites.ts). */
+	tokenVar: string
+	/** The name this site's guide goes by as an Agent Skill. */
+	skill: string
+	/** The hostnames of the other sites this Worker holds; none for a Worker with one site. */
+	otherSites: string[]
 }
 
-export function guideNames(origin: string, workerName?: string): GuideNames {
+/** Which of a Worker's sites a guide is for, and where the others are. */
+export interface GuideSite {
+	id: string
+	others: string[]
+}
+
+/** The site this request reached, among those the Worker holds. */
+export function guideSite(env: Env): GuideSite {
+	const id = siteId(env)
+	return { id, others: sitesOf(env).flatMap((site) => (site.id !== id && site.hosts[0] ? [site.hosts[0]] : [])) }
+}
+
+export function guideNames(origin: string, workerName?: string, site: GuideSite = { id: MAIN_SITE, others: [] }): GuideNames {
 	// The WORKER_NAME binding; without it, ask rather than guess: a wrong name would change another deployment's password.
 	const worker = workerName || '<the Worker name: WORKER_NAME in cloudflare.config.ts>'
-	// Asked of a test site's own guide, the name already ends in -staging.
-	return { origin, host: new URL(origin).host, worker, liveWorker: worker.replace(/-staging$/, '') }
+	const main = site.id === MAIN_SITE
+	return {
+		origin,
+		host: new URL(origin).host,
+		worker,
+		// Asked of a test site's own guide, the name already ends in -staging.
+		liveWorker: worker.replace(/-staging$/, ''),
+		tokenVar: main ? 'FLUXBIO_TOKEN' : `FLUXBIO_TOKEN_${bindingSuffix(site.id)}`,
+		skill: main ? 'fluxbio' : `fluxbio-${site.id}`,
+		otherSites: site.others,
+	}
 }
 
 /** The WORKER_NAME binding, if this deployment has one. */
@@ -77,9 +105,10 @@ function topicTable(): string {
 }
 
 /** The main guide for AI agents, as Markdown. */
-export function agentGuide(origin: string, workerName?: string, testSite = false): string {
+export function agentGuide(origin: string, workerName?: string, testSite = false, site?: GuideSite): string {
 	const thisComputer = origin.startsWith('http://localhost') ? '> This FluxBio is running on the owner\'s own computer, not on Cloudflare: read "Trying it out".\n' : ''
-	const { host, worker } = guideNames(origin, workerName)
+	// Which other sites the Worker holds is in GET /api/state and in the "More sites" part: this part has no room to spare.
+	const { host, worker, tokenVar } = guideNames(origin, workerName, site)
 	const thisTestSite = testSite
 		? `\n**This deployment is the owner's test site, not their live site.** Nothing here reaches visitors of the live site, and search engines are kept away. See "Test site".\n`
 		: ''
@@ -95,7 +124,7 @@ ${thisTestSite}${thisComputer}
 
 Send \`Authorization: Bearer <token>\` with every request to \`/api/*\`. The owner makes tokens in the dashboard under Settings → API token.
 
-1. Look for the token in the \`FLUXBIO_TOKEN\` environment variable. If it isn't there, ask the owner to paste it.
+1. Look for the token in the \`${tokenVar}\` environment variable. If it isn't there, ask the owner to paste it.
 2. Check it with \`GET /api/auth/me\`, then read \`GET /api/state\`.
    If the request can't reach this site because a sandbox or proxy blocks it, ask the owner to allow ${host} in your tool's network settings. Don't look for a way around the block.
 3. If \`version\` in the state is not ${VERSION}, read ${origin}/llms.txt again: it always matches the running version.
@@ -235,8 +264,8 @@ Errors are JSON: \`{ "error": "<code>", "message": "<English text>", "problems"?
 }
 
 /** The guide as an Agent Skill (SKILL.md). */
-export function agentSkill(origin: string, workerName?: string, testSite = false): string {
-	const host = new URL(origin).host
+export function agentSkill(origin: string, workerName?: string, testSite = false, site?: GuideSite): string {
+	const { host, skill } = guideNames(origin, workerName, site)
 	const description = `Manage the FluxBio Link-in-bio site at ${host} through its API: edit and publish pages, make short links, read click stats, change settings. Use when the owner asks about their bio page, short links, QR codes or stats on ${host}.`
-	return `---\nname: fluxbio\ndescription: ${JSON.stringify(description)}\n---\n\n${agentGuide(origin, workerName, testSite)}`
+	return `---\nname: ${skill}\ndescription: ${JSON.stringify(description)}\n---\n\n${agentGuide(origin, workerName, testSite, site)}`
 }

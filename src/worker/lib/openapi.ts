@@ -68,7 +68,7 @@ export const OPERATIONS: Operation[] = [
 		id: 'getState',
 		tag: 'Account',
 		summary: 'Everything at a glance',
-		description: 'Version, public origin, settings (home page, time zone, locale, domain, whether pages are on), every page with its link count and 7-day clicks, limits, and testSite: whether this is the owner\'s test site rather than their live one. Start here.',
+		description: 'Version, public origin, settings (home page, time zone, locale, domain, whether pages are on), every page with its link count and 7-day clicks, limits, testSite (the owner\'s test site, not their live one) and sites (the others this Worker holds). Start here.',
 	},
 	{ method: 'get', path: '/api/pages', id: 'listPages', tag: 'Pages', summary: 'List pages' },
 	{ method: 'post', path: '/api/pages', id: 'createPage', tag: 'Pages', summary: 'Create a page', description: 'The first page becomes the home page at "/".', body: NewPageInput },

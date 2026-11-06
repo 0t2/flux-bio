@@ -73,6 +73,7 @@ export function Shell({ children }: { children: ReactNode }) {
 						<Icon name="sidebar" />
 					</button>
 				</div>
+				{!page && <SiteSwitcher />}
 				{page && (
 					<>
 						<PageSwitcher />
@@ -190,6 +191,70 @@ function PublishButton() {
 	)
 }
 
+/** Where another site's dashboard is: this address with that site's hostname, so a port or http in local development stays. */
+function dashboardAt(host: string): string {
+	const url = new URL('/admin/', window.location.href)
+	url.hostname = host
+	return url.href
+}
+
+/**
+ * The sites this Worker holds, when there are several (sites.json). Each is a site of its own, with its own pages,
+ * short links and numbers, so choosing one opens its dashboard at its own address.
+ */
+function SiteList() {
+	const app = useApp()
+	if (app.sites.length < 2) return null
+	return (
+		<div className="switcher-sites">
+			<p className="switcher-heading">{t('站台')}</p>
+			<ul className="switcher-list">
+				{app.sites.map((site) => (
+					<li key={site.id}>
+						<a className="switcher-item" href={site.current ? undefined : dashboardAt(site.host)} aria-current={site.current ? 'true' : undefined}>
+							<span className="switcher-avatar" aria-hidden="true">
+								<Icon name="globe" size={18} />
+							</span>
+							<span className="switcher-text">
+								<strong dir="ltr">{site.host}</strong>
+							</span>
+							{site.current && <span className="tag">{t('正在編輯')}</span>}
+						</a>
+					</li>
+				))}
+			</ul>
+		</div>
+	)
+}
+
+/** With pages off there is no page to switch, so the sites get a button of their own. Nothing with a single site. */
+function SiteSwitcher() {
+	const app = useApp()
+	const here = app.sites.find((site) => site.current)
+	if (app.sites.length < 2 || !here) return null
+	const label = t('切換站台，目前是 {host}', { host: here.host })
+	return (
+		<Popover
+			label={label}
+			button={({ open, toggle, id }) => (
+				<div className="url-pill">
+					<span className="dot" aria-hidden="true" />
+					<button type="button" className="switch-btn" aria-expanded={open} aria-controls={id} aria-label={label} onClick={toggle}>
+						<span className="switch-url">{here.host}</span>
+						<Icon name="chevronDown" size={16} style={{ transform: open ? 'rotate(180deg)' : undefined }} />
+					</button>
+				</div>
+			)}
+		>
+			{() => (
+				<div className="switcher">
+					<SiteList />
+				</div>
+			)}
+		</Popover>
+	)
+}
+
 function PageSwitcher() {
 	const app = useApp()
 	const page = usePage()
@@ -217,6 +282,8 @@ function PageSwitcher() {
 		>
 			{(close) => (
 				<div className="switcher">
+					<SiteList />
+					{app.sites.length > 1 && <p className="switcher-heading">{t('頁面')}</p>}
 					<ul className="switcher-list">
 						{app.pages.map((entry) => (
 							<li key={entry.id}>

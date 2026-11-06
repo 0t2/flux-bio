@@ -24,6 +24,10 @@ Names from the dashboard in this file are its Traditional Chinese labels, such a
 
 There is one owner per deployment. There are no sign-ups.
 
+One Worker can hold more than one site, each at its own domain with its own pages, short links, stats and settings: say
+pages at one domain and a link shortener at another. They share the code, the dashboard and the password, and nothing
+else (1.8, "More sites").
+
 An owner can also use FluxBio purely as a link shortener, by switching bio pages off (`bio` in the
 settings: the first question in the setup wizard, a switch on 設定, or the API). Public pages then go
 offline and `/` redirects to `homeUrl` or says the address is for short links. Short links and stats
@@ -246,13 +250,36 @@ pnpm exec cf workers secrets update ADMIN_PASSWORD --worker flux-bio --type secr
 Then check it with `POST /api/settings/verify-domain` and save it with `PUT /api/settings` (or ask
 the owner's AI to). Once saved, short links, QR codes and the API's `short` field use the domain.
 
+**More sites.** A second domain that should be a site of its own, not another address for the same one, is a second site
+in the same Worker. List the sites in `sites.json` in the FluxBio folder, an id and then the hostnames that reach it, and deploy:
+
+```json
+{ "main": ["example.bio"], "link": ["example.link"] }
+```
+
+`main` is the site every Worker has. Each other one gets a D1 database (`<worker>-<id>`), a KV namespace and a stats dataset
+of its own, which the deploy creates, and the owner adds its domain to the Worker as for any custom domain. Then it is set
+up through its own address like a new site: `https://example.link/admin/`, with the same password. For a shortener whose
+home page goes to the other site, switch its pages off (`bio: false`) and set `homeUrl`. The dashboard's menu at the top left
+lists the sites and opens each one's dashboard; a sign-in is for one site, so each asks for the password once.
+
+- Say first what it takes: one more D1 database of the 10 a free account may have, the same daily quota shared by all of
+  them, and a domain for each, since the `workers.dev` address only reaches `main`.
+- `sites.json` isn't in git or in the download, so that updating FluxBio leaves it alone, and it has to travel with the
+  folder. A deploy binds exactly what it lists: without it the other sites go offline and their domains show `main`.
+  In CI, where there is no file, the same JSON goes in the `FLUXBIO_SITES` variable.
+- An API token is for the site that made it, and each site has its own guide at its own `/llms.txt`.
+- Taking a site out of the file and deploying only unbinds it. Its database and namespace stay until the owner deletes them.
+- A test site (`--mode staging`) is always one site.
+
 **Pictures as static files.** Each picture a visitor's browser doesn't have yet costs a Worker request and a KV read, and
 on a page with several they are most of what a view costs. `pnpm deploy:images --site https://<site>` downloads the pictures
 the site's pages use into `public/media/` (gitignored) and deploys with them as static files: Cloudflare answers those
 without running the Worker, free and unlimited, at the same `/media/<id>`, with the headers in `public/_headers`. A picture
 uploaded since then is served from KV as before, until the next run, and a picture no page uses any more is left out.
 It needs a full token in `FLUXBIO_TOKEN` or the admin password in `.secrets.env`, and the owner's computer: the dashboard
-can't deploy. So offer it, in plain words, when the owner adds pictures or asks about quota, and after new uploads. A deploy
+can't deploy. With several sites it reads each one, since they all ship from the one folder: the others with the password or
+a token in `FLUXBIO_TOKEN_<ID>`, and one it can't read keeps the files it has. So offer it, in plain words, when the owner adds pictures or asks about quota, and after new uploads. A deploy
 without it (`pnpm run deploy`) ships whatever `public/media/` holds, nothing on a fresh checkout, and the pictures go back
 to costing quota without anything breaking. With `--mode staging` it reads and deploys the test site.
 
@@ -408,6 +435,7 @@ own FluxBio is deployed from their computer (section 1). Only in the project's o
 ```
 cloudflare.config.ts    Worker name, bindings (DB, KV, ASSETS, ANALYTICS…), secrets, test site
 pnpm-workspace.yaml     pnpm's settings: the two packages that may run a script when installed
+sites.json              the other sites this Worker holds, by hostname: the owner's, not in git (1.8, "More sites")
 src/worker/             Hono app
   index.ts              routes and error handling
   routes/site.ts        public pages, redirects and smart routing, block clicks (/_c), draft preview links (/_draft), system pages, media
@@ -418,6 +446,7 @@ src/worker/             Hono app
   lib/agentTopics.ts    /api/guide/<topic>: the parts of the guide read only when needed
   lib/db.ts             D1 schema (runtime migrations) and queries
   lib/cache.ts          KV keys: name:<handle or slug>, site, media:<id>, font:<file>
+  lib/sites.ts          more than one site in a Worker: which database and KV a request's hostname gets
   lib/fonts.ts          copies a page's fonts from Google Fonts to KV when it is published (served at /_fonts/)
   lib/ops.ts            pages, publish, settings, short links (they keep D1 and KV in sync)
   lib/stats.ts          counting views and clicks, D1 stats queries
@@ -500,6 +529,14 @@ tests/                  Vitest tests (run in workerd)
   - *Never store anything that identifies a person.* That means no IP address, no user-agent string
     and no precise coordinates: Cloudflare's estimate of where the IP is (a city's position, not
     GPS) is rounded to 0.1°, about a town. `tests/analytics.test.ts` checks this; keep it passing. Cloudflare's per-request Workers Logs would record request headers, so they stay off (`invocationLogs: false`), and only `console.error` is logged.
+- **A request is for one site, settled before any route runs.** With `sites.json`, `siteEnv` (`lib/sites.ts`) gives a
+  request the `env` of the site its hostname names: `DB`, `KV` and `ANALYTICS` are then that site's (`DB_LINK`, `KV_LINK`
+  and `ANALYTICS_LINK` for a site called `link`), and every hostname no site lists is `main`'s. So no route knows there are
+  several, and code that reads `env.DB` is right for all of them. What a copy of the Worker remembers between requests is
+  kept per site (`perSite`): the schema check, the secret, the "site" record, the time zone. Keep new module-level state
+  that way. A hostname whose site has no database answers 503 and never another site's data. `tests/sites.test.ts` holds
+  two sites apart: names, numbers, time zones, KV reads, tokens and sign-ins. To try it on a computer, list hostnames that
+  end in `.localhost`, which reach `pnpm dev` as they are.
 - **A page can be something other than links.** `custom` in its content makes it the owner's own HTML or a redirect (`CustomPageSchema`). Everything else about a page still applies: the draft, publishing, versions, backups, stats, being the home page. Its HTML is sent with a CSP `sandbox` and no `allow-same-origin` (`CUSTOM_CSP`), because it shares an address with the dashboard: without that, a script in it could use the owner's session. Keep that header on every route that serves it.
 - **Public pages are plain HTML.** Apart from custom pages, `renderBioPage()` builds them with no JavaScript but `TAP_SCRIPT`, which the CSP allows by its hash and a page with nothing to report leaves out, and the
   dashboard preview renders the same function in an iframe sandboxed without scripts, and updates it in place (`lib/morph.ts`) so an edit doesn't reload it. Videos and maps sit in

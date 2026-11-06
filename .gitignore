@@ -29,3 +29,6 @@ skills-lock.json
 
 # tasteskill working files
 .taste-skill/
+
+# The other sites this Worker holds, by hostname (cloudflare.config.ts): the owner's, never committed
+sites.json

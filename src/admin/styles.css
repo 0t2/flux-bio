@@ -1689,6 +1689,22 @@ button.table-row[aria-pressed='true'] {
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
+/* The sites a Worker holds, above the pages of the one being edited: a line between the two, and none under the sites alone. */
+.switcher-sites:not(:last-child) {
+	padding-bottom: 6px;
+	margin-bottom: 6px;
+	border-bottom: 1px solid var(--line);
+}
+.switcher-heading {
+	margin: 0;
+	padding: 6px 10px 4px;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--muted);
+}
+a.switcher-item {
+	text-decoration: none;
+}
 .switcher-actions {
 	display: flex;
 	flex-wrap: wrap;

@@ -58,6 +58,7 @@ import {
 } from './db'
 import { FONT_PAGES_AT_ONCE, KV_OPS_AT_ONCE, VERSIONS_KEPT } from './mode'
 import { hashLinkPassword } from './password'
+import { perSite, siteId } from './sites'
 
 function blankLink(now: number): Omit<LinkRow, 'id' | 'slug' | 'url' | 'title' | 'kind' | 'pageId'> {
 	return {
@@ -195,7 +196,7 @@ export async function writeSite(env: Env, settings: Settings, pages?: PageRow[])
 }
 
 function storeSite(env: Env, site: SiteRecord): Promise<void> {
-	rememberSite(site)
+	rememberSite(env, site)
 	return putSite(env, site)
 }
 
@@ -240,7 +241,7 @@ export async function siteFromDb(env: Env): Promise<SiteRecord> {
 export async function findSite(env: Env): Promise<SiteRecord> {
 	const site = await getSite(env)
 	if (!site) return siteFromDb(env)
-	rememberSite(site)
+	rememberSite(env, site)
 	return site
 }
 
@@ -248,20 +249,22 @@ export async function findSite(env: Env): Promise<SiteRecord> {
 const SYSTEM_PAGE_MEMO = 60 * 1000
 const TIME_ZONE_MEMO = 5 * 60 * 1000
 
-let siteMemo: { site: SiteRecord; at: number } | null = null
-let timeZoneMemo: { timeZone: string; at: number } | null = null
+// Each site this Worker holds has its own record and its own time zone (lib/sites.ts).
+const siteMemos = perSite<{ site: SiteRecord; at: number }>()
+const timeZoneMemos = perSite<{ timeZone: string; at: number }>()
 
-function rememberSite(site: SiteRecord): void {
+function rememberSite(env: Env, site: SiteRecord): void {
 	// Never the home page's copy: "/" always reads the record itself.
 	const { page: _page, ...rest } = site
-	siteMemo = { site: rest, at: Date.now() }
-	timeZoneMemo = { timeZone: site.timezone, at: siteMemo.at }
+	const at = Date.now()
+	siteMemos.set(siteId(env), { site: rest, at })
+	timeZoneMemos.set(siteId(env), { timeZone: site.timezone, at })
 }
 
 /** After a wipe: nothing this copy of the Worker remembers is true any more. */
 export function forgetSite(): void {
-	siteMemo = null
-	timeZoneMemo = null
+	siteMemos.clear()
+	timeZoneMemos.clear()
 }
 
 /**
@@ -270,10 +273,11 @@ export function forgetSite(): void {
  * the home page's copy, and null when KV has no record yet: a system page then wears the default look.
  */
 export async function systemSite(env: Env): Promise<SiteRecord | null> {
-	if (siteMemo && Date.now() - siteMemo.at < SYSTEM_PAGE_MEMO) return siteMemo.site
+	const kept = siteMemos.get(siteId(env))
+	if (kept && Date.now() - kept.at < SYSTEM_PAGE_MEMO) return kept.site
 	const site = await getSite(env)
-	if (site) rememberSite(site)
-	return site ? (siteMemo?.site ?? site) : null
+	if (site) rememberSite(env, site)
+	return site ? (siteMemos.get(siteId(env))?.site ?? site) : null
 }
 
 /**
@@ -283,14 +287,15 @@ export async function systemSite(env: Env): Promise<SiteRecord | null> {
  * change knows at once; the others catch up within 5 minutes.
  */
 export async function siteTimeZone(env: Env): Promise<string> {
-	if (timeZoneMemo && Date.now() - timeZoneMemo.at < TIME_ZONE_MEMO) return timeZoneMemo.timeZone
+	const kept = timeZoneMemos.get(siteId(env))
+	if (kept && Date.now() - kept.at < TIME_ZONE_MEMO) return kept.timeZone
 	try {
 		// A page with opening hours waits for this before it is drawn, so the settings are asked for alongside
 		// the schema check, not after it: one trip to D1 in a new copy of the Worker, where it was three. Only a
 		// database with no tables yet has nothing to ask, and that one is asked again once they are made.
 		const [early] = await Promise.all([loadSettings(env.DB).catch(() => null), ensureSchema(env.DB)])
 		const { timezone } = early ?? (await loadSettings(env.DB))
-		timeZoneMemo = { timeZone: timezone, at: Date.now() }
+		timeZoneMemos.set(siteId(env), { timeZone: timezone, at: Date.now() })
 		return timezone
 	} catch (error) {
 		// Visitors are served from KV alone: D1 not answering mustn't take a page down with it.

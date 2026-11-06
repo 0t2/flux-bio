@@ -24,7 +24,7 @@ import { detectOs, detectSource, sourceFromUserAgent } from '../../shared/source
 import { translatedLocales } from '../../shared/translations'
 import { renderBioPage, TAP_SCRIPT_HASH, visibleItems } from '../../templates/render'
 import { renderSystemPage, type SystemPageKind, type SystemPageOptions } from '../../templates/system'
-import { agentGuide, agentSkill, workerNameOf } from '../lib/agent'
+import { agentGuide, agentSkill, guideSite, workerNameOf } from '../lib/agent'
 import { getLinkRecord, getNamed, getSnapshot, mediaKey, type LinkRecord, type SiteRecord, type Snapshot } from '../lib/cache'
 import { readPreviewToken, sessionKeyOf } from '../lib/auth'
 import { ensureSchema, getPage, listPublished, loadSettings, publicNames } from '../lib/db'
@@ -101,9 +101,9 @@ site.get('/_fluxbio/ping', async (c) => {
 })
 
 // Guides for AI agents (see lib/agent.ts). Slugs can't contain dots, so these never shadow a link.
-site.get('/llms.txt', (c) => c.text(agentGuide(new URL(c.req.url).origin, workerNameOf(c.env), isTestSite(c.env)), 200, { 'cache-control': 'public, max-age=300' }))
+site.get('/llms.txt', (c) => c.text(agentGuide(new URL(c.req.url).origin, workerNameOf(c.env), isTestSite(c.env), guideSite(c.env)), 200, { 'cache-control': 'public, max-age=300' }))
 site.get('/skill.md', (c) =>
-	c.body(agentSkill(new URL(c.req.url).origin, workerNameOf(c.env), isTestSite(c.env)), 200, {
+	c.body(agentSkill(new URL(c.req.url).origin, workerNameOf(c.env), isTestSite(c.env), guideSite(c.env)), 200, {
 		'content-type': 'text/markdown; charset=utf-8',
 		'cache-control': 'public, max-age=300',
 	}),

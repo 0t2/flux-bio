@@ -116,12 +116,23 @@ export interface StatsExportResponse {
 }
 
 /** GET /api/state */
+/** One of the sites a Worker holds, when it holds more than one (`sites.json`). Each has its own pages, short links, stats and settings. */
+export interface SiteJson {
+	id: string
+	/** The hostname its dashboard is opened at: the first one listed for it. */
+	host: string
+	/** The site this request reached. */
+	current: boolean
+}
+
 export interface StateResponse {
 	version: string
 	origin: string
 	role: Role
 	settings: Settings
 	pages: PageSummary[]
+	/** The sites this Worker holds, this one among them. Empty when it is the only one, which is the usual case. */
+	sites: SiteJson[]
 	/** Analytics Engine is reachable (it isn't in local development). */
 	analytics: boolean
 	/** This is the owner's test site, deployed with `--mode staging`, not their live site. */
