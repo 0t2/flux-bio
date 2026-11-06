@@ -70,7 +70,7 @@
 	"s082": "Parameter UTM",
 	"s083": "Kedaluwarsa & jadwal",
 	"s084": "Perlindungan kata sandi",
-	"s085": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Ikuti AGENTS.md di https://github.com/<wbr>0t2/flux-bio dan bantu aku mencoba FluxBio.</span>",
+	"s085": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Bantu aku mencoba FluxBio. Jalankan ini dulu untuk mengunduhnya ke komputer ini:</span>",
 	"s087": "Langsung ke konten utama",
 	"s089": "Dasbor",
 	"s090": "Tema",
@@ -162,5 +162,6 @@
 	"s198": "Membuat tiga tautan pendek",
 	"s199": "Menandai sumber",
 	"s200": "Membaca klik",
-	"s201": "Membuat grafik"
+	"s201": "Membuat grafik",
+	"s202": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Lalu baca seluruh <bdi>~/flux-bio/AGENTS.md</bdi> dan ikuti bagian 1-nya. Baca dari folder itu, bukan dari web. Kalau unduhannya gagal, berhenti dan beri tahu aku.</span>"
 }

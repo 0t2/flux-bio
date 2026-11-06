@@ -103,7 +103,11 @@ AI จะติดตั้งเครื่องมือที่ต้อ�
 วางให้ AI ของคุณ เราแนะนำ [Claude Code](https://code.claude.com/docs/en/quickstart) บนคอมพิวเตอร์ของคุณเอง แต่ Codex, OpenCode, Cursor และตัวอื่นที่รันคำสั่งและต่ออินเทอร์เน็ตได้ก็ใช้ได้:
 
 ```text
-ช่วยให้ฉันลองใช้ FluxBio ตาม AGENTS.md ใน https://github.com/0t2/flux-bio
+ช่วยให้ฉันลองใช้ FluxBio ก่อนอื่นให้รันคำสั่งนี้เพื่อดาวน์โหลดมาไว้ในคอมพิวเตอร์เครื่องนี้:
+
+mkdir -p ~/flux-bio && curl -fsSL https://github.com/0t2/flux-bio/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 -C ~/flux-bio
+
+จากนั้นอ่าน ~/flux-bio/AGENTS.md ให้จบทั้งไฟล์ แล้วทำตามหัวข้อที่ 1 ให้อ่านจากไฟล์ในโฟลเดอร์นั้น ไม่ใช่จากเว็บ ถ้าดาวน์โหลดไม่สำเร็จ ให้หยุดแล้วบอกฉัน
 ใช้ภาษาไทย (th) เป็นภาษาของหน้า
 ```
 

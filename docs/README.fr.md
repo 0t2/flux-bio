@@ -103,7 +103,11 @@ Votre IA installe les outils dont elle a besoin. Pour essayer, il vous suffit de
 Collez ceci dans votre IA. Nous recommandons [Claude Code](https://code.claude.com/docs/en/quickstart) sur votre propre ordinateur, mais Codex, OpenCode, Cursor et les autres outils capables d’exécuter des commandes avec un accès à Internet conviennent aussi :
 
 ```text
-Suivez le fichier AGENTS.md de https://github.com/0t2/flux-bio pour m’aider à essayer FluxBio.
+Aidez-moi à essayer FluxBio. Exécutez d’abord ceci pour le télécharger sur cet ordinateur :
+
+mkdir -p ~/flux-bio && curl -fsSL https://github.com/0t2/flux-bio/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 -C ~/flux-bio
+
+Lisez ensuite ~/flux-bio/AGENTS.md en entier et suivez sa section 1. Lisez-le depuis ce dossier, pas sur le Web. Si le téléchargement échoue, arrêtez-vous et dites-le-moi.
 Utilisez le français (fr) comme langue de la page.
 ```
 

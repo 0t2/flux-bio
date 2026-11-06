@@ -70,7 +70,7 @@
 	"s082": "UTM 파라미터",
 	"s083": "만료와 예약",
 	"s084": "비밀번호 보호",
-	"s085": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>https://github.com/<wbr>0t2/flux-bio 저장소의 AGENTS.md를 따라 FluxBio를 써 보게 도와주세요.</span>",
+	"s085": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>FluxBio를 써 보게 도와주세요. 먼저 이 명령을 실행해서 이 컴퓨터에 내려받아 주세요:</span>",
 	"s087": "본문으로 건너뛰기",
 	"s089": "관리자 페이지",
 	"s090": "테마",
@@ -162,5 +162,6 @@
 	"s198": "단축 링크 3개 만들기",
 	"s199": "유입 경로 표시",
 	"s200": "클릭 수 읽기",
-	"s201": "차트로 정리"
+	"s201": "차트로 정리",
+	"s202": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>그다음 <bdi>~/flux-bio/AGENTS.md</bdi>를 끝까지 읽고 1절을 따라 주세요. 웹에서 읽지 말고 그 폴더에 있는 파일을 읽어 주세요. 내려받기에 실패하면 멈추고 알려 주세요.</span>"
 }

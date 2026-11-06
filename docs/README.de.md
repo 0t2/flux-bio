@@ -103,7 +103,11 @@ Deine KI installiert die nötigen Werkzeuge selbst. Zum Ausprobieren brauchst du
 Füge das in deine KI ein. Wir empfehlen [Claude Code](https://code.claude.com/docs/en/quickstart) auf deinem eigenen Rechner, aber auch Codex, OpenCode, Cursor und andere, die Befehle ausführen können und Internetzugang haben, funktionieren:
 
 ```text
-Hilf mir, FluxBio auszuprobieren, wie in der AGENTS.md unter https://github.com/0t2/flux-bio beschrieben.
+Hilf mir, FluxBio auszuprobieren. Führe zuerst diesen Befehl aus, um es auf diesen Rechner herunterzuladen:
+
+mkdir -p ~/flux-bio && curl -fsSL https://github.com/0t2/flux-bio/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 -C ~/flux-bio
+
+Lies danach die ganze Datei ~/flux-bio/AGENTS.md und folge ihrem Abschnitt 1. Lies sie aus diesem Ordner, nicht aus dem Web. Wenn der Download fehlschlägt, halte an und sag mir Bescheid.
 Nimm Deutsch (de) als Seitensprache.
 ```
 

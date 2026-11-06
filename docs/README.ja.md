@@ -103,7 +103,11 @@
 AI に貼り付けてください。おすすめはパソコン上の [Claude Code](https://code.claude.com/docs/en/quickstart) ですが、Codex、OpenCode、Cursor など、コマンドを実行できてネットワークにつながるものでもかまいません。
 
 ```text
-https://github.com/0t2/flux-bio の AGENTS.md に従って、FluxBio を試させてください。
+FluxBio を試させてください。まず次のコマンドを実行して、このパソコンにダウンロードしてください：
+
+mkdir -p ~/flux-bio && curl -fsSL https://github.com/0t2/flux-bio/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 -C ~/flux-bio
+
+次に ~/flux-bio/AGENTS.md を最後まで読み、その第 1 節に従ってください。ウェブではなく、そのフォルダーにあるファイルを読んでください。ダウンロードに失敗したら、そこで止めて知らせてください。
 ページの言語は日本語（ja）にしてください。
 ```
 

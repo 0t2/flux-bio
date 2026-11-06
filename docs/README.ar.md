@@ -105,7 +105,11 @@
 الصق هذا في مساعد الذكاء الاصطناعي. ننصح باستخدام [Claude Code](https://code.claude.com/docs/en/quickstart) على جهازك الخاص؛ وتعمل أيضًا Codex وOpenCode وCursor وغيرها مما يستطيع تنفيذ الأوامر والوصول إلى الإنترنت:
 
 ```text
-اتبع ملف AGENTS.md في https://github.com/0t2/flux-bio لمساعدتي على تجربة FluxBio.
+ساعدني على تجربة FluxBio. نفّذ هذا الأمر أولًا لتنزيله على هذا الجهاز:
+
+mkdir -p ~/flux-bio && curl -fsSL https://github.com/0t2/flux-bio/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 -C ~/flux-bio
+
+ثم اقرأ الملف ~/flux-bio/AGENTS.md كاملًا واتبع القسم 1 منه. اقرأه من ذلك المجلد لا من الويب. إذا فشل التنزيل فتوقف وأخبرني.
 استخدم العربية (ar) لغةً للصفحة.
 ```
 

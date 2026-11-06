@@ -103,7 +103,11 @@ AI sẽ tự cài các công cụ cần thiết. Để dùng thử, bạn chỉ 
 Dán cho AI của bạn. Chúng tôi khuyên dùng [Claude Code](https://code.claude.com/docs/en/quickstart) trên máy tính của bạn, nhưng Codex, OpenCode, Cursor và các công cụ khác chạy được lệnh và có kết nối internet cũng được:
 
 ```text
-Làm theo AGENTS.md tại https://github.com/0t2/flux-bio để giúp tôi dùng thử FluxBio.
+Hãy giúp tôi dùng thử FluxBio. Trước tiên hãy chạy lệnh này để tải nó về máy tính này:
+
+mkdir -p ~/flux-bio && curl -fsSL https://github.com/0t2/flux-bio/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 -C ~/flux-bio
+
+Sau đó đọc toàn bộ ~/flux-bio/AGENTS.md và làm theo mục 1 của nó. Hãy đọc tệp trong thư mục đó, đừng đọc trên web. Nếu tải về thất bại, hãy dừng lại và báo cho tôi.
 Dùng tiếng Việt (vi) làm ngôn ngữ của trang.
 ```
 

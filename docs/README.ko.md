@@ -103,7 +103,11 @@
 AI에 붙여 넣으세요. 내 컴퓨터의 [Claude Code](https://code.claude.com/docs/en/quickstart)를 추천하지만, Codex, OpenCode, Cursor처럼 명령을 실행하고 인터넷에 연결할 수 있는 것도 괜찮아요.
 
 ```text
-https://github.com/0t2/flux-bio 저장소의 AGENTS.md를 따라 FluxBio를 써 보게 도와주세요.
+FluxBio를 써 보게 도와주세요. 먼저 이 명령을 실행해서 이 컴퓨터에 내려받아 주세요:
+
+mkdir -p ~/flux-bio && curl -fsSL https://github.com/0t2/flux-bio/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 -C ~/flux-bio
+
+그다음 ~/flux-bio/AGENTS.md를 끝까지 읽고 1절을 따라 주세요. 웹에서 읽지 말고 그 폴더에 있는 파일을 읽어 주세요. 내려받기에 실패하면 멈추고 알려 주세요.
 페이지 언어는 한국어(ko)로 해 주세요.
 ```
 

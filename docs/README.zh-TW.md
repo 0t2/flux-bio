@@ -103,7 +103,11 @@
 貼給你的 AI。推薦用電腦上的 [Claude Code](https://code.claude.com/docs/en/quickstart)；Codex、OpenCode、Cursor 等能執行指令又能連網的也可以：
 
 ```text
-照 https://github.com/0t2/flux-bio 的 AGENTS.md 幫我試用 FluxBio。
+幫我試用 FluxBio。先執行這行，把它下載到這台電腦：
+
+mkdir -p ~/flux-bio && curl -fsSL https://github.com/0t2/flux-bio/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 -C ~/flux-bio
+
+然後把 ~/flux-bio/AGENTS.md 整份讀完，照它的第 1 節做。要讀資料夾裡的檔案，不要上網讀。下載失敗就停下來告訴我。
 頁面語言用繁體中文（zh-TW）。
 ```
 

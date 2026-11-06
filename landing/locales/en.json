@@ -70,7 +70,7 @@
 	"s082": "UTM parameters",
 	"s083": "Expiry and scheduling",
 	"s084": "Password protection",
-	"s085": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Follow AGENTS.md in https://github.com/<wbr>0t2/flux-bio to help me try FluxBio.</span>",
+	"s085": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Help me try FluxBio. Run this first, to download it to this computer:</span>",
 	"s087": "Skip to main content",
 	"s089": "Dashboard",
 	"s090": "Themes",
@@ -162,5 +162,6 @@
 	"s198": "Make three short links",
 	"s199": "Tag each source",
 	"s200": "Read the clicks",
-	"s201": "Make a chart"
+	"s201": "Make a chart",
+	"s202": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Then read all of <bdi>~/flux-bio/AGENTS.md</bdi> and follow its section 1. Read it from that folder, not from the web. If the download fails, stop and tell me.</span>"
 }

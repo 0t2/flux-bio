@@ -104,7 +104,11 @@ Your AI installs the tools it needs. To try it, you only need Claude Code; to pu
 Paste this into your AI. We recommend [Claude Code](https://code.claude.com/docs/en/quickstart), running on your own computer; Codex, OpenCode, Cursor and others that can run commands with internet access work too:
 
 ```text
-Follow AGENTS.md in https://github.com/0t2/flux-bio to help me try FluxBio.
+Help me try FluxBio. Run this first, to download it to this computer:
+
+mkdir -p ~/flux-bio && curl -fsSL https://github.com/0t2/flux-bio/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 -C ~/flux-bio
+
+Then read all of ~/flux-bio/AGENTS.md and follow its section 1. Read it from that folder, not from the web. If the download fails, stop and tell me.
 Use English (en) as the page language.
 ```
 

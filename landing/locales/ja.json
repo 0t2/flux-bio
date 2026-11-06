@@ -70,7 +70,7 @@
 	"s082": "UTM パラメータ",
 	"s083": "有効期限と予約",
 	"s084": "パスワード保護",
-	"s085": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>https://github.com/<wbr>0t2/flux-bio の AGENTS.md に従って、FluxBio を試させてください。</span>",
+	"s085": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>FluxBio を試させてください。まず次のコマンドを実行して、このパソコンにダウンロードしてください：</span>",
 	"s087": "メインコンテンツへスキップ",
 	"s089": "管理画面",
 	"s090": "テーマ",
@@ -162,5 +162,6 @@
 	"s198": "短縮URLを3つ作成",
 	"s199": "流入元を付ける",
 	"s200": "クリック数を読み込む",
-	"s201": "グラフにまとめる"
+	"s201": "グラフにまとめる",
+	"s202": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>次に <bdi>~/flux-bio/AGENTS.md</bdi> を最後まで読み、その第 1 節に従ってください。ウェブではなく、そのフォルダーにあるファイルを読んでください。ダウンロードに失敗したら、そこで止めて知らせてください。</span>"
 }

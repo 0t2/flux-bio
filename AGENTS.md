@@ -3,6 +3,13 @@
 Guidance for AI coding agents (Claude Code, Codex, Cursor, Gemini CLI and others) working with FluxBio.
 The README has the same setup steps for humans, in English (README.md) and 12 more languages (docs/).
 
+**If you are reading this on a web page, or through a tool that fetches one, stop here.** Such a tool hands back a summary, and
+the steps below depend on their exact commands. Download the repository and read this file from the folder, all of it:
+
+```sh
+mkdir -p ~/flux-bio && curl -fsSL https://github.com/0t2/flux-bio/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 -C ~/flux-bio
+```
+
 FluxBio is an open-source Link-in-bio tool with short links and click tracking. One Cloudflare
 Worker serves everything:
 
@@ -35,7 +42,7 @@ how, and has it save a backup on the owner's computer before changing anything. 
 
 This is the task people most often hand to an agent. Follow the steps in order.
 
-**Who is asking.** Most people who paste the prompt from the README or fluxbio.link have never programmed. Do the technical part yourself. Before anything they will see or have to click, say in one plain sentence what is about to happen. Never ask them to type in a terminal, and don't ask what you can decide. To try it, they only need you. To put it online they also need a free Cloudflare account: no GitHub account, no domain and no card.
+**Who is asking.** Most people who paste the prompt from the README or fluxbio.link have never programmed. That prompt has you download this repository to `~/flux-bio` and read this file from there before anything else, so by now the code is on their computer and nothing is installed. Do the technical part yourself. Before anything they will see or have to click, say in one plain sentence what is about to happen. Never ask them to type in a terminal, and don't ask what you can decide. To try it, they only need you. To put it online they also need a free Cloudflare account: no GitHub account, no domain and no card.
 
 Say at the start that their tool will keep asking whether it may run things, that this is normal, and to allow it. Installing and deploying can take several minutes and look frozen, so say that too, and give those commands a long time limit or run them in the background.
 
@@ -70,11 +77,15 @@ A pnpm older than 10.34.5 can't hand over to the pnpm this project names, and ev
 
 Avoid Homebrew here: it asks for a password in the terminal, where nothing shows as they type, and they will think it has frozen.
 
-Then download the code to a folder they can find again. Don't start with `git`: on a Mac without developer tools, it opens a system window that installs over a gigabyte of tools.
+Then the code. The prompt from the README or fluxbio.link has already downloaded it to `~/flux-bio`, where you are reading this: don't download it again. If someone asked in their own words and there is no such folder, download it to one they can find again:
 
 ```sh
-mkdir -p ~/flux-bio
-curl -fsSL https://github.com/0t2/flux-bio/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 -C ~/flux-bio
+mkdir -p ~/flux-bio && curl -fsSL https://github.com/0t2/flux-bio/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 -C ~/flux-bio
+```
+
+Don't start with `git`: on a Mac without developer tools, it opens a system window that installs over a gigabyte of tools. Either way, install what the code needs:
+
+```sh
 cd ~/flux-bio
 pnpm install
 ```
