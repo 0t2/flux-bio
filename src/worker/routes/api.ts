@@ -16,8 +16,10 @@ import type {
 	PageVersionJson,
 	PageSummary,
 	StateResponse,
+	StatsExportResponse,
 	StatsResponse,
 	TopTargetJson,
+	UsageResponse,
 	PreviewLinkResponse,
 } from '../../shared/api'
 import { BackupSchema } from '../../shared/backup'
@@ -39,7 +41,7 @@ import { FONT_CATEGORIES, FONT_SCRIPTS, searchFonts } from '../../shared/fonts'
 import { requestedLocale } from '../../shared/locale'
 import { untranslated } from '../../shared/translations'
 import { DEFAULT_QR_STYLE, QR_SIZE_IDS, qrLogoMedia, qrSvg, QrStyleSchema, type QrStyle } from '../../shared/qr'
-import { addDays } from '../../shared/time'
+import { addDays, dayIn } from '../../shared/time'
 import { fill, msg, type Message, type Params } from '../../templates/msg'
 import { SOCIAL_META } from '../../templates/icons'
 import { renderBioPage } from '../../templates/render'
@@ -47,7 +49,7 @@ import communityThemes from '../../../themes/community.json'
 import { CommunityListSchema } from '../../shared/community'
 import { guideNames, openApi, workerNameOf } from '../lib/agent'
 import { guideTopic } from '../lib/agentTopics'
-import { insights, type Insights } from '../lib/analytics'
+import { countsSince, insights, type Insights } from '../lib/analytics'
 import {
 	adminPasswordProblem,
 	createSession,
@@ -119,9 +121,12 @@ import {
 	PagePatchInput,
 	PreviewLinkInput,
 	SettingsInput,
+	StatsClearInput,
+	StatsExportQuery,
 	ThemeFetchInput,
 	WipeInput,
 } from '../lib/schemas'
+import { clearStats, DATABASE_LIMIT, databaseBytes, EXPORT_COLUMNS, exportStats, statsHistory, tidyStats } from '../lib/statsHistory'
 import { VERSION } from '../lib/version'
 import { clicksByPage, emptyLinkStats, linkStats, overview, targetOverview, type LinkStats } from '../lib/stats'
 import { ApiError, type AppEnv, type Auth } from '../types'
@@ -204,15 +209,6 @@ function pageJson(page: PageRow): PageJson {
 }
 
 /** Which click targets belong to a page: its short links, and the parts of its blocks ("<item id>.<part>"). */
-function pageTargets(page: PageRow, rows: LinkRow[]): (target: string) => boolean {
-	const links = new Set(rows.filter((row) => row.kind === 'bio' && row.pageId === page.id).map((row) => row.id))
-	const items = pageItemIds(page)
-	return (target) => links.has(target) || items.has(target.split('.')[0] ?? '')
-}
-
-const pageItemIds = (page: PageRow) =>
-	new Set([page, ...page.draft.items, ...(page.published?.items ?? []), ...page.draft.socials, ...(page.published?.socials ?? [])].map((entry) => entry.id))
-
 /** The pages' lines in a list. D1 works them out, so the Worker only reads a page in full if its draft is in an older shape, or to count what's untranslated. */
 async function pageSummaries(db: D1Database, settings: Settings): Promise<PageSummary[]> {
 	const [rows, clicks] = await Promise.all([listPageRows(db), clicksByPage(db, settings.timezone)])
@@ -417,6 +413,45 @@ api.get('/state', async (c) => {
 		pages: await pageSummaries(db, settings),
 		analytics: Boolean((c.env as { ANALYTICS_SQL?: unknown }).ANALYTICS_SQL),
 		testSite: isTestSite(c.env),
+	}
+	// Old numbers are merged, or deleted as asked, a slice per dashboard visit, after it has its answer.
+	c.executionCtx.waitUntil(tidyStats(db, settings).catch((error: unknown) => console.error('Could not tidy old stats', error)))
+	return c.json(body)
+})
+
+/** The free plan's daily limits: 100,000 Worker requests, KV reads and D1 rows written. */
+const FREE_DAILY = { requests: 100_000, kvReads: 100_000, rowsWritten: 100_000 }
+
+api.get('/usage', async (c) => {
+	const db = c.env.DB
+	const settings = await loadSettings(db)
+	const now = Date.now()
+	const since = `${new Date(now).toISOString().slice(0, 10)}T00:00:00Z`
+	const bytes = await databaseBytes(db)
+	const [history, counted] = await Promise.all([
+		statsHistory(db, settings, bytes, now),
+		countsSince(c.env, since).catch((error: unknown) => {
+			console.error('Analytics Engine did not answer', error)
+			return null
+		}),
+	])
+	let today: UsageResponse['today']
+	if (counted) today = { since, ...counted, from: 'analytics' }
+	else {
+		const { results } = await db
+			.prepare("SELECT kind, SUM(count) AS n FROM stats WHERE day = ?1 AND dim = 'source' GROUP BY kind")
+			.bind(dayIn(settings.timezone, now))
+			.all<{ kind: string; n: number }>()
+		const count = (kind: string) => results.find((row) => row.kind === kind)?.n ?? 0
+		today = { since, views: count('view'), clicks: count('click'), from: 'stats' }
+	}
+	const body: UsageResponse = {
+		plan: settings.plan,
+		database: { bytes, limit: DATABASE_LIMIT[settings.plan] },
+		today,
+		estimate: { requests: today.views + today.clicks, kvReads: today.views * 2 + today.clicks, rowsWritten: today.views + today.clicks },
+		dailyLimits: settings.plan === 'free' ? FREE_DAILY : null,
+		stats: history,
 	}
 	return c.json(body)
 })
@@ -754,9 +789,7 @@ api.get('/stats', async (c) => {
 	const page = (asked ? await getPage(db, asked) : null) ?? (settings.home ? await getPage(db, settings.home) : null) ?? (await firstPage(db))
 	const rows = page ? await listOwnLinks(db, page.id) : []
 	const byId = new Map(rows.map((row) => [row.id, row]))
-	const data = page
-		? await overview(db, settings.timezone, days, page.id, { blocks: [...pageItemIds(page)], links: rows.map((row) => row.id) }, pageTargets(page, rows))
-		: await overview(db, settings.timezone, days, '', { blocks: [], links: [] }, () => false)
+	const data = await overview(db, settings.timezone, days, page?.id ?? '', rows.map((row) => row.id))
 	const from = data.days[0]!
 	const details = page ? await insights(c.env, { page: page.id }, { from, to: data.days.at(-1)!, previousFrom: addDays(from, -days) }) : null
 	const content = page ? (page.published ?? page.draft) : null
@@ -781,6 +814,22 @@ api.get('/stats', async (c) => {
 		insights: insightsJson(details, label),
 	}
 	return c.json(body)
+})
+
+api.get('/stats/export', async (c) => {
+	const query = StatsExportQuery.safeParse(c.req.query())
+	if (!query.success) throw new ApiError(400, 'invalid', msg('查詢參數不正確'))
+	const body: StatsExportResponse = { columns: EXPORT_COLUMNS, ...(await exportStats(c.env.DB, query.data.cursor, query.data.before)) }
+	return c.json(body)
+})
+
+api.post('/stats/clear', async (c) => {
+	requireOwner(c.get('auth'), msg('清除點擊數據'))
+	const { before } = await readBody(c, StatsClearInput)
+	const db = c.env.DB
+	const settings = await loadSettings(db)
+	await clearStats(db, settings, before)
+	return c.json({ stats: await statsHistory(db, settings, await databaseBytes(db)) })
 })
 
 // ---------------------------------------------------------------- themes

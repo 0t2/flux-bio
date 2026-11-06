@@ -5,14 +5,15 @@ import { writeEvent } from './analytics'
 import { chunks, ensureSchema } from './db'
 
 /**
- * Exact counts live in D1: one row per day × target × kind × source, kept
- * forever, so a week of numbers is a few hundred rows. Each hit is also sent
+ * Exact counts live in D1: one row per day × target × kind × source, so a week of numbers is a few hundred rows.
+ * Whole months older than the dashboard reads become one row per month (statsHistory.ts). Each hit is also sent
  * to Analytics Engine as a raw event for the detailed views (see analytics.ts).
  *
  * Targets: a page view counts under the page's id, a short link click or a tap
  * on the link's button under the link's id, a click inside a block (a product, a video, the map
- * button) under "<item id>.<part>", and a click on a social icon, on a page
- * that counts them, under "<social id>.social".
+ * button) under "<item id>.<part>", a click on a social icon, on a page
+ * that counts them, under "<social id>.social", and the LINE button under "<page id>.line". Those with a "." keep
+ * their page in `page`, since only the page knows its blocks; a link's page is in `links`.
  */
 
 export type HitKind = 'view' | 'click'
@@ -21,11 +22,11 @@ export type HitKind = 'view' | 'click'
 export const SOURCE_LIMIT = 50
 
 // SQLite needs the "WHERE true" to read ON CONFLICT as the upsert clause.
-const UPSERT = `INSERT INTO stats (day, target, kind, dim, value, count)
+const UPSERT = `INSERT INTO stats (day, target, kind, dim, value, count, page)
 SELECT ?1, ?2, ?3, ?4, CASE
 	WHEN EXISTS (SELECT 1 FROM stats WHERE day = ?1 AND target = ?2 AND kind = ?3 AND dim = ?4 AND value = ?5) THEN ?5
 	WHEN (SELECT COUNT(*) FROM stats WHERE day = ?1 AND target = ?2 AND kind = ?3 AND dim = ?4) < ?6 THEN ?5
-	ELSE 'other' END, 1
+	ELSE 'other' END, 1, ?7
 WHERE true
 ON CONFLICT (day, target, kind, dim, value) DO UPDATE SET count = count + 1`
 
@@ -75,7 +76,12 @@ export function recordHit(env: Env, ctx: WaitUntil, request: Request, hit: Hit):
 	// countries, devices and the rest come from Analytics Engine.
 	ctx.waitUntil(
 		Promise.all([timeZone, ensureSchema(db)])
-			.then(([zone]) => db.prepare(UPSERT).bind(dayIn(zone, now), hit.target, hit.kind, 'source', hit.source, SOURCE_LIMIT).run())
+			.then(([zone]) =>
+				db
+					.prepare(UPSERT)
+					.bind(dayIn(zone, now), hit.target, hit.kind, 'source', hit.source, SOURCE_LIMIT, hit.target.includes('.') && hit.page ? hit.page : null)
+					.run(),
+			)
 			.catch((error: unknown) => console.error('Could not count a hit', error)),
 	)
 	ctx.waitUntil(
@@ -122,7 +128,8 @@ export async function linkStats(
 	type Row = { target: string; day: string; value: string; n: number }
 	let results: Row[] = []
 	if (!targets) {
-		results = (await db.prepare(`${columns('stats')} GROUP BY target, day, value`).bind(range[0]).all<Row>()).results
+		// Through the days' range of the primary key, not every day in the target index.
+		results = (await db.prepare(`${columns('stats NOT INDEXED')} GROUP BY target, day, value`).bind(range[0]).all<Row>()).results
 	} else if (targets.length) {
 		const parts = await db.batch<Row>(
 			chunks([...new Set(targets)], 90).map((part) =>
@@ -156,46 +163,30 @@ export async function linkStats(
 }
 
 /**
- * Each page's clicks in the last 7 days. Only targets clicked in that time are looked up, so a site's
- * size matters less than how many of its links people use. A target can be a link, or a block, a social
- * icon or the page's own button under "<id>.<part>".
+ * Each page's clicks in the last 7 days. Clicks inside blocks carry their page; a link's page is looked up by id,
+ * and only for links clicked in that time, so a site's size matters less than how many of its links people use.
  */
 export async function clicksByPage(db: D1Database, timeZone: string): Promise<Map<string, number>> {
 	const since = lastDays(timeZone, 7)[0]
 	const { results } = await db
-		.prepare("SELECT target, SUM(count) AS n FROM stats WHERE kind = 'click' AND dim = 'source' AND day >= ?1 GROUP BY target")
+		// By the days' range of the primary key. Grouped by target first, SQLite would go through the whole target index, every day ever.
+		.prepare("SELECT page, target, SUM(count) AS n FROM stats NOT INDEXED WHERE kind = 'click' AND dim = 'source' AND day >= ?1 GROUP BY page, target")
 		.bind(since)
-		.all<{ target: string; n: number }>()
+		.all<{ target: string; page: string | null; n: number }>()
 	const totals = new Map<string, number>()
-	if (!results.length) return totals
-	const idOf = (target: string) => target.split('.')[0] ?? ''
-	const ids = [...new Set(results.map((row) => idOf(row.target)))]
-	type Owner = { id: string; page: string }
-	const direct = await db.batch<Owner>(
-		chunks(ids, 90).map((part) => {
-			const list = part.map((_, i) => `?${i + 1}`).join(', ')
-			return db.prepare(`SELECT id, page_id AS page FROM links WHERE kind = 'bio' AND page_id IS NOT NULL AND id IN (${list}) UNION SELECT id, id FROM pages WHERE id IN (${list})`).bind(...part)
-		}),
-	)
-	const owners = direct.flatMap((part) => part.results)
-	// What's left is blocks and social icons, which only a page's content knows about. Once, not per id.
-	const found = new Set(owners.map((owner) => owner.id))
-	if (ids.some((id) => !found.has(id))) {
-		const inside = (column: string, path: string) => `SELECT json_extract(entry.value, '$.id') AS id, pages.id AS page FROM pages, json_each(pages.${column}, '${path}') AS entry`
-		// D1 allows five terms in a compound SELECT.
-		const { results: blocks } = await db.prepare(`${inside('draft', '$.items')} UNION ${inside('published', '$.items')} UNION ${inside('draft', '$.socials')} UNION ${inside('published', '$.socials')}`).all<Owner>()
-		owners.push(...blocks)
-	}
-	const pagesOf = new Map<string, Set<string>>()
-	for (const { id, page } of owners) {
-		const pages = pagesOf.get(id) ?? new Set<string>()
-		pages.add(page)
-		pagesOf.set(id, pages)
-	}
+	const add = (page: string, n: number) => totals.set(page, (totals.get(page) ?? 0) + n)
+	const links = new Map<string, number>()
 	for (const row of results) {
-		const pages = pagesOf.get(idOf(row.target))
-		if (pages) for (const page of pages) totals.set(page, (totals.get(page) ?? 0) + row.n)
+		if (row.page) add(row.page, row.n)
+		else if (!row.target.includes('.')) links.set(row.target, (links.get(row.target) ?? 0) + row.n)
 	}
+	if (!links.size) return totals
+	const owners = await db.batch<{ id: string; page: string }>(
+		chunks([...links.keys()], 100).map((part) =>
+			db.prepare(`SELECT id, page_id AS page FROM links WHERE kind = 'bio' AND page_id IS NOT NULL AND id IN (${part.map((_, i) => `?${i + 1}`).join(', ')})`).bind(...part),
+		),
+	)
+	for (const { id, page } of owners.flatMap((part) => part.results)) add(page, links.get(id) ?? 0)
 	return totals
 }
 
@@ -219,20 +210,11 @@ export interface Overview {
 }
 
 /**
- * One page's numbers over the last `days` days, plus the period before for
- * comparison. `blocks` are what's on the page, whose clicks can also be under "<id>.<part>", and `links` its other
- * short links. Their targets are read through the target index, so this costs as many rows as the page has clicks,
- * however big the site.
- * `isClick` then decides exactly which of them belong to the page.
+ * One page's numbers over the last `days` days, plus the period before for comparison: its views, the clicks inside it,
+ * which carry the page, and the clicks on `links`, its bio links. All are read through an index, so this costs as many
+ * rows as the page has numbers, however big the site.
  */
-export async function overview(
-	db: D1Database,
-	timeZone: string,
-	days: number,
-	pageId: string,
-	{ blocks, links }: { blocks: readonly string[]; links: readonly string[] },
-	isClick: (target: string) => boolean,
-): Promise<Overview> {
+export async function overview(db: D1Database, timeZone: string, days: number, pageId: string, links: readonly string[]): Promise<Overview> {
 	const range = lastDays(timeZone, days)
 	const index = new Map(range.map((day, i) => [day, i]))
 	const since = range[0]!
@@ -244,17 +226,13 @@ export async function overview(
 				GROUP BY day, value`,
 			)
 			.bind(pageId, previousSince),
-		// An id and everything under it, "<id>.<part>": "/" comes right after ".". One statement each: with
-		// several ranges in one, SQLite goes through the whole index.
-		...[...new Set(blocks)].map((id) =>
-			db
-				.prepare(
-					`SELECT day, target, value, SUM(count) AS n FROM stats INDEXED BY stats_target_day WHERE kind = 'click' AND dim = 'source' AND day >= ?1
-					AND target >= ?2 AND target < ?3 GROUP BY day, target, value`,
-				)
-				.bind(previousSince, id, `${id}/`),
-		),
-		...chunks([...new Set(links)].filter((id) => !blocks.includes(id)), 90).map((part) =>
+		db
+			.prepare(
+				`SELECT day, target, value, SUM(count) AS n FROM stats INDEXED BY stats_page_day WHERE page = ?1 AND kind = 'click' AND dim = 'source' AND day >= ?2
+				GROUP BY day, target, value`,
+			)
+			.bind(pageId, previousSince),
+		...chunks([...new Set(links)], 90).map((part) =>
 			db
 				.prepare(
 					`SELECT day, target, value, SUM(count) AS n FROM stats INDEXED BY stats_target_day WHERE kind = 'click' AND dim = 'source' AND day >= ?1
@@ -281,7 +259,6 @@ export async function overview(
 		bump(viewSources, row.value, row.n)
 	}
 	for (const row of clickParts.flatMap((part) => part.results) as { day: string; target: string; value: string; n: number }[]) {
-		if (!isClick(row.target)) continue
 		const i = index.get(row.day)
 		if (i === undefined) {
 			if (row.day < since) previous.clicks += row.n

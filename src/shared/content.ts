@@ -359,10 +359,15 @@ export const SettingsSchema = z.object({
 	homeUrl: z.string().max(2048),
 	/** Media id of the picture in QR codes that follow the default and whose page has none of its own; "" for none. */
 	qrLogo: z.string().regex(/^[\w.-]{0,80}$/),
+	/**
+	 * The owner's Cloudflare plan, which the Worker can't see for itself: "free" (Workers Free) or "paid" (Workers Paid).
+	 * It sets the database size reminders are measured against, and whether daily quotas are worth a reminder at all.
+	 */
+	plan: z.enum(['free', 'paid']),
 })
 export type Settings = z.infer<typeof SettingsSchema>
 
-export const DEFAULT_SETTINGS: Settings = { home: '', timezone: 'UTC', locale: 'en', languages: [], domain: '', hostFonts: false, bio: true, homeUrl: '', qrLogo: '' }
+export const DEFAULT_SETTINGS: Settings = { home: '', timezone: 'UTC', locale: 'en', languages: [], domain: '', hostFonts: false, bio: true, homeUrl: '', qrLogo: '', plan: 'free' }
 
 /**
  * Brings stored settings up to date. v0.1 had one page: { handle, homepage,
@@ -380,7 +385,8 @@ export function upgradeSettings(raw: unknown, legacyPageId: string): unknown {
 	// Pages could not be switched off before.
 	if (!('bio' in value)) value = { ...value, bio: true, homeUrl: '' }
 	// QR codes had no default picture before.
-	return 'qrLogo' in value ? value : { ...value, qrLogo: '' }
+	if (!('qrLogo' in value)) value = { ...value, qrLogo: '' }
+	return 'plan' in value ? value : { ...value, plan: 'free' }
 }
 
 /** A saved look: a base theme plus the colors, font and button chosen on top. */

@@ -72,7 +72,7 @@ Créez des pages bio à votre image : choisissez un thème et ses couleurs, ou 
 
 ### Statistiques
 
-- Vues, clics, taux de clic et sources : comptage exact, conservé sans limite de durée (D1).
+- Vues, clics, taux de clic et sources : comptage exact (D1), par jour pendant 13 mois, puis par mois.
 - Visiteurs uniques, régions, carte des visiteurs, opérateurs, appareils, navigateurs, langues, sites référents, UTM, heures des clics et activité récente : conservés 90 jours (Cloudflare Analytics Engine, sans configuration).
 - Comparaison avec la période précédente, page de statistiques propre à chaque lien court, export CSV.
 - Pas de cookies, pas d’adresse IP, pas de chaîne User-Agent complète, et une localisation limitée à la ville ; l’identifiant visiteur est un hachage à sens unique renouvelé chaque jour. Les robots ne sont pas comptés.
@@ -166,7 +166,7 @@ Chacun a sa propre ligne dans « Campagnes UTM », avec les vues et les clics 
 - Vous voyez d’où viennent les visiteurs, pas qui ils sont. Instagram, Facebook et X n’indiquent jamais aux autres sites quel compte a touché un lien, et FluxBio n’enregistre rien qui permette d’identifier une personne.
 - Les noms `?s=` acceptent les lettres sans accent, les chiffres, `-` et `_`, et sont mis en minuscules ; les autres caractères sont supprimés. Les balises UTM sont gardées telles quelles : `story` et `Story` comptent comme deux lignes, écrivez-les toujours de la même façon.
 - La localisation est la ville estimée par Cloudflare à partir de l’adresse IP du visiteur. Un VPN, le Relais privé iCloud ou un réseau d’entreprise peuvent placer quelqu’un ailleurs.
-- Les vues, les clics et les sources sont exacts et conservés sans limite. Les régions, la carte, les réseaux, les appareils, les langues et le détail UTM sont conservés 90 jours, et les nouvelles visites apparaissent au bout d’une minute environ. À vous de choisir si les icônes sociales comptent aussi. Les boutons qui affichent l’adresse réelle sont comptés par un petit script sur la page : un bloqueur peut masquer un clic ; les liens courts sont toujours comptés.
+- Les vues, les clics et les sources sont exacts. Chaque jour est gardé 13 mois, puis chaque mois devient un total conservé sans limite ; tout se télécharge depuis les Réglages. Les régions, la carte, les réseaux, les appareils, les langues et le détail UTM sont conservés 90 jours, et les nouvelles visites apparaissent au bout d’une minute environ. À vous de choisir si les icônes sociales comptent aussi. Les boutons qui affichent l’adresse réelle sont comptés par un petit script sur la page : un bloqueur peut masquer un clic ; les liens courts sont toujours comptés.
 - Les visiteurs uniques sont comptés par jour : la même personne deux jours différents, ou sur son téléphone puis sur son ordinateur, compte deux fois.
 - Les robots et les aperçus de liens (la requête que fait une messagerie quand on y colle un lien) ne sont pas comptés : les chiffres peuvent être plus bas qu’avec d’autres outils.
 - Les balises UTM d’un lien court ne vont qu’à sa destination principale, pas aux adresses séparées pour iPhone ou Android, et ne remplacent jamais une balise déjà présente dans la destination. Les modifier ne compte que pour les clics suivants.

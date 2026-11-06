@@ -141,6 +141,16 @@ pnpm exec cf workers list | grep '"flux-bio"'
 Finding nothing is the usual answer on a new account, so grep's exit code of 1 isn't an error. The name is part of their address: keep `flux-bio` unless it's taken. If the name is taken, change `WORKER_NAME` in `cloudflare.config.ts`. A second instance must
 also use a different D1 name than the first.
 
+**Their account may already be in use.** The free plan's limits are per Cloudflare account, so FluxBio shares them with
+whatever else is on it. If `cf workers list` above showed other Workers, or `pnpm exec cf d1 list` shows databases, run `pnpm usage` and tell them, in plain words, before deploying:
+
+- FluxBio will share the account's free quota with their other projects: 100,000 Worker requests and KV reads, 1,000 KV
+  writes, 5 million D1 rows read and 100,000 written a day, 5 GB of D1 in all. Its stats also use Analytics Engine, which is
+  shared too (100,000 events a day), but each project keeps its own data. So the busier their other projects, the fewer page
+  views FluxBio can take: say how many are left, from `plain` in `pnpm usage --json`.
+- It creates one D1 database, of the 10 a free account may have; a test site would take another. If `pnpm usage` lists 10
+  already, the deploy will fail: ask what to do, and never delete a database on your own.
+
 ### 1.5 Create the admin password and deploy
 
 The dashboard password is the `ADMIN_PASSWORD` secret and must be at least 12 characters.
@@ -223,7 +233,10 @@ pnpm exec cf workers secrets update ADMIN_PASSWORD --worker flux-bio --type secr
 Then check it with `POST /api/settings/verify-domain` and save it with `PUT /api/settings` (or ask
 the owner's AI to). Once saved, short links, QR codes and the API's `short` field use the domain.
 
-**A test site.** `--mode staging` deploys a second FluxBio of the owner's, the Worker `<name>-staging`, with its own D1,
+**A test site.** To try a change first, run it on the owner's computer: `pnpm exec cf dev --mode staging` (with
+`ADMIN_PASSWORD` in `.dev.vars`) makes nothing on Cloudflare and uses none of their quota, and only that computer can open it.
+Deploy one to Cloudflare only if the owner asks, say to show someone else, and say first that it takes a second D1 database
+and shares the account's quota. `--mode staging` deploys a second FluxBio of the owner's, the Worker `<name>-staging`, with its own D1,
 KV and stats:
 
 ```sh
@@ -234,13 +247,13 @@ pnpm exec cf deploy --mode staging                                       # later
 
 It sets `TEST_SITE` to `"true"`: `robots.txt` turns every crawler away, the sitemap is empty, responses say
 `x-robots-tag: noindex`, and `testSite` in `GET /api/state` and a line at the top of `/llms.txt` tell an agent where it is.
-Whether to use one is the owner's call: before a change visitors would notice, an agent asks whether to go straight to the
-live site or try it first. Moving changes to the live site is by hand, one page at a time, never with `POST /api/import`,
+Whether to use one is the owner's call: before a new version of FluxBio, an agent asks whether to go straight to the
+live site or try it on their computer first. Moving changes to the live site is by hand, one page at a time, never with `POST /api/import`,
 which would replace everything there. The guide's "Test site" recipe has the steps.
 
 A test site takes a D1 database, and the free plan allows 10 per account. If that limit stops the deploy, ask the owner what to do
 and never delete a database on your own. The failed deploy leaves an empty KV namespace behind, which has to go before the next
-try. `pnpm exec cf dev --mode staging` runs a test site on the owner's computer without any of this.
+try.
 
 ## 2. Manage an existing FluxBio through its API
 
@@ -362,7 +375,7 @@ pnpm i18n check  # lists dashboard text that isn't translated yet
 pnpm landing     # builds the landing page (see "The landing page"); pnpm landing:deploy also deploys it
 pnpm shots       # retakes the landing page's dashboard screenshots from the sample pages, in a throwaway local site
 pnpm brand       # remakes the favicon, app icons and the landing page's logo pictures from LOGO_PATH in src/templates/icons.ts
-pnpm kv-usage    # how much of today's free KV quota is used and left on the signed-in Cloudflare account (--date, --days, --json)
+pnpm usage       # today's free KV and D1 quota used and left, and each D1 database's size, on the signed-in Cloudflare account (--date, --days, --json)
 ```
 
 Run `pnpm typecheck` and `pnpm test` before finishing any change. GitHub Actions
@@ -387,6 +400,7 @@ src/worker/             Hono app
   lib/fonts.ts          copies a page's fonts from Google Fonts to KV when it is published (served at /_fonts/)
   lib/ops.ts            pages, publish, settings, short links (they keep D1 and KV in sync)
   lib/stats.ts          counting views and clicks, D1 stats queries
+  lib/statsHistory.ts   old stats: days into months, the download, clearing old months
   lib/analytics.ts      Analytics Engine events and SQL
   lib/backup.ts         export, import, wipe
   lib/seo.ts            robots.txt, sitemap.xml and the addresses of a page in each language
@@ -434,10 +448,17 @@ tests/                  Vitest tests (run in workerd)
   loaded while it is off, so nothing outside the page routes may need `usePage()`; use `useOptionalPage()`.
 - **Stats are recorded in two places.** There are no cookies, IPs are not stored, and bots and
   link-preview fetchers are skipped.
-  - *D1, exact and kept forever.* One counter row per day × target × kind × source in
-    `stats(day, target, kind, dim, value, count)`. Targets: a page view counts under the page id,
+  - *D1, exact.* One counter row per day × target × kind × source in
+    `stats(day, target, kind, dim, value, count, page)`. Targets: a page view counts under the page id,
     a short link click under the link id, a tap on a link's button under the link id too, a click inside a block under `<item id>.<part>`
-    (`play`, `map`, `more`, or a product or image id), and a social icon on a page with `countSocials` on under `<social id>.social`. Days are in the time zone from settings.
+    (`play`, `map`, `more`, or a product or image id), a social icon on a page with `countSocials` on under `<social id>.social`, and
+    the LINE button under `<page id>.line`. Those with a `.` also keep their page in `page`, so a page's numbers survive
+    deleting a block and no list of pages is read to tell whose a click was; a link's page is in `links`. Days are in the time zone from settings.
+    Days are kept for 13 whole months (6 once the database passes 70% of the plan's size), then each month becomes one row whose
+    `day` is `YYYY-MM`, which sorts before that month's days and so is never in a range of days (`lib/statsHistory.ts`).
+    That, and deleting the months the owner asks to clear, happens a slice at a time after `GET /api/state`, within a daily
+    budget of rows written. `GET /api/stats/export` downloads every row; `GET /api/usage` says how full the database is.
+    The Worker can't see the owner's Cloudflare plan, so `settings.plan` (`free` or `paid`) says it.
   - *Workers Analytics Engine, detailed, last 90 days.* One raw event per hit in the instance's own
     dataset (`ANALYTICS`, named after the Worker). The blob order is `EVENT_FIELDS` in
     `lib/analytics.ts` (kind, target, source, country, device, browser, os, referrer host, daily
@@ -475,7 +496,7 @@ tests/                  Vitest tests (run in workerd)
 - **CPU budget.** The free plan allows 10 ms of CPU per request. Public routes must stay light: no
   image processing, no slow password hashing, no SSR framework. The dashboard resizes images and
   draws share cards in the browser before uploading them.
-- **KV writes.** The free plan allows 1,000 KV writes a day, per account (`pnpm kv-usage` shows what is left today). Publishing writes one per changed
+- **KV writes.** The free plan allows 1,000 KV writes a day, per account (`pnpm usage` shows what is left today). Publishing writes one per changed
   link, and with `hostFonts` on, when the page's characters change, one per font file plus one per
   old file deleted; keep bulk operations within that.
 - **No limit on pages or short links, so no whole-table reads.** A site can hold any number of both. The free plan still applies: 5 million D1 rows read a day (queries fail past that), 50 queries per request, 100 bound values per query, five terms in a compound SELECT, and 10 ms of CPU. So a lookup goes through an index for the names or ids it needs (`ownersOf`, `getLinksByIds`, `listLinkPage`, `listPageRows`), D1 does the work on a list of pages rather than the Worker parsing every draft, and a change to a whole site drops at most `KV_OPS_AT_ONCE` copies for visits to rebuild, answering `copiesLeft` if some stayed. `tests/scale.test.ts` holds a large site to these numbers; a query that names `stats_target_day` with `INDEXED BY` does so because SQLite otherwise scans the day's rows. Only backups read everything, a slice at a time.

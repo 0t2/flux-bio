@@ -24,7 +24,7 @@ describe('the setting', () => {
 
 	it('reads as on for settings stored before it existed', () => {
 		const stored = { home: 'main', timezone: 'UTC', locale: 'en', languages: [], domain: '', hostFonts: false }
-		expect(upgradeSettings(stored, 'main')).toEqual({ ...stored, bio: true, homeUrl: '', qrLogo: '' })
+		expect(upgradeSettings(stored, 'main')).toEqual({ ...stored, bio: true, homeUrl: '', qrLogo: '', plan: 'free' })
 		expect(upgradeSettings({ handle: 'me', homepage: true, timezone: 'UTC', locale: 'en' }, 'main')).toMatchObject({ bio: true, homeUrl: '' })
 		// What is stored already stays.
 		expect(upgradeSettings({ ...stored, bio: false, homeUrl: 'https://example.com/' }, 'main')).toMatchObject({ bio: false, homeUrl: 'https://example.com/' })

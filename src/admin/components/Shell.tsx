@@ -7,6 +7,7 @@ import { msg, t } from '../i18n'
 import { useApp } from '../state/app'
 import { useOptionalPage, usePage, type SaveStatus } from '../state/page'
 import { Icon, Logo } from './Icon'
+import { UsageNotice } from './UsageNotice'
 import { ShareDraft } from './ShareDraft'
 import { LanguageSelect } from './LanguageSelect'
 import { CopyButton, Dialog, Popover, toast } from './ui'
@@ -140,6 +141,7 @@ export function Shell({ children }: { children: ReactNode }) {
 							)}
 						</div>
 					)}
+					<UsageNotice />
 					{children}
 				</main>
 			</div>

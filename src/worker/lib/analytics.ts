@@ -346,6 +346,18 @@ function recentEvent(row: Record<string, unknown>): RecentEvent {
 	}
 }
 
+/** Views and clicks counted since a moment (an ISO time), for how much of today's quota the site has used. Null without Analytics Engine. */
+export async function countsSince(env: Env, since: string): Promise<{ views: number; clicks: number } | null> {
+	const source = sqlOf(env)
+	if (!source) return null
+	const { data } = await source.sql.query<{ k: string; n: number }>({
+		query: `SELECT ${column('kind')} AS k, SUM(sampleInterval) AS n FROM ${source.from} WHERE timestamp >= $since GROUP BY k`,
+		params: { since },
+	})
+	const count = (kind: string) => Math.round(Number(data.find((row) => row.k === kind)?.n ?? 0))
+	return { views: count('view'), clicks: count('click') }
+}
+
 /**
  * Reads the detailed numbers for a period. Returns null when Analytics Engine
  * isn't available, e.g. in local development where the SQL binding has no
