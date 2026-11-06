@@ -3,8 +3,10 @@ name: Test and deploy
 # Every pull request and push runs the type check and the tests, and builds the
 # landing page. A push to main in the maintainer's repository then deploys;
 # forks never do. The landing page always goes out, since it uses the product's
-# themes. flux-bio only goes out when something it is built from or deployed with changed:
-# not for the landing page, the docs, the tests or the scripts that only help develop it.
+# themes. A FluxBio site goes out too only when the repository names one in its
+# FLUXBIO_SITE variable, and then only when something it is built from or deployed
+# with changed: not for the landing page, the docs, the tests or the scripts that
+# only help develop it.
 
 on:
   pull_request:
@@ -35,18 +37,20 @@ jobs:
       - run: pnpm landing
       # The Workers keep their own secrets, so deploys don't pass a secrets file. The token
       # reaches one account only, so cf needs no account id.
-      # With FLUXBIO_TOKEN (a full token made on the live site) and the FLUXBIO_SITE variable, the
-      # site's pictures go out as static files (pnpm deploy:images), so visitors load them without
-      # costing quota. They are downloaded afresh each time, never cached: an Actions cache in a public
-      # repository can be read by pull requests from forks. If that fails, the deploy goes out without them.
+      # Without the FLUXBIO_SITE variable no FluxBio site is deployed: `cf deploy` would make a new
+      # Worker, database and KV namespace on the account, and stop for want of its password.
+      # With it and FLUXBIO_TOKEN (a full token made on that site), the site's pictures go out as static
+      # files (pnpm deploy:images), so visitors load them without costing quota. They are downloaded
+      # afresh each time, never cached: an Actions cache in a public repository can be read by pull
+      # requests from forks. If that fails, or there is no token, the deploy goes out without them.
       - if: github.event_name == 'push' && github.repository == '0t2/flux-bio'
         run: |
           changed=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}") || changed=unknown
           product=$(printf '%s\n' "$changed" | grep -vE '^(landing/|docs/|tests/|scripts/|\.claude/|[^/]+\.md$|themes/README\.md$|LICENSE$|\.gitignore$)' || true)
           # The one script a deploy runs.
           deployer=$(printf '%s\n' "$changed" | grep -E '^scripts/deploy-images\.mjs$' || true)
-          if [ -n "$product$deployer" ]; then
-            if [ -n "$FLUXBIO_TOKEN" ] && [ -n "$FLUXBIO_SITE" ]; then
+          if [ -n "$FLUXBIO_SITE" ] && [ -n "$product$deployer" ]; then
+            if [ -n "$FLUXBIO_TOKEN" ]; then
               pnpm deploy:images --site "$FLUXBIO_SITE" || pnpm exec cf deploy
             else
               pnpm exec cf deploy
