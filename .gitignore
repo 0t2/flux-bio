@@ -13,6 +13,9 @@ coverage/
 .cloudflare/
 .secrets*.env
 
+# Pictures pnpm deploy:images downloads from a site, to ship as static files: the owner's, never committed
+public/media/
+
 # Skills stay on the maintainer's computer: nobody hosting FluxBio needs them
 .claude/skills/
 skills-lock.json

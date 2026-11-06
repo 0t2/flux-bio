@@ -20,7 +20,8 @@
     "landing:deploy": "node landing/build.mjs && cd landing && cf deploy --prebuilt",
     "shots": "node scripts/shots.mjs",
     "brand": "node scripts/brand.mjs",
-    "usage": "node scripts/usage.mjs"
+    "usage": "node scripts/usage.mjs",
+    "deploy:images": "node scripts/deploy-images.mjs"
   },
   "cloudflare": {
     "bindings": {

@@ -152,5 +152,7 @@
 	"s184": "Sekitar {cost}",
 	"s185": "Ini perkiraan kasar. Untuk tahu pemakaian halamanmu yang sebenarnya, tanyakan ke AI-mu.",
 	"s187": "Gratis",
-	"s188": "Paket"
+	"s188": "Paket",
+	"s189": "Gambar di-deploy bersama situs",
+	"s190": "Minta AI-mu men-deploy gambarmu bersama situs, maka pengunjung yang memuatnya tidak memakai kuota. Tidak ada tombolnya di dasbor, dan gambar yang diunggah sesudahnya tetap dihitung sampai deploy berikutnya."
 }

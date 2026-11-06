@@ -9,3 +9,10 @@
 # Vite puts hashed build files here.
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+
+# Pictures shipped as static files by pnpm deploy:images, with the headers the Worker gives the rest from KV
+# (MEDIA_CSP in src/worker/routes/site.ts). An id never changes its picture.
+/media/*
+  Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff
+  Content-Security-Policy: default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox
