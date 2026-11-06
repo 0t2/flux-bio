@@ -273,12 +273,7 @@ figcaption{display:flex;flex-direction:column;gap:2px;padding:8px 10px;backgroun
 .est-row{margin-top:clamp(28px,3vw,48px)}
 .est-copy{display:flex;flex-direction:column;gap:32px}
 .est-form{display:flex;flex-direction:column;gap:28px}
-.est-form[hidden],.est-live[hidden],.est-static[hidden],.est-field[hidden]{display:none}
-.est-use{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;border:0}
-.est-use label{display:inline-flex;align-items:center;min-height:44px;padding:0 20px;border-radius:999px;background:var(--sheet);font-size:15px;font-weight:600;cursor:pointer;transition:background-color .16s,color .16s}
-.est-use label:hover{background:var(--active)}
-.est-use input:checked+label{background:var(--ink);color:var(--sheet)}
-.est-use input:focus-visible+label{outline:2px solid var(--accent);outline-offset:2px}
+.est-form[hidden],.est-live[hidden],.est-static[hidden]{display:none}
 .est-field{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px 16px}
 .est-field label{font-weight:500}
 .est-num{width:12ch;min-height:44px;padding:0 12px;border:0;border-radius:6px;background:var(--sheet);color:var(--ink);font:inherit;font-variant-numeric:tabular-nums;text-align:end}
@@ -286,9 +281,16 @@ figcaption{display:flex;flex-direction:column;gap:2px;padding:8px 10px;backgroun
 .est-field input[type=range]{grid-column:1/-1;width:100%;min-height:32px;margin:0;accent-color:var(--accent);cursor:pointer}
 .est-field .note{grid-column:1/-1}
 .est-panel{display:flex;flex-direction:column;gap:20px;padding:clamp(24px,3vw,40px);border-radius:16px;background:var(--sheet)}
-.est-live{display:flex;flex-direction:column;gap:18px}
+.est-live{display:flex;flex-direction:column;gap:20px}
+.est-view{display:flex;flex-direction:column;gap:18px}
+.est-view[hidden]{display:none}
+/* Which plan the panel shows: the free plan's day, or a month on Workers Paid. */
+.est-switch{display:flex;align-self:flex-end;gap:4px;padding:4px;border-radius:999px;background:var(--raised)}
+.est-switch button{min-height:36px;padding:0 16px;border:0;border-radius:999px;background:transparent;color:var(--ink);font:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background-color .16s,color .16s}
+.est-switch button:hover{background:var(--active)}
+.est-switch button[aria-pressed=true]{background:var(--ink);color:var(--sheet)}
 .est-verdict{font-size:clamp(22px,2.2vw,30px);font-weight:600;line-height:1.25;text-wrap:balance}
-.est-head{margin-top:8px;font-weight:600}
+.est-head{font-weight:600}
 .est-bars,.est-lines{display:flex;flex-direction:column;gap:14px;margin:0;padding:0;list-style:none}
 .est-bars li,.est-lines li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;align-items:baseline}
 .est-lines li{gap:2px 16px}
@@ -580,33 +582,33 @@ html.js [data-in].in{opacity:1;transform:none}
 <div class="est-copy" data-in>
 <p class="lead">{{s164}}</p>
 <form class="est-form" id="est-form" hidden>
-<fieldset class="est-use">
-<legend class="vh">{{s166}}</legend>
-<input class="vh" type="radio" name="est-use" id="est-bio" value="bio" checked><label for="est-bio">{{s167}}</label>
-<input class="vh" type="radio" name="est-use" id="est-short" value="short"><label for="est-short">{{s168}}</label>
-</fieldset>
 <div class="est-field">
-<label for="est-views" id="est-views-label" data-bio="{{s169}}" data-short="{{s170}}">{{s169}}</label>
+<label for="est-views" id="est-views-label">{{s169}}</label>
 <input class="est-num" id="est-views" type="number" inputmode="numeric" min="0" max="100000000" step="100" value="5000">
 <input id="est-views-range" type="range" min="0" max="100" step="1" value="46" aria-labelledby="est-views-label">
 </div>
-<div class="est-field" data-only="bio">
+<div class="est-field">
 <label for="est-rate">{{s171}}</label>
 <output class="est-out" id="est-rate-out" for="est-rate">30%</output>
 <input id="est-rate" type="range" min="0" max="100" step="5" value="30">
 </div>
-<div class="est-field" data-only="bio">
+<div class="est-field">
 <label for="est-images">{{s172}}</label>
-<input class="est-num" id="est-images" type="number" inputmode="numeric" min="0" max="20" step="1" value="1" aria-describedby="est-images-note">
+<input class="est-num" id="est-images" type="number" inputmode="numeric" min="0" max="50" step="1" value="5" aria-describedby="est-images-note">
 <p class="note" id="est-images-note">{{s173}}</p>
 </div>
 </form>
 </div>
 <div class="est-panel" data-ui data-in style="--i:1">
 <p class="lead est-static">{{s165}}</p>
-<div class="est-live" id="est-result" hidden aria-live="polite">
+<div class="est-live" id="est-result" hidden>
+<div class="est-switch" role="group" aria-label="{{s188}}">
+<button type="button" data-plan="free" aria-pressed="true">{{s187}}</button>
+<button type="button" data-plan="paid" aria-pressed="false">Workers Paid</button>
+</div>
+<div class="est-view" id="est-free" aria-live="polite">
 <p class="est-verdict" id="est-verdict" data-ok="{{s174}}" data-over="{{s175}}"></p>
-<p id="est-max" data-bio="{{s176}}" data-short="{{s177}}"></p>
+<p id="est-max" data-text="{{s176}}"></p>
 <p class="est-head">{{s178}}</p>
 <ul class="est-bars" role="list">
 <li data-key="requests"><span>{{s179}}</span><em></em><span class="est-bar" aria-hidden="true"><span></span></span></li>
@@ -614,6 +616,8 @@ html.js [data-in].in{opacity:1;transform:none}
 <li data-key="rowsWritten"><span>{{s181}}</span><em></em><span class="est-bar" aria-hidden="true"><span></span></span></li>
 <li data-key="events"><span>{{s182}}</span><em></em><span class="est-bar" aria-hidden="true"><span></span></span></li>
 </ul>
+</div>
+<div class="est-view" id="est-paid" hidden aria-live="polite">
 <p class="est-head">{{s183}}</p>
 <p class="est-cost" id="est-cost" data-text="{{s184}}"></p>
 <ul class="est-lines" role="list" data-text="{{s186}}">
@@ -622,6 +626,7 @@ html.js [data-in].in{opacity:1;transform:none}
 <li data-key="rowsWritten"><span>{{s181}}</span><b></b><em></em></li>
 </ul>
 <p class="note">{{s185}}</p>
+</div>
 </div>
 </div>
 </div>
