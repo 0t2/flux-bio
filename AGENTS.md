@@ -509,11 +509,14 @@ tests/                  Vitest tests (run in workerd)
   frames that show a picture and load the real player or map only when tapped. The only other script on
   a public page is the copy button of the in-app browser notice, allowed by a per-response nonce.
 - **Fonts come from Google, or from the Worker.** By default public pages link to Google Fonts,
-  which costs no quota. A page in a language written without Chinese characters names the visitor's own fonts first, so the
-  built-in Chinese font there only draws the Chinese in the owner's own text (`fallbackFonts`): a live page asks Google for it
-  with exactly those characters (`&text=`), or not at all when it shows none, where the whole font's stylesheet is about
-  35 KB that holds up the first paint (`fontLinks` in `src/templates/render.ts`, `tests/font-links.test.ts`). Pages in
-  Traditional Chinese, and the dashboard's preview, link the whole font. With `settings.hostFonts` on (外觀 has the switch, with a help dialog aimed
+  which costs no quota. A Chinese, Japanese or Korean font comes cut into a hundred files or so, and its stylesheet, the list
+  of them, is about 35 KB that holds up the first paint. So a live page asks Google for such a font with exactly the characters
+  it shows this visitor (`&text=`), which is one small rule and one file (`fontLinks` in `src/templates/render.ts`,
+  `tests/font-links.test.ts`): every character where the font is the page's own, as on a page in Traditional Chinese, and only
+  the Chinese where it stands behind the visitor's own fonts, as the built-in Chinese font does on a page in English
+  (`fallbackFonts`), or nothing when there is none. Google cuts a font to 800 characters at most and sends all of it when asked
+  for more (`GOOGLE_TEXT_LIMIT`), so a page that shows more links the whole font. A cut font is kept by a browser for a day,
+  the whole one's files for a year. Other families, and the dashboard's preview, link whole. With `settings.hostFonts` on (外觀 has the switch, with a help dialog aimed
   at owners with visitors in the EU), publishing asks Google Fonts for each family the page uses
   with only the characters it can show (its text, the built-in text of its languages, ASCII),
   stores the woff2 files in KV under `font:<page id>-<fingerprint>-<n>` and lists them in the page's
