@@ -176,6 +176,22 @@ export const OPERATIONS: Operation[] = [
 	{ method: 'put', path: '/api/media/{id}', id: 'putImage', tag: 'Media', summary: 'Upload an image under a given id (used by imports)', body: 'image' },
 	{
 		method: 'get',
+		path: '/api/media/unused',
+		id: 'listUnusedImages',
+		tag: 'Media',
+		summary: 'Uploaded images nothing uses any more',
+		description: 'Ids no draft, published page, kept version, QR code, setting or saved theme refers to. Images uploaded in the last keptDays days are left out. They cost no daily quota, only storage; looking reads a few hundred D1 rows per page and kept version. more: others remain after these are deleted.',
+	},
+	{
+		method: 'delete',
+		path: '/api/media/unused',
+		id: 'deleteUnusedImages',
+		tag: 'Media',
+		summary: 'Delete the images nothing uses any more',
+		description: 'Permanent: an older backup that used one of them comes back without it. Tell the owner how many (listUnusedImages) and wait for a yes. more: call again.',
+	},
+	{
+		method: 'get',
 		path: '/api/links',
 		id: 'listLinks',
 		tag: 'Short links',

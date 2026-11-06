@@ -8,6 +8,7 @@ import type {
 	CommunityThemesResponse,
 	CreateLinkResponse,
 	CreateTokenResponse,
+	DeletedMediaResponse,
 	FontsResponse,
 	LinkJson,
 	LinkStatsResponse,
@@ -19,6 +20,7 @@ import type {
 	StatsExportResponse,
 	StatsResponse,
 	TopTargetJson,
+	UnusedMediaResponse,
 	UsageResponse,
 	PreviewLinkResponse,
 } from '../../shared/api'
@@ -65,6 +67,7 @@ import {
 	verifySession,
 } from '../lib/auth'
 import { clearAllData, exportData, importData } from '../lib/backup'
+import { deleteUnusedMedia, unusedMedia, UNUSED_AFTER } from '../lib/media'
 import { mediaKey } from '../lib/cache'
 import {
 	deleteToken,
@@ -648,8 +651,21 @@ async function readImage(c: Context<AppEnv>): Promise<{ bytes: ArrayBuffer; type
 api.post('/media', async (c) => {
 	const { bytes, type, ext } = await readImage(c)
 	const id = `${randomString(12)}.${ext}`
-	await c.env.KV.put(mediaKey(id), bytes, { metadata: { type } })
+	// Dated, so one nothing uses yet isn't taken for one nothing uses any more (lib/media.ts).
+	await c.env.KV.put(mediaKey(id), bytes, { metadata: { type, at: Date.now() } })
 	return c.json({ id, url: `/media/${id}` }, 201)
+})
+
+// Pictures nothing uses any more: what would go, and letting them go. Before /media/:id.
+api.get('/media/unused', async (c) => {
+	const { ids, more } = await unusedMedia(c.env)
+	const body: UnusedMediaResponse = { unused: ids, more, keptDays: UNUSED_AFTER / 86_400_000 }
+	return c.json(body)
+})
+
+api.delete('/media/unused', async (c) => {
+	const body: DeletedMediaResponse = await deleteUnusedMedia(c.env)
+	return c.json(body)
 })
 
 // Imports re-upload images under the ids the settings file uses.
@@ -657,7 +673,7 @@ api.put('/media/:id', async (c) => {
 	const id = c.req.param('id')
 	if (!MEDIA_ID.test(id)) throw new ApiError(400, 'invalid', msg('圖片 id 格式不正確'))
 	const { bytes, type } = await readImage(c)
-	await c.env.KV.put(mediaKey(id), bytes, { metadata: { type } })
+	await c.env.KV.put(mediaKey(id), bytes, { metadata: { type, at: Date.now() } })
 	return c.json({ id, url: `/media/${id}` })
 })
 

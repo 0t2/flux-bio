@@ -71,7 +71,8 @@ export interface LinkRecord {
 
 const SITE_KEY = 'site'
 const nameKey = (name: string) => `name:${name}`
-export const mediaKey = (id: string) => `media:${id}`
+export const MEDIA_PREFIX = 'media:'
+export const mediaKey = (id: string) => `${MEDIA_PREFIX}${id}`
 
 /** What is at a first path segment: a published page, or a short link. */
 export type Named = { page: Snapshot; link?: undefined } | { link: LinkRecord; page?: undefined }
