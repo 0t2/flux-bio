@@ -7,6 +7,7 @@ import { ApiError, request } from '../api'
 import { Bars, Sparkline } from '../components/charts'
 import { AskAi } from '../components/AskAi'
 import { Icon } from '../components/Icon'
+import { QrDefaultsButton } from '../components/QrDefaults'
 import { QR_HINT } from '../components/QrCode'
 import { CopyButton, EmptyState, toast, Toggle, useSavedSwitch } from '../components/ui'
 import { msg, t, tr } from '../i18n'
@@ -118,6 +119,7 @@ export function ShortLinksPage() {
 					<h1>{t('短網址')}</h1>
 					<p>{app.settings.bio ? t('頁面上的連結會自動出現在這裡；也可以單獨建立，用在貼文、DM 或印刷品。') : t('建立短網址，用在貼文、DM 或印刷品。')}</p>
 				</div>
+				<QrDefaultsButton />
 			</div>
 
 			{loadError && (

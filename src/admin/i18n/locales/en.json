@@ -918,10 +918,7 @@
 	"每天的瀏覽和點擊次數保留 {months} 個月，更早的月份只留每月總數。": "Daily views and clicks are kept for {months} months. Older months keep only their monthly totals.",
 	"下載成 CSV 檔，Excel 和 Google 試算表都能開。下載不會刪掉任何資料。": "A CSV file that opens in Excel or Google Sheets. Downloading doesn't delete anything.",
 	"下載點擊數據": "Download stats",
-	"資料庫已用 {used}，這個方案最多 {limit}。": "The database uses {used} of the {limit} this plan allows.",
 	"正在清除 {month} 以前的點擊數據，每次打開後台會清掉一部分。": "Deleting stats from before {month}. A part goes each time the dashboard is opened.",
-	"我換成 Cloudflare 付費方案了，幫我更新 FluxBio 的方案設定": "I moved to a paid Cloudflare plan. Please update FluxBio's plan setting.",
-	"我換回 Cloudflare 免費方案了，幫我更新 FluxBio 的方案設定": "I moved back to the free Cloudflare plan. Please update FluxBio's plan setting.",
 	"清除舊數據": "Delete old stats",
 	"已下載，舊數據會在接下來幾次打開後台時陸續清除": "Downloaded. The old stats will be deleted over the next few times you open the dashboard.",
 	"沒有完成，請再試一次": "That didn't finish. Please try again.",
@@ -934,5 +931,13 @@
 	"對象": "Item",
 	"次數": "Count",
 	"只能清除 {month} 以前的點擊數據，比這更新的還會顯示在數據頁": "Only stats from before {month} can be deleted. Newer ones still show on the Stats pages.",
-	"清除點擊數據": "Delete stats"
+	"清除點擊數據": "Delete stats",
+	"今天的請求": "Requests today",
+	"今天的 KV 讀取": "KV reads today",
+	"今天的資料庫寫入": "Database writes today",
+	"用量": "Usage",
+	"Cloudflare 方案：Workers Paid。超過內含的額度會照用量計費，網站不會停。": "Cloudflare plan: Workers Paid. Use beyond what's included is billed, and the site keeps running.",
+	"Cloudflare 方案：免費。每天的額度用完，網站會停到 {time} 重新計算。": "Cloudflare plan: Free. If a daily limit runs out, the site stops until {time}, when it starts over.",
+	"今天到目前有 {views} 次瀏覽、{clicks} 次點擊。今天的數字是這個網站自己估的，圖片、機器人和帳號裡的其他專案沒有算進去。": "So far today: {views} views and {clicks} clicks. Today's numbers are this site's own estimate: pictures, bots and other projects on your account aren't counted.",
+	"幫我查 Cloudflare 帳號今天實際用了多少": "Check how much of my Cloudflare account was actually used today"
 }

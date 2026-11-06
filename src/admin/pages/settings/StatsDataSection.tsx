@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import { request } from '../../api'
-import { AskAi } from '../../components/AskAi'
 import { Icon } from '../../components/Icon'
 import { Dialog, Section, toast } from '../../components/ui'
 import { t } from '../../i18n'
 import { addMonths } from '../../../shared/time'
-import { formatMonth, formatNumber, formatSize } from '../../lib/format'
+import { formatMonth, formatNumber } from '../../lib/format'
 import { refreshUsage, useUsage } from '../../state/usage'
 import { downloadStats } from './statsFile'
 import { errorText } from './util'
@@ -44,28 +43,20 @@ export function StatsDataSection() {
 				<div>
 					{stats && <p className="hint">{t('每天的瀏覽和點擊次數保留 {months} 個月，更早的月份只留每月總數。', { months: stats.dailyMonths })}</p>}
 					<p className="hint">{t('下載成 CSV 檔，Excel 和 Google 試算表都能開。下載不會刪掉任何資料。')}</p>
+					{stats?.clearing && <p className="hint">{t('正在清除 {month} 以前的點擊數據，每次打開後台會清掉一部分。', { month: formatMonth(stats.clearing) })}</p>}
 				</div>
-				<button type="button" className="btn" aria-disabled={progress !== null || undefined} onClick={() => void download()}>
-					<Icon name="download" size={16} />
-					{progress ?? t('下載點擊數據')}
-				</button>
-			</div>
-			{usage && (
-				<div className="set-backup-row">
-					<div>
-						<p className="hint">
-							{t('資料庫已用 {used}，這個方案最多 {limit}。', { used: formatSize(usage.database.bytes), limit: formatSize(usage.database.limit) })}
-						</p>
-						{stats?.clearing && <p className="hint">{t('正在清除 {month} 以前的點擊數據，每次打開後台會清掉一部分。', { month: formatMonth(stats.clearing) })}</p>}
-						<AskAi say={usage.plan === 'free' ? t('我換成 Cloudflare 付費方案了，幫我更新 FluxBio 的方案設定') : t('我換回 Cloudflare 免費方案了，幫我更新 FluxBio 的方案設定')} />
-					</div>
+				<div className="set-stats-actions">
+					<button type="button" className="btn" aria-disabled={progress !== null || undefined} onClick={() => void download()}>
+						<Icon name="download" size={16} />
+						{progress ?? t('下載點擊數據')}
+					</button>
 					{canClear && (
 						<button type="button" className="btn" onClick={() => setClearing(true)}>
 							{t('清除舊數據')}
 						</button>
 					)}
 				</div>
-			)}
+			</div>
 			{error && (
 				<p className="form-error" role="alert">
 					{error}

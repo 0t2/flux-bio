@@ -9,8 +9,8 @@ import { BackupSection } from './settings/BackupSection'
 import { BioSection } from './settings/BioSection'
 import { ConnectAi } from './settings/ConnectAi'
 import { DangerSection } from './settings/DangerSection'
-import { QrDefaultsSection } from './settings/QrDefaultsSection'
 import { StatsDataSection } from './settings/StatsDataSection'
+import { UsageSection } from './settings/UsageSection'
 import { REPO_URL } from './settings/util'
 import '../styles/settings.css'
 
@@ -43,8 +43,8 @@ export function SettingsPage() {
 			</div>
 			<div className="set-stack wide">
 				<BioSection />
-				<QrDefaultsSection />
 				<ConnectAi />
+				<UsageSection />
 				<BackupSection />
 				<StatsDataSection />
 				<DangerSection />

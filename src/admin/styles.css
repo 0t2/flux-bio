@@ -2621,3 +2621,49 @@ samp {
 [dir='rtl'] svg {
 	direction: ltr;
 }
+
+/* QR Code default pictures */
+.qr-defaults {
+	display: flex;
+	flex-direction: column;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.qr-defaults li {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
+	padding-block: 12px;
+	border-top: 1px solid var(--line);
+}
+.qr-defaults li > div:not(.qr-defaults-actions) {
+	flex: 1 1 200px;
+	min-width: 0;
+}
+.qr-defaults .hint {
+	margin: 2px 0 0;
+}
+.qr-defaults-thumb {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	overflow: hidden;
+	border-radius: var(--r-control);
+	background: var(--raised-2);
+	color: var(--text-2);
+}
+.qr-defaults-thumb img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+.qr-defaults-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
