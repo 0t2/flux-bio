@@ -150,8 +150,7 @@
 	"s182": "Stats events",
 	"s183": "Workers Paid, per month",
 	"s184": "About {cost}",
-	"s185": "US$5 a month, with use beyond what's included billed as you go. Stats events (Analytics Engine) aren't billed for now, and CPU time comes with 30 million milliseconds a month; neither is counted here. Nor are the KV writes from publishing pages and making short links, which don't grow with traffic. What each view and click uses was measured on FluxBio; prices are Cloudflare's, as published in November 2026.",
-	"s186": "{used}, {included} included",
+	"s185": "A rough estimate. To know what your own page will use, ask your AI.",
 	"s187": "Free",
 	"s188": "Plan"
 }
