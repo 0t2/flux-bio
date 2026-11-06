@@ -3,6 +3,7 @@ import { CommunityListSchema } from '../src/shared/community'
 import { STARTER_IDS } from '../src/shared/starters'
 import {
 	appearanceFromPreset,
+	AppearanceSchema,
 	defaultAppearance,
 	defaultContent,
 	PageContentSchema,
@@ -212,6 +213,26 @@ describe('compositions', () => {
 		const html = page({ coverImage: 'a1.webp', bgImage: 'b2.webp', bgDim: 0.6 })
 		expect(html).toContain('<figure class="cover"><img src="/media/a1.webp" alt=""></figure>')
 		expect(html).toContain('<div class="page-bg" style="--dim:0.6" aria-hidden="true"><img src="/media/b2.webp" alt=""></div>')
+	})
+
+	it('repeat a background at the width set in bgTile, and cover the screen at 0', () => {
+		const tiled = page({ bgImage: 'b2.png', bgDim: 0.4, bgTile: 553 })
+		expect(tiled).toContain(`<div class="page-bg tile" style="--dim:0.4;background-image:url('/media/b2.png');background-size:553px auto" aria-hidden="true"></div>`)
+		expect(tiled).toContain('.page-bg.tile{background-position:center;background-repeat:repeat}')
+		expect(page({ bgImage: 'b2.png', bgTile: 0 })).toContain('<img src="/media/b2.png" alt="">')
+		// Left out, it covers: an AI that only sets a picture gets what it had before.
+		expect(AppearanceSchema.parse({ ...defaultAppearance(), bgTile: undefined }).bgTile).toBe(0)
+		for (const bgTile of [-1, 1.5, 2001]) expect(AppearanceSchema.safeParse({ ...defaultAppearance(), bgTile }).success, String(bgTile)).toBe(false)
+	})
+
+	it('keep how a background repeats with a saved look', () => {
+		const appearance = { ...defaultAppearance(), bgImage: 'b2.png', bgDim: 0.4, bgTile: 553 }
+		const preset = presetFromAppearance('Pattern', appearance)
+		expect(preset).toMatchObject({ bgImage: 'b2.png', bgTile: 553 })
+		expect(samePreset(preset, appearance)).toBe(true)
+		expect(samePreset(preset, { ...appearance, bgTile: 0 })).toBe(false)
+		expect(appearanceFromPreset(preset, defaultAppearance())).toMatchObject({ bgImage: 'b2.png', bgTile: 553 })
+		expect(presetFromAppearance('Cover', { ...appearance, bgTile: 0 })).not.toHaveProperty('bgTile')
 	})
 
 	it('keep pictures with a saved look, and leave the cover to one that has none', () => {
