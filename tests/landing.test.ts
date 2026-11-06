@@ -237,7 +237,8 @@ describe('on a touch screen', () => {
 describe('the logo', () => {
 	it('comes from one place', () => {
 		const page = renderLanding(template, words['../landing/locales/en.json']!, 'en')
-		expect(page.match(new RegExp(LOGO_PATH.slice(0, 40), 'g'))).toHaveLength(2)
+		// The header, the footer, and the octopus bot at the end of the headline.
+		expect(page.match(new RegExp(LOGO_PATH.slice(0, 40), 'g'))).toHaveLength(3)
 		expect(template).not.toContain('<path d="M16 3c6.5')
 		expect(favicon).toContain(LOGO_PATH)
 	})
