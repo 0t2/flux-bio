@@ -85,7 +85,6 @@ export async function createSession(key: string): Promise<string> {
 /** Whether the cookie is a current session; false when it is missing, expired or forged. */
 export async function verifySession(key: string, value: string | undefined): Promise<boolean> {
 	if (!value) return false
-	// v0.1's "v1.<expiry>.<signature>" cookies were signed differently; those owners sign in again once.
 	const [version, role, expiry, signature, ...rest] = value.split('.')
 	if (version !== 'v2' || role !== 'admin' || rest.length || !expiry || !signature) return false
 	if (Number(expiry) * 1000 < Date.now()) return false

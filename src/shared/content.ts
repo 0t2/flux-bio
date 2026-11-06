@@ -53,13 +53,6 @@ export type LinkIcon = (typeof LINK_ICONS)[number]
 export const LOCALES = ['zh-TW', 'en', 'zh-CN', 'ja', 'ko', 'es', 'pt-BR', 'fr', 'de', 'id', 'th', 'vi', 'ar'] as const
 export type Locale = (typeof LOCALES)[number]
 
-/**
- * What settings, KV copies and backups written before v0.3 may hold: one
- * language, or "auto" for every language (English when none matched). Read
- * them with pageLanguages() in shared/locale.ts.
- */
-export type LocaleSetting = Locale | 'auto'
-
 export const ITEM_KINDS = ['link', 'heading', 'video', 'gallery', 'product', 'hours', 'embed'] as const
 export type ItemKind = (typeof ITEM_KINDS)[number]
 
@@ -214,6 +207,10 @@ export const FontFamilySchema = z
 	.max(60)
 	.refine((name) => name === '' || findFont(name) !== null, { message: msg('Google Fonts 沒有這個字型') })
 
+/**
+ * A page's look. The fields with a default may be left out, and get the theme's own: an AI building a look through
+ * the API can send the theme and only the colors, fonts or pictures it means to set.
+ */
 export const AppearanceSchema = z.object({
 	theme: z.enum(THEME_IDS),
 	/** Empty string means "use the theme's own accent". */
@@ -241,10 +238,13 @@ export const AppearanceSchema = z.object({
 	bgImage: mediaRef.default(null),
 	/** How much of that layer covers the picture: enough for the page's text to stay readable on it. */
 	bgDim: z.number().min(0.4).max(0.95).default(0.75),
+	/**
+	 * 0: the picture covers the screen, one copy cropped to fit. Otherwise it repeats, each copy this many CSS pixels wide
+	 * (its height follows), so a pattern looks the same on a phone and a wide screen.
+	 */
+	bgTile: z.number().int().min(0).max(2000).default(0),
 })
 export type Appearance = z.infer<typeof AppearanceSchema>
-/** An appearance as stored before v0.3, without its own colors; KV copies and the site record may still have it. */
-export type StoredAppearance = z.input<typeof AppearanceSchema>
 
 export const SeoSchema = z.object({
 	title: z.string().max(80),
@@ -301,7 +301,7 @@ export const PageContentSchema = z.object({
 	items: z.array(ItemSchema).max(ITEM_LIMIT),
 	seo: SeoSchema,
 	showBadge: z.boolean(),
-	/** Left out until something is translated; missing in everything saved before it existed. */
+	/** Left out until something is translated. */
 	translations: TranslationsSchema.optional(),
 	/** Left out for a page of links. The rest of the content stays, so taking this away brings that page back. */
 	custom: CustomPageSchema.optional(),
@@ -317,34 +317,12 @@ export const PageContentSchema = z.object({
 })
 export type PageContent = z.infer<typeof PageContentSchema>
 
-/** Upgrades content saved by earlier versions; anything else passes through untouched. */
-export function upgradeContent(raw: unknown): unknown {
-	if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw
-	const value: Record<string, unknown> = { ...raw }
-	// v0.1 had only links, under "links".
-	if (Array.isArray(value.links) && !Array.isArray(value.items)) {
-		value.items = value.links.map((link: unknown) =>
-			link && typeof link === 'object' ? { kind: 'link', startsAt: null, endsAt: null, ...link } : link,
-		)
-		delete value.links
-	}
-	if (value.seo && typeof value.seo === 'object' && !('imageMode' in value.seo)) {
-		const seo = value.seo as Record<string, unknown>
-		value.seo = { imageMode: seo.image ? 'upload' : 'auto', tagline: '', autoImage: null, autoImageKey: '', ...seo }
-	}
-	return value
-}
-
-/** PageContentSchema that also accepts content in an older shape. */
-export const PageContentInputSchema = z.preprocess(upgradeContent, PageContentSchema)
-
 /**
- * Stored content, upgraded, with fonts no longer on the list dropped: a page
- * saved with a family that a newer list leaves out still opens, in its
- * theme's font, instead of failing to parse.
+ * Stored content with fonts no longer on the list dropped: a page saved with a
+ * family that a newer list leaves out still opens, in its theme's font,
+ * instead of failing to parse.
  */
-export function storedContent(raw: unknown): unknown {
-	const value = upgradeContent(raw)
+export function storedContent(value: unknown): unknown {
 	if (!value || typeof value !== 'object' || !('appearance' in value)) return value
 	const appearance = value.appearance as Record<string, unknown> | null
 	if (!appearance || typeof appearance !== 'object') return value
@@ -391,26 +369,6 @@ export type Settings = z.infer<typeof SettingsSchema>
 
 export const DEFAULT_SETTINGS: Settings = { home: '', timezone: 'UTC', locale: 'en', languages: [], domain: '', hostFonts: false, bio: true, homeUrl: '', qrLogo: '', plan: 'free' }
 
-/**
- * Brings stored settings up to date. v0.1 had one page: { handle, homepage,
- * timezone, locale }. Before v0.3, locale could be "auto" (every language,
- * English first) and there was no list of languages.
- */
-export function upgradeSettings(raw: unknown, legacyPageId: string): unknown {
-	if (!raw || typeof raw !== 'object') return raw
-	let value = raw as Record<string, unknown>
-	if (!('home' in value)) value = { home: value.homepage ? legacyPageId : '', timezone: value.timezone, locale: value.locale, domain: '' }
-	if (value.locale === 'auto') value = { ...value, locale: 'en', languages: LOCALES.filter((code) => code !== 'en') }
-	if (!('languages' in value)) value = { ...value, languages: [] }
-	// Fonts were copied to the Worker only in v0.3, and only with this switch on.
-	if (!('hostFonts' in value)) value = { ...value, hostFonts: false }
-	// Pages could not be switched off before.
-	if (!('bio' in value)) value = { ...value, bio: true, homeUrl: '' }
-	// QR codes had no default picture before.
-	if (!('qrLogo' in value)) value = { ...value, qrLogo: '' }
-	return 'plan' in value ? value : { ...value, plan: 'free' }
-}
-
 /** A saved look: a base theme plus the colors, font and button chosen on top. */
 export const ThemePresetSchema = z.object({
 	name: z.string().trim().min(1).max(40),
@@ -431,6 +389,7 @@ export const ThemePresetSchema = z.object({
 	coverImage: mediaId.optional(),
 	bgImage: mediaId.optional(),
 	bgDim: z.number().min(0.4).max(0.95).optional(),
+	bgTile: z.number().int().min(0).max(2000).optional(),
 })
 export type ThemePreset = z.infer<typeof ThemePresetSchema>
 
@@ -450,7 +409,7 @@ export function presetFromAppearance(name: string, appearance: Appearance): Them
 		...(appearance.bodyFont && { bodyFont: appearance.bodyFont }),
 		button: appearance.button,
 		...(appearance.coverImage && { coverImage: appearance.coverImage }),
-		...(appearance.bgImage && { bgImage: appearance.bgImage, bgDim: appearance.bgDim }),
+		...(appearance.bgImage && { bgImage: appearance.bgImage, bgDim: appearance.bgDim, ...(appearance.bgTile && { bgTile: appearance.bgTile }) }),
 	}
 }
 
@@ -470,13 +429,14 @@ export function appearanceFromPreset(preset: ThemePreset, current: Appearance): 
 		coverImage: preset.coverImage ?? current.coverImage ?? null,
 		bgImage: preset.bgImage ?? null,
 		bgDim: preset.bgDim ?? 0.75,
+		bgTile: preset.bgTile ?? 0,
 	}
 }
 
 const sameColor = (a: string | undefined, b: string | undefined) => (a ?? '').toUpperCase() === (b ?? '').toUpperCase()
 
 export function samePreset(
-	a: Pick<ThemePreset, 'base' | 'accent' | 'accent2' | 'bg' | 'fg' | 'font' | 'headFont' | 'bodyFont' | 'button' | 'coverImage' | 'bgImage'>,
+	a: Pick<ThemePreset, 'base' | 'accent' | 'accent2' | 'bg' | 'fg' | 'font' | 'headFont' | 'bodyFont' | 'button' | 'coverImage' | 'bgImage' | 'bgTile'>,
 	appearance: Appearance,
 ): boolean {
 	return (
@@ -490,7 +450,9 @@ export function samePreset(
 		a.font === appearance.font &&
 		a.button === appearance.button &&
 		(!a.coverImage || a.coverImage === appearance.coverImage) &&
-		(a.bgImage ?? null) === (appearance.bgImage ?? null)
+		(a.bgImage ?? null) === appearance.bgImage &&
+		// How a background repeats only matters when there is one.
+		(!a.bgImage || (a.bgTile ?? 0) === appearance.bgTile)
 	)
 }
 
@@ -506,7 +468,7 @@ export function randomString(length: number, alphabet = ID_ALPHABET): string {
 export const newId = (): string => randomString(10)
 
 export function defaultAppearance(): Appearance {
-	return { theme: 'liquid', accent: '', accent2: '', bg: '', fg: '', font: 'auto', headFont: '', bodyFont: '', button: 'auto', showSocial: true, coverImage: null, bgImage: null, bgDim: 0.75 }
+	return { theme: 'liquid', accent: '', accent2: '', bg: '', fg: '', font: 'auto', headFont: '', bodyFont: '', button: 'auto', showSocial: true, coverImage: null, bgImage: null, bgDim: 0.75, bgTile: 0 }
 }
 
 export function emptyLink(): LinkItem {

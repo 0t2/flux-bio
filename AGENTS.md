@@ -309,10 +309,12 @@ try.
 
 Every deployment describes itself, without sign-in:
 
-- `/llms.txt`: a guide for agents working for the owner: how to connect, recipes, when to warn
-  the owner (publishing, broken short links, deleting pages, quotas) and
-  which suggestions to offer. `/skill.md` is the same guide as an Agent Skill. Its longer parts are at `/api/guide/<topic>`, read when
-  needed, so that loading the guide stays cheap.
+- `/llms.txt`: the guide for agents working for the owner, holding what every conversation needs: how to connect, backing
+  up first, changing a page without losing anyone's work, when to warn the owner (publishing, broken short links, deleting
+  pages, quotas), which suggestions to offer, and an index of topics that says when to read each. `/skill.md` is the same
+  guide as an Agent Skill. Everything about one feature is in a topic at `/api/guide/<topic>`, read when needed: page
+  content and every kind of item, stats and sources, themes and fonts, translations, short links in bulk and QR codes,
+  the domain and more sites, the test site, quota, the admin password, every route and more.
 - `/api/openapi.json`: the OpenAPI 3.1 document of what an API token can do (owner-only routes are left
   out), e.g. for ChatGPT actions or n8n.
 
@@ -326,7 +328,7 @@ links (`POST /api/links` and `/api/links/bulk`), a `full` token may do everythin
 tokens and wipe data. Everything speaks JSON. Request and response types are in
 `src/shared/api.ts`; the page content schema is `PageContentSchema` in `src/shared/content.ts`.
 
-Every route, with its parameters, is in `/api/openapi.json` and, as a list, at the end of `/llms.txt`. Both are built from `OPERATIONS` in `src/worker/lib/openapi.ts`, and
+Every route, with its parameters, is in `/api/openapi.json` and, as a list, at `/api/guide/endpoints`. Both are built from `OPERATIONS` in `src/worker/lib/openapi.ts`, and
 `tests/agent.test.ts` fails on a route that isn't there, so read that file when no deployment is running.
 
 Example: add a link to a page and publish it.
@@ -485,8 +487,12 @@ tests/                  Vitest tests (run in workerd)
 - **The API is the product.** Anything the owner can do, an agent must be able to do with a
   `full` token, except managing tokens and wiping. When you add or change a route,
   describe it in `OPERATIONS` in `src/worker/lib/openapi.ts` (`tests/agent.test.ts` fails on an
-  undocumented route). If it changes something the owner would want to be warned about, or gives
-  them something worth suggesting, add it to the guide in `src/worker/lib/agent.ts`, or to a topic in `agentTopics.ts` if only some conversations need it. Turning zod
+  undocumented route). Then tell agents about it in the guide. The main guide (`src/worker/lib/agent.ts`) is loaded
+  whole in every conversation, like a skill's SKILL.md, so it holds only what every conversation needs, and
+  `tests/agent.test.ts` caps its length: put how a feature works in a topic in `agentTopics.ts`, and make sure the
+  topic's `when`, the main guide's index, says when to read it. Something the owner would want to be warned about gets a
+  short row in the main guide's warnings that points to its topic; something worth suggesting, a line under its
+  suggestions. A new topic also goes in the `/api/guide/{topic}` description in `openapi.ts`. Turning zod
   schemas into JSON Schema costs too much CPU for a request, so `vite.openapi.ts` does it at
   build time.
 - **D1 is the source of truth.** It holds `pages`, `page_versions`, `links`, `stats` and
@@ -528,10 +534,9 @@ tests/                  Vitest tests (run in workerd)
     `lib/analytics.ts` (kind, target, source, country, device, browser, os, referrer host, daily
     visitor hash, region, city, utm_content, language, network, slug, destination URL, utm_source,
     utm_medium, utm_campaign, page) and the doubles are `EVENT_NUMBERS`: the local day (yyyymmdd)
-    and hour, the latitude and longitude rounded to 0.1°, the network's AS number, and `layout`.
+    and hour, the latitude and longitude rounded to 0.1°, and the network's AS number.
     `network` is the AS organization (e.g. "Chunghwa Telecom"). Network queries require an AS number
-    above 0, and campaign queries ignore `utm_content` where `layout` is 0. AE allows 20 blobs and the list is
-    full: put new fields in doubles. Append, never reorder.
+    above 0. AE allows 20 blobs and the list is full: put new fields in doubles. Append, never reorder.
     `lib/analytics.ts` reads them through the Analytics SQL binding (`ANALYTICS_SQL`, no API token);
     its sampling column is `sampleInterval`, not `_sample_interval`.
   - *Never store anything that identifies a person.* That means no IP address, no user-agent string
@@ -642,7 +647,7 @@ composition in a shadow root, and the landing page's lists come from the themes,
   locale files, and at least one color set. Every color in a composition must be a variable from `pageVars()` or a mix
   of them, so it keeps working in colors an AI picks. Then `pnpm test`.
 - **What an AI can set** through the API, and the dashboard can't: `accent`, `accent2`, `bg`, `fg`, `font`, `headFont`,
-  `bodyFont`, `button`, `bgImage` and `bgDim` in `appearance`. A page with any of these shows on 外觀 as a look made by
+  `bodyFont`, `button`, `bgImage`, `bgDim` and `bgTile` in `appearance`. A page with any of these shows on 外觀 as a look made by
   AI, and picking a color set clears them. `coverImage` is the page's own picture: the owner uploads it in the profile,
   and picking a color set keeps it.
 - **Fonts.** `headFont` and `bodyFont` take any family on the list in `src/shared/googleFonts.ts`
@@ -736,7 +741,8 @@ registry, so nothing else changes.
    - Dashboard keys: every locale file, then `pnpm i18n server`.
 9. **API.** `PageContentSchema` carries it into `/api/openapi.json`. A new route also goes in `OPERATIONS`
    (`src/worker/lib/openapi.ts`).
-10. **Guide.** One line under "Page content" in `src/worker/lib/agent.ts`, within `tests/agent.test.ts`'s size limit.
+10. **Guide.** One line under "What each kind takes" in the `content` topic (`src/worker/lib/agentTopics.ts`); the item
+    example there is generated. The main guide (`src/worker/lib/agent.ts`) only gets a line if every conversation needs it.
 11. **AGENTS.md.** The kinds under "Rules worth knowing", and any new stats target.
 12. **Tests.** A `tests/<kind>.test.ts` like `tests/embeds.test.ts`, and these, which have to pass:
     - `tests/kv-cost.test.ts`, with its tap added
@@ -757,8 +763,8 @@ Then:
 ### Fonts and the free plan
 
 Every theme comes with its fonts and the dashboard has no font control; it shows a sentence the
-owner can say to their AI (and a prompt to copy in the font help on 外觀), and the guide in
-`src/worker/lib/agent.ts` tells that AI how to pick a Google Fonts family (`GET /api/fonts`,
+owner can say to their AI (and a prompt to copy in the font help on 外觀), and the guide's `look` topic in
+`src/worker/lib/agentTopics.ts` tells that AI how to pick a Google Fonts family (`GET /api/fonts`,
 `appearance.headFont`, `bodyFont`) and what to say about cost.
 
 Loaded from Google (`hostFonts` off, the default), fonts cost the site nothing. With `hostFonts` on,

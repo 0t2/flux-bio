@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { config } from 'zod'
-import { defaultContent, emptyLink, newItem, socialHref, upgradeContent, videoEmbed, PageContentSchema, type LinkItem, type PageContent } from '../src/shared/content'
+import { defaultAppearance, defaultContent, emptyLink, newItem, socialHref, videoEmbed, PageContentSchema, type LinkItem, type PageContent } from '../src/shared/content'
 import { toCsv } from '../src/shared/csv'
 import { openStatus, weekRows } from '../src/shared/hours'
 import { normalizeSlug, slugFromText, slugFromUrl, slugProblem, uniqueSlug } from '../src/shared/slug'
@@ -158,20 +158,6 @@ describe('publishProblems', () => {
 })
 
 describe('content', () => {
-	it('upgrades v0.1 content that had only links', () => {
-		const legacy = {
-			profile: { name: 'Mei', bio: '', avatar: null },
-			appearance: { theme: 'liquid', accent: '', font: 'auto', button: 'auto', showSocial: true },
-			socials: [],
-			links: [{ id: 'lens-link', title: 'Lens', subtitle: '', url: 'https://example.com/lens/', slug: 'lens', icon: 'auto', featured: true, hidden: false }],
-			seo: { title: '', description: '', image: 'cover.webp' },
-			showBadge: true,
-		}
-		const parsed = PageContentSchema.parse(upgradeContent(legacy))
-		expect(parsed.items[0]).toMatchObject({ kind: 'link', slug: 'lens', startsAt: null, endsAt: null })
-		expect(parsed.seo.imageMode).toBe('upload')
-	})
-
 	it('finds YouTube and Vimeo videos', () => {
 		expect(videoEmbed('https://youtu.be/dQw4w9WgXcQ')?.id).toBe('dQw4w9WgXcQ')
 		expect(videoEmbed('https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=1')?.embed).toContain('youtube-nocookie.com/embed/dQw4w9WgXcQ')
@@ -285,7 +271,7 @@ describe('renderBioPage', () => {
 	})
 
 	it('applies theme choices', () => {
-		const look = resolveAppearance({ theme: 'brutal', accent: '#7b5cff', font: 'serif', button: 'pill', showSocial: true })
+		const look = resolveAppearance({ ...defaultAppearance(), theme: 'brutal', accent: '#7b5cff', font: 'serif', button: 'pill' })
 		expect(look.accent).toBe('#7B5CFF')
 		expect(look.font).toBe('serif')
 		expect(look.vars['--radius']).toBe('999px')

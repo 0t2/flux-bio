@@ -19,7 +19,7 @@ import {
 } from '../../shared/content'
 import { embedAccount, EMBEDS, type EmbedProvider } from '../../shared/embeds'
 import { FONT_FILE } from '../../shared/fonts'
-import { pageLanguages, requestedLocale, resolveLocale } from '../../shared/locale'
+import { requestedLocale, resolveLocale } from '../../shared/locale'
 import { normalizeSlug, slugProblem } from '../../shared/slug'
 import { detectOs, detectSource, sourceFromUserAgent } from '../../shared/source'
 import { translatedLocales } from '../../shared/translations'
@@ -120,7 +120,7 @@ site.get('/skill.md', (c) =>
 
 // For search engines. Neither can be a page or a short link: slugs can't contain dots.
 site.get('/robots.txt', async (c) => {
-	const pages = ((await systemSite(c.env)) ?? (await findSite(c.env))).bio !== false
+	const pages = ((await systemSite(c.env)) ?? (await findSite(c.env))).bio
 	return c.text(robotsTxt(new URL(c.req.url).origin, pages, isTestSite(c.env)), 200, { 'cache-control': 'public, max-age=3600' })
 })
 site.get('/sitemap.xml', async (c) => {
@@ -161,7 +161,7 @@ async function sitemapPages(env: Env): Promise<SitemapPage[]> {
 
 site.get('/', async (c) => {
 	const record = await findSite(c.env)
-	if (record.bio === false) return record.homeUrl ? redirect(record.homeUrl, 302) : systemPage(c, 'short-links', 200, { site: record })
+	if (!record.bio) return record.homeUrl ? redirect(record.homeUrl, 302) : systemPage(c, 'short-links', 200, { site: record })
 	// The home page comes with the record, so this is the only read.
 	if (record.page) return serveBio(c, record.page)
 	if (record.home) {
@@ -292,7 +292,7 @@ async function serveBio(c: SiteContext, snapshot: Snapshot): Promise<Response> {
 	// Counting the view can wait for the time zone after the page has left. Only opening hours are drawn in it,
 	// so only a page with them waits, and only in a copy of the Worker that doesn't know it yet.
 	const zone = siteTimeZone(c.env)
-	const languages = pageLanguages(snapshot.locale, snapshot.languages)
+	const languages = { locale: snapshot.locale, languages: snapshot.languages }
 	const source = sourceOf(c)
 	if (snapshot.content.custom) {
 		recordHit(c.env, c.executionCtx, c.req.raw, { kind: 'view', target: snapshot.pageId, source, timeZone: zone, slug: snapshot.handle, url: '', page: snapshot.pageId })
@@ -438,7 +438,7 @@ async function linkPage(c: SiteContext, record: LinkRecord): Promise<Pick<System
 	if (!record.page) return {}
 	const site = (await systemSite(c.env)) ?? (await findSite(c.env))
 	// With pages off there is nothing to point back to.
-	if (site.bio === false) return { site }
+	if (!site.bio) return { site }
 	const page = await getPage(c.env.DB, record.page)
 	const content = page?.published
 	if (!page || !content) return { site }
@@ -464,8 +464,7 @@ function destination(record: LinkRecord, ua: string): string {
 			['utm_source', record.utm.source],
 			['utm_medium', record.utm.medium],
 			['utm_campaign', record.utm.campaign],
-			// KV records written before v0.3 have no content.
-			['utm_content', record.utm.content ?? null],
+			['utm_content', record.utm.content],
 		] as const
 		if (pairs.some(([, value]) => value)) {
 			try {
@@ -567,7 +566,7 @@ export async function systemPage(
 	// The site record holds the language setting, and the look when the page has none of its own.
 	const record = known ?? (await systemSite(c.env))
 	const look: Appearance | undefined = options.appearance ?? record?.look ?? undefined
-	const languages = pageLanguages(record?.locale ?? DEFAULT_SETTINGS.locale, record?.languages)
+	const languages = { locale: record?.locale ?? DEFAULT_SETTINGS.locale, languages: record?.languages ?? [] }
 	const html = renderSystemPage({
 		kind,
 		host: new URL(c.req.url).host,

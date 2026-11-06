@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Backup } from '../src/shared/backup'
-import { upgradeSettings, type Settings } from '../src/shared/content'
+import type { Settings } from '../src/shared/content'
 import { DEFAULT_QR_STYLE, defaultQrLogo, qrSvg, QrStyleSchema } from '../src/shared/qr'
 import { api, apiJson } from './helpers'
 
@@ -93,9 +93,5 @@ describe('the pictures', () => {
 		expect(state.settings.qrLogo).toBe(OTHER)
 		expect(state.pages.find((entry) => entry.id === page.id)?.qrLogo).toBe(PICTURE)
 		await apiJson('/settings', { method: 'PUT', json: { ...state.settings, qrLogo: '' } })
-	})
-
-	it('are there for settings and backups from before they existed', () => {
-		expect(upgradeSettings({ home: '', timezone: 'UTC', locale: 'en', languages: [], domain: '', hostFonts: false, bio: true, homeUrl: '' }, 'main')).toMatchObject({ qrLogo: '' })
 	})
 })

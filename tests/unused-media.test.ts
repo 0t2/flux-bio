@@ -12,9 +12,9 @@ import { api, apiJson } from './helpers'
 
 const PIXEL = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEAQH/7yMK/gAAAABJRU5ErkJggg=='), (char) => char.charCodeAt(0))
 
-/** A picture in KV as an upload from `age` ago would be; no date at all for one from before uploads were dated. */
-async function picture(id: string, age: number | null = UNUSED_AFTER + 60_000): Promise<string> {
-	await env.KV.put(`media:${id}`, PIXEL, { metadata: { type: 'image/png', ...(age === null ? {} : { at: Date.now() - age }) } })
+/** A picture in KV as an upload from `age` ago would be. */
+async function picture(id: string, age = UNUSED_AFTER + 60_000): Promise<string> {
+	await env.KV.put(`media:${id}`, PIXEL, { metadata: { type: 'image/png', at: Date.now() - age } })
 	return id
 }
 
@@ -73,7 +73,7 @@ describe('pictures nothing uses any more', () => {
 	})
 
 	it('are the ones no draft, published page, kept version, QR code, setting, saved theme or HTML names', async () => {
-		const orphans = [await picture('orphanavatar.webp'), await picture('orphancard01.jpg'), await picture('orphanundated.png', null)].sort()
+		const orphans = [await picture('orphanavatar.webp'), await picture('orphancard01.jpg'), await picture('orphanolder1.png', UNUSED_AFTER * 2)].sort()
 		expect(await unused()).toEqual(orphans)
 	})
 
@@ -96,17 +96,17 @@ describe('pictures nothing uses any more', () => {
 	})
 
 	it('never includes something stored under a name that is not a picture file, which nothing here could match', async () => {
-		await picture('legacy-upload')
-		expect(await unused()).not.toContain('legacy-upload')
+		await picture('raw-upload')
+		expect(await unused()).not.toContain('raw-upload')
 	})
 
 	it('deletes those and nothing else', async () => {
 		const before = await unused()
-		expect(before).toEqual(['orphanavatar.webp', 'orphancard01.jpg', 'orphanundated.png'])
+		expect(before).toEqual(['orphanavatar.webp', 'orphancard01.jpg', 'orphanolder1.png'])
 		const answer = await apiJson<DeletedMediaResponse>('/media/unused', { method: 'DELETE' })
 		expect(answer).toEqual({ deleted: 3, more: false })
 		for (const id of before) expect(await stored(id), id).toBe(false)
-		for (const id of [...Object.values(used), 'orphanrecent.webp', 'legacy-upload']) expect(await stored(id), id).toBe(true)
+		for (const id of [...Object.values(used), 'orphanrecent.webp', 'raw-upload']) expect(await stored(id), id).toBe(true)
 		expect(await unused()).toEqual([])
 		expect(await apiJson<DeletedMediaResponse>('/media/unused', { method: 'DELETE' })).toEqual({ deleted: 0, more: false })
 	})
