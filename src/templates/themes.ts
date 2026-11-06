@@ -360,6 +360,12 @@ export interface ResolvedAppearance {
 	headWeight: number
 	/** Families to load: the theme's and the picked ones, by weights needed. */
 	webFonts: WebFont[]
+	/**
+	 * Those of them that only draw what the fonts before them can't: the built-in Chinese font on a page in a
+	 * language written without Chinese characters, whose stack names the visitor's own fonts first. A live page
+	 * loads these for the Chinese it actually shows, if any (fontsHtml in render.ts).
+	 */
+	fallbackFonts: string[]
 	/** The same families from Google (googleFontsHref), "" when there are none. */
 	fontsHref: string
 }
@@ -389,6 +395,11 @@ export function resolveAppearance(appearance: StoredAppearance, locale: Locale =
 	const body = bodyFamily ? `'${bodyFamily}', ${stack}` : stack
 	const head = headFont ? `'${headFont.family}', ${body}` : body
 	const webFonts = webFontsFor(font, locale, bodyFont, pickedHead, themeHead)
+	const leading = [bodyFont?.family, pickedHead?.family, themeHead?.family]
+	const fallbackFonts =
+		locale === 'zh-TW' || CJK_FAMILIES[locale]
+			? []
+			: FONT_FAMILIES[font].map(([family]) => family).filter((family) => family !== 'JetBrains Mono' && !leading.includes(family) && webFonts.some((web) => web.family === family))
 	const hard = button === 'shadow'
 	const border = hard ? `2px solid ${t.fg}` : '0 solid transparent'
 	const shadow = hard ? `4px 4px 0 ${t.fg}` : 'none'
@@ -435,7 +446,7 @@ export function resolveAppearance(appearance: StoredAppearance, locale: Locale =
 	}
 	vars['--error'] = t.error
 	vars['--ok'] = t.ok
-	return { theme: t, accent, ink, font, button, vars, headWeight, webFonts, fontsHref: googleFontsHref(webFonts) }
+	return { theme: t, accent, ink, font, button, vars, headWeight, webFonts, fallbackFonts, fontsHref: googleFontsHref(webFonts) }
 }
 
 function webFontsFor(font: FontKey, locale: Locale, body: GoogleFont | null, head: GoogleFont | null, themeHead: Theme['head']): WebFont[] {

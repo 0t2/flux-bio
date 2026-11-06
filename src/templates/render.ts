@@ -18,14 +18,14 @@ import {
 	type ProductItem,
 	type VideoItem,
 } from '../shared/content'
-import { FONT_FAMILY, FONT_FILE, fontFileUrl, textOf, type HostedFont } from '../shared/fonts'
+import { CHINESE_FONT_CHARACTERS, FONT_FAMILY, FONT_FILE, fontFileUrl, textOf, type HostedFont } from '../shared/fonts'
 import { hoursWords, localTime, openStatus, statusText, weekRows } from '../shared/hours'
 import { dirAttribute } from '../shared/locale'
 import { localizedContent } from '../shared/translations'
 import { esc } from './html'
 import { iconSvg, linkIconName, SOCIAL_META } from './icons'
 import { THEME_CSS } from './compositions'
-import { resolveAppearance, uiFontStack, type ResolvedAppearance } from './themes'
+import { googleFontsHref, resolveAppearance, uiFontStack, type ResolvedAppearance } from './themes'
 
 export interface RenderOptions {
 	/** "live" links go through short links; "preview" links open the destination in a new tab. */
@@ -44,6 +44,11 @@ export interface RenderOptions {
 	badgeHref?: string
 	/** Fonts this Worker serves for the page; left out, they come from Google. See headHtml(). */
 	fonts?: readonly HostedFont[]
+	/**
+	 * A preview whose text stays as it is, such as a sample page made into a file: its fonts are then asked for by
+	 * what it shows, as a live page's are (fontLinks). The dashboard's preview leaves this out.
+	 */
+	settled?: boolean
 	/** Time zone for opening hours. */
 	timeZone?: string
 	now?: number
@@ -446,18 +451,37 @@ footer{margin-top:auto;padding-top:32px;display:flex;flex-direction:column;align
  * `hosted` are the fonts this Worker serves for the page (see src/worker/lib/fonts.ts):
  * given, nothing is loaded from Google, and [] means the visitor's own fonts.
  * Left out (the dashboard preview, pages published before fonts were hosted),
- * the fonts come from Google.
+ * the fonts come from Google. `shown` is what a visitor's page shows, see fontsHtml().
  */
-export function headHtml(look: ResolvedAppearance, title: string, hosted?: readonly HostedFont[]): string {
+export function headHtml(look: ResolvedAppearance, title: string, hosted?: readonly HostedFont[], shown?: string): string {
 	return `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(title)}</title>
-<meta name="theme-color" content="${look.theme.bg}">${fontsHtml(look, hosted)}`
+<meta name="theme-color" content="${look.theme.bg}">${fontsHtml(look, hosted, shown)}`
+}
+
+/** Past this many different Chinese characters a page in another language just loads the whole font, as a Chinese page does. */
+const FALLBACK_CHARACTERS = 400
+
+/**
+ * The stylesheets a page links at Google. A Chinese font's is over a hundred rules, about 35 KB that hold up the first
+ * paint, because the font comes cut into a hundred files. A page in English has no use for that list: the Chinese
+ * font there only draws the Chinese in the owner's own text (look.fallbackFonts). So given `shown`, what the page
+ * shows this visitor, such a font is asked for with exactly the Chinese characters in it, which is one small rule and
+ * one small file, and not asked for at all when there are none. The other families are linked as ever, and so is
+ * everything when `shown` is left out: a preview's text changes with every key.
+ */
+function fontLinks(look: ResolvedAppearance, shown?: string): string[] {
+	const fallback = shown === undefined ? [] : look.webFonts.filter((font) => look.fallbackFonts.includes(font.family))
+	const characters = fallback.length ? [...new Set(shown?.match(CHINESE_FONT_CHARACTERS) ?? [])].sort() : []
+	if (!fallback.length || characters.length > FALLBACK_CHARACTERS) return look.fontsHref ? [look.fontsHref] : []
+	const others = googleFontsHref(look.webFonts.filter((font) => !fallback.includes(font)))
+	return [others, characters.length ? `${googleFontsHref(fallback)}&text=${encodeURIComponent(characters.join(''))}` : ''].filter(Boolean)
 }
 
 const FACE_WEIGHT = /^\d{3}(?: \d{3})?$/
 
-function fontsHtml(look: ResolvedAppearance, hosted?: readonly HostedFont[]): string {
+function fontsHtml(look: ResolvedAppearance, hosted?: readonly HostedFont[], shown?: string): string {
 	if (hosted) {
 		// Names and files were checked when stored; checked again, as they go into CSS.
 		const faces = hosted.flatMap((font) =>
@@ -472,11 +496,11 @@ function fontsHtml(look: ResolvedAppearance, hosted?: readonly HostedFont[]): st
 		)
 		return faces.length ? `\n<style>${faces.join('\n')}</style>` : ''
 	}
-	if (!look.fontsHref) return ''
+	const links = fontLinks(look, shown)
+	if (!links.length) return ''
 	return `
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="${esc(look.fontsHref)}">`
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>${links.map((href) => `\n<link rel="stylesheet" href="${esc(href)}">`).join('')}`
 }
 
 /** Every built-in word a page can show in a language, for copying the fonts it needs. */
@@ -773,17 +797,7 @@ export function renderBioPage(source: PageContent, options: RenderOptions): stri
 	// The owner's own text can't match: esc() turns its quotes into entities.
 	const reportsTaps = / ping="/.test(itemsHtml + socials.join('') + lineButton)
 
-	return `<!doctype html>
-<html lang="${text.lang}"${dirAttribute(text.lang)}>
-<head>
-${headHtml(look, title, options.fonts)}
-${meta}
-<style>${pageVars(look)}
-${BASE_CSS}
-${THEME_CSS[look.theme.id]}${lineButton ? `\n${LINE_BUTTON_CSS}` : ''}${options.mode === 'preview' ? `\n${TODO_CSS}` : ''}${options.draft ? `\n${DRAFT_CSS}` : ''}</style>
-</head>
-<body${lineButton ? ' class="has-line"' : ''}>
-${options.draft ? `<p class="draft-note" role="status">${esc(text.draftNote)}</p>` : ''}
+	const body = `${options.draft ? `<p class="draft-note" role="status">${esc(text.draftNote)}</p>` : ''}
 ${backdrop}
 <main>
 <header class="head">
@@ -799,7 +813,19 @@ ${footer}
 </main>
 ${lineButton}
 ${reportsTaps ? `<script>${TAP_SCRIPT}</script>` : ''}
-${options.draft ? draftScript(options.draft) : ''}
+${options.draft ? draftScript(options.draft) : ''}`
+
+	return `<!doctype html>
+<html lang="${text.lang}"${dirAttribute(text.lang)}>
+<head>
+${headHtml(look, title, options.fonts, live || options.settled ? body : undefined)}
+${meta}
+<style>${pageVars(look)}
+${BASE_CSS}
+${THEME_CSS[look.theme.id]}${lineButton ? `\n${LINE_BUTTON_CSS}` : ''}${options.mode === 'preview' ? `\n${TODO_CSS}` : ''}${options.draft ? `\n${DRAFT_CSS}` : ''}</style>
+</head>
+<body${lineButton ? ' class="has-line"' : ''}>
+${body}
 </body>
 </html>`
 }

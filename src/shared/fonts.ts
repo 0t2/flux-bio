@@ -206,6 +206,13 @@ export interface HostedFont {
 export const fontFileUrl = (file: string): string => `/_fonts/${file}.woff2`
 export const FONT_FILE = /^[A-Za-z0-9-]{8,80}$/
 
+/**
+ * What a Chinese web font is for on a page in a language written without Chinese characters: those characters, kana,
+ * and the punctuation and full-width forms set with them. Everything else on such a page is drawn by the fonts
+ * named before it (fontStack in templates/themes.ts).
+ */
+export const CHINESE_FONT_CHARACTERS = /[\u2E80-\u9FFF\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFFEF\u{20000}-\u{3FFFF}]/gu
+
 /** Every string in a value, functions included as their source text (which holds the words of a template). */
 export function textOf(value: unknown): string {
 	if (typeof value === 'string') return value

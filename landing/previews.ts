@@ -75,6 +75,7 @@ export function previewsIn(template: string): { name: string; theme: ThemeId; st
 export function previewPage(locale: Locale, theme: ThemeId, starter?: StarterId): string {
 	return renderBioPage(showcaseContent(locale, theme, starter), {
 		mode: 'preview',
+		settled: true,
 		locale,
 		mediaUrl: (id) => `/images/${id}`,
 		timeZone: 'Asia/Taipei',
