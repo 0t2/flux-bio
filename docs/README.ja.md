@@ -177,7 +177,7 @@ Instagram のプロフィールのリンク、ストーリーズ、投稿は、�
 <details>
 <summary><b>お金はかかりますか？</b></summary>
 
-FluxBio は無料のオープンソースで、あなた自身の Cloudflare アカウントで動きます。Cloudflare の無料プランでは 1 日あたり数万回のページ表示と数百回の変更ができ、個人や小さなお店なら通常は十分です。Claude や ChatGPT などの AI の利用料は別で、Claude Code には Claude の有料プランが必要です。
+FluxBio は無料のオープンソースで、あなた自身の Cloudflare アカウントで動きます。Cloudflare の無料プランでは 1 日あたり 1 万〜数万回のページ表示（ページの画像の数によります）と数百回の変更ができ、個人や小さなお店なら通常は十分です。Claude や ChatGPT などの AI の利用料は別で、Claude Code には Claude の有料プランが必要です。
 
 </details>
 

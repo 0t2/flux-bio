@@ -49,7 +49,7 @@
 	"s059": "把这段话贴给 AI，它可以先在你的电脑上做出你的页面，不用注册账号。",
 	"s060": "交给 AI 试用",
 	"s061": "贴到电脑上的 <a href=\"https://code.claude.com/docs/en/quickstart\">Claude Code</a>，Codex、Cursor 也可以。",
-	"s062": "FluxBio 免费、开源，运行在你自己的 Cloudflare 账号上。Cloudflare 的免费方案每天大约够几万次页面浏览和几百次修改，个人和小店通常用不完。Claude、ChatGPT 这类 AI 的订阅费另计，Claude Code 需要 Claude 的付费方案。",
+	"s062": "FluxBio 免费、开源，运行在你自己的 Cloudflare 账号上。Cloudflare 的免费方案每天大约够一万到几万次页面浏览（看页面上的图片多少，可以用上面的估算试算）和几百次修改，个人和小店通常用不完。Claude、ChatGPT 这类 AI 的订阅费另计，Claude Code 需要 Claude 的付费方案。",
 	"s063": "全部在你自己的 Cloudflare 账号里：页面、短链接和数据在 D1，图片在 KV。FluxBio 没有中央服务器，作者也看不到你的数据。已发布的页面和短链接是公开的；草稿只有你和拿到预览链接的人看得到，数据和后台要登录才看得到。",
 	"s064": "<b>后台密码</b>是你登录后台用的，部署时会自动生成，之后随时可以改。<b>API token</b> 是给 AI 和工具用的：每个 AI 各开一个，可以只给“创建短链接”的权限，也能单独撤销，不影响其他 AI。<b>Cloudflare 密钥</b>只用在部署、连接域名这类要到 Cloudflare 才能做的事，管的是整个 Cloudflare 账号，不要贴到聊天里。",
 	"s065": "到后台“设置”里撤销那一个，再生成一个新的就行，其他 AI 照常工作。如果是后台密码泄露了，就请 AI 帮你改密码：改完后所有人都要重新登录，所有 token 也会一起失效。",
