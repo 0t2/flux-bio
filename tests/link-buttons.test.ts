@@ -150,9 +150,9 @@ describe('a link that needs its short link', () => {
 	it('is safe in a copy of the page written before this existed: it gets rebuilt', async () => {
 		const { handle, n } = await makePage((i) => ({ items: [linkItem(i)] }))
 		await apiJson(`/links/link-${n}`, { method: 'PATCH', json: { password: 'open-sesame' } })
-		const copy = (await env.KV.get(`page:${handle}`, 'json')) as Record<string, unknown>
+		const { page: copy } = (await env.KV.get(`name:${handle}`, 'json')) as { page: Record<string, unknown> }
 		delete copy.viaShortLink
-		await env.KV.put(`page:${handle}`, JSON.stringify({ ...copy, v: 2 }))
+		await env.KV.put(`name:${handle}`, JSON.stringify({ page: { ...copy, v: 2 } }))
 		expect(await htmlOf(`/${handle}`)).not.toContain('shop.example')
 	})
 })

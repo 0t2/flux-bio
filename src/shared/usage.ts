@@ -52,12 +52,12 @@ export function d1Quota(rows: readonly D1Row[]): Record<D1Measure, KvQuota> {
 }
 
 /**
- * What is left in terms an owner can picture. A page view reads KV twice (tests/kv-cost.test.ts) and each image once
+ * What is left in terms an owner can picture. A page view reads KV once (tests/kv-cost.test.ts) and each image once
  * more, and writes a D1 row for its count, so this is the most it could be; a change is about one KV write (a publish,
  * a new short link).
  */
 export function leftInPlainWords(kv: Record<KvAction, KvQuota>, d1?: Record<D1Measure, KvQuota>): { pageViews: number; changes: number } {
-	const views = Math.floor(kv.read.left / 2)
+	const views = kv.read.left
 	return { pageViews: d1 ? Math.min(views, d1.rowsWritten.left) : views, changes: kv.write.left }
 }
 

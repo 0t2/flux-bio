@@ -135,7 +135,7 @@
 	"s162": "Bisa. AI membuat halaman contoh di komputermu, tanpa akun apa pun. Alamatnya hanya bisa dibuka di komputermu, jadi tidak bisa dikirim ke teman, dan setelah komputer dinyalakan ulang, minta AI membukanya lagi, tidak ada yang hilang. Kalau sudah suka, buat akun Cloudflare gratis untuk memublikasikannya, dan yang sudah kamu buat ikut pindah. Kalau tidak jadi, minta AI menghapus foldernya.",
 	"s163": "Seberapa banyak trafik yang sanggup ditanggung paket gratis?",
 	"s164": "Misalkan akun Cloudflare-mu hanya berisi FluxBio. Masukkan perkiraan trafik untuk melihat apakah paket gratis cukup, dan kalau tidak, berapa biaya Workers Paid per bulan.",
-	"s165": "Dengan nilai bawaan (5 gambar per halaman, tiga dari sepuluh pengunjung mengetuk tautan, semua pengunjung baru), paket gratis sanggup menanggung sekitar 13.000 tayangan halaman per hari, dan lebih banyak jika makin banyak yang kembali. Workers Paid seharga US$5 per bulan dan sudah termasuk sekitar 1,3 juta tayangan halaman.",
+	"s165": "Dengan nilai bawaan (5 gambar per halaman, tiga dari sepuluh pengunjung mengetuk tautan, semua pengunjung baru), paket gratis sanggup menanggung sekitar 15.000 tayangan halaman per hari, dan lebih banyak jika makin banyak yang kembali. Workers Paid seharga US$5 per bulan dan sudah termasuk sekitar 1,5 juta tayangan halaman.",
 	"s169": "Tayangan halaman per hari",
 	"s171": "Pengunjung yang mengetuk tautan",
 	"s172": "Gambar per halaman",

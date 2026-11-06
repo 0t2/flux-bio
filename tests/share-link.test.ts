@@ -119,10 +119,10 @@ describe('renaming a short link', () => {
 	it('keeps the copy of the page in KV in step', async () => {
 		const { page, n, handle } = await makePage((i) => ({ items: [linkItem(i, { slug: `kv-${i}` })] }))
 		await short(page.id, `link-${n}`, `kv-new-${n}`)
-		const copy = (await env.KV.get(`page:${handle}`, 'json')) as { content: PageContent }
-		expect(firstLink(copy.content)?.slug).toBe(`kv-new-${n}`)
-		expect(await env.KV.get(`link:kv-${n}`)).toBeNull()
-		expect(await env.KV.get(`link:kv-new-${n}`)).not.toBeNull()
+		const copy = (await env.KV.get(`name:${handle}`, 'json')) as { page: { content: PageContent } }
+		expect(firstLink(copy.page.content)?.slug).toBe(`kv-new-${n}`)
+		expect(await env.KV.get(`name:kv-${n}`)).toBeNull()
+		expect(await env.KV.get(`name:kv-new-${n}`)).not.toBeNull()
 	})
 })
 

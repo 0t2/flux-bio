@@ -159,7 +159,7 @@ describe('switching pages on with no page', () => {
 	it('brings "/" back to its fresh-install answer', async () => {
 		// `later` from above is the only page; without it this is a new install turned on later.
 		await env.DB.prepare('DELETE FROM pages').run()
-		await env.KV.delete('page:later')
+		await env.KV.delete('name:later')
 		const settings = await settingsNow()
 		await save({ home: '', bio: false })
 		await save({ ...settings, home: '', bio: true })

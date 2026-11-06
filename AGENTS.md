@@ -409,7 +409,7 @@ src/worker/             Hono app
   lib/agent.ts          /llms.txt and /skill.md: the main guide for agents managing a deployment
   lib/agentTopics.ts    /api/guide/<topic>: the parts of the guide read only when needed
   lib/db.ts             D1 schema (runtime migrations) and queries
-  lib/cache.ts          KV keys: page:<handle>, site, link:<slug>, media:<id>, font:<file>
+  lib/cache.ts          KV keys: name:<handle or slug>, site, media:<id>, font:<file>
   lib/fonts.ts          copies a page's fonts from Google Fonts to KV when it is published (served at /_fonts/)
   lib/ops.ts            pages, publish, settings, short links (they keep D1 and KV in sync)
   lib/stats.ts          counting views and clicks, D1 stats queries
@@ -447,14 +447,20 @@ tests/                  Vitest tests (run in workerd)
 - **D1 is the source of truth.** It holds `pages`, `page_versions`, `links`, `stats` and
   `api_tokens`, which the Worker creates and upgrades on first use. To change the schema, append a
   migration to `MIGRATIONS` in `src/worker/lib/db.ts`. Never edit an existing migration.
-- **KV holds what visitors read.** Each published page's snapshot (`page:<handle>`), the `site`
-  record (which page is home, the look of system pages), one record per short link, and uploaded
-  images, and the font files of published pages. A redirect or a tap on a button costs one KV read and a page view two: `/` reads `site` and
-  then the page, and `/<handle>` first looks for a short link with that name (`tests/kv-cost.test.ts` checks this). The site's time zone is only in `site`: a copy of the Worker reads it from there at most once in 5 minutes, when a visit comes in (`siteTimeZone`), so changing it rewrites no page or short link. Any change to D1 that visitors would see
+- **KV holds what visitors read.** One record per name (`name:<handle or slug>`), holding the published page's snapshot or
+  the short link that has that name, the `site` record (the home page's snapshot, the look of system pages), uploaded
+  images, and the font files of published pages. A page view, a redirect and a tap on a button each cost one KV read
+  (`tests/kv-cost.test.ts` checks this): pages and short links share their names, so `/<anything>` is one read whichever it
+  is, and `/` reads `site`, which carries the home page. So a change to what the home page shows visitors has to reach
+  `site` too, and one that must never be left to an old copy takes the copy out of `site` first (`dropCopies` with `home`;
+  `tests/home-copy.test.ts`). In KV the site's time zone is only in `site`, so changing it rewrites no page or short link:
+  a copy of the Worker that doesn't know it asks D1, at most once in 5 minutes (`siteTimeZone`), after the response has
+  left unless the page shows opening hours. System pages go by the `site` record a copy of the Worker last saw, for up to
+  a minute (`systemSite`), because anyone can ask for addresses that don't exist. Any change to D1 that visitors would see
   must also rewrite KV; follow the patterns in `lib/ops.ts`. A missing KV entry is rebuilt from D1
   on the next visit, so KV can be treated as a cache.
 - **With `bio` off, KV holds no pages.** So a redirect needs no extra read to know the setting: switching
-  off deletes every `page:<handle>` (D1 first, or a visit could rebuild one) and `snapshotOf` returns null
+  off deletes every page's snapshot, the one in `site` too (D1 first, or a visit could rebuild one), and `snapshotOf` returns null
   while it is off, for every write and for the rebuild from D1. A page's address then costs a miss and one
   D1 read, and answers not found. Switching off costs one KV delete per published page plus the `site` record,
   which carries `bio` and `homeUrl` for `/`. Switching on writes only `site`: a visit puts back each page's snapshot. In the dashboard no page is
@@ -509,8 +515,8 @@ tests/                  Vitest tests (run in workerd)
 - **CPU budget.** The free plan allows 10 ms of CPU per request. Public routes must stay light: no
   image processing, no slow password hashing, no SSR framework. The dashboard resizes images and
   draws share cards in the browser before uploading them.
-- **KV writes.** The free plan allows 1,000 KV writes a day, per account (`pnpm usage` shows what is left today). Publishing writes one per changed
-  link, and with `hostFonts` on, when the page's characters change, one per font file plus one per
+- **KV writes.** The free plan allows 1,000 KV writes a day, per account (`pnpm usage` shows what is left today). Publishing writes the page, one per changed
+  link, and for the home page the `site` record twice (without its copy of the page, then with the new one), and with `hostFonts` on, when the page's characters change, one per font file plus one per
   old file deleted; keep bulk operations within that.
 - **No limit on pages or short links, so no whole-table reads.** A site can hold any number of both. The free plan still applies: 5 million D1 rows read a day (queries fail past that), 50 queries per request, 100 bound values per query, five terms in a compound SELECT, and 10 ms of CPU. So a lookup goes through an index for the names or ids it needs (`ownersOf`, `getLinksByIds`, `listLinkPage`, `listPageRows`), D1 does the work on a list of pages rather than the Worker parsing every draft, and a change to a whole site drops at most `KV_OPS_AT_ONCE` copies for visits to rebuild, answering `copiesLeft` if some stayed. `tests/scale.test.ts` holds a large site to these numbers; a query that names `stats_target_day` with `INDEXED BY` does so because SQLite otherwise scans the day's rows. Only backups read everything, a slice at a time.
 - **No extra Cloudflare products.** The app uses Workers, D1, KV and Analytics Engine, none of which
