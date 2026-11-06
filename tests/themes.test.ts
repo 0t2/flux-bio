@@ -144,12 +144,20 @@ describe('background and text colors', () => {
 })
 
 const DASHBOARD = import.meta.glob<string>('../admin/index.html', { query: '?raw', import: 'default', eager: true })['../admin/index.html']!
+const THUMBNAILS = import.meta.glob<string>('../src/admin/components/MiniBio.tsx', { query: '?raw', import: 'default', eager: true })['../src/admin/components/MiniBio.tsx']!
+const familiesIn = (source: string) => [...(/https:\/\/fonts\.googleapis\.com\/css2\?[^"'\s]+/.exec(source)?.[0] ?? '').matchAll(/family=([^:&]+)/g)].map((match) => match[1]!.replaceAll('+', ' '))
 
-it('the dashboard loads each theme’s heading font, so its thumbnails look like the theme', () => {
+it('the dashboard loads each theme’s fonts with its thumbnails, so they look like the theme', () => {
+	const loaded = familiesIn(THUMBNAILS)
 	for (const id of THEME_IDS) {
 		const head = THEMES[id].head
-		if (head) expect(DASHBOARD, id).toContain(`family=${head.family.replaceAll(' ', '+')}`)
+		if (head) expect(loaded, id).toContain(head.family)
 	}
+	for (const family of ['Noto Sans TC', 'Noto Serif TC', 'LXGW WenKai TC', 'JetBrains Mono']) expect(loaded, family).toContain(family)
+})
+
+it('the dashboard’s own page loads only the fonts its screens are set in: a stylesheet in its head holds up the first paint', () => {
+	expect(familiesIn(DASHBOARD)).toEqual(['IBM Plex Sans', 'IBM Plex Sans Arabic', 'IBM Plex Mono', 'Noto Sans TC'])
 })
 
 describe('compositions', () => {

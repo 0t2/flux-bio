@@ -9,6 +9,16 @@
 /:language/
   Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-src 'self'; base-uri 'none'; frame-ancestors 'none'
 
-# The sample pages in the phones: plain HTML, framed only by this site.
+# Pictures keep their names when they change, which is rarely: a browser may use one for a day without asking, and for
+# a week more while it asks in the background. The phones show the same few in every preview and every language.
+/images/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/:language/dash-*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+# The sample pages in the phones: plain HTML, framed only by this site. Up to 29 of them on a page, so not asked for
+# again within the hour.
 /preview/*
+  Cache-Control: public, max-age=3600
   Content-Security-Policy: default-src 'none'; script-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; base-uri 'none'; frame-ancestors 'self'
