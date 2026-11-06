@@ -28,6 +28,13 @@ export function addDays(day: string, delta: number): string {
 	return date.toISOString().slice(0, 10)
 }
 
+/** Calendar arithmetic on months, "YYYY-MM". */
+export function addMonths(month: string, delta: number): string {
+	const [year = 0, number = 1] = month.split('-').map(Number)
+	const index = year * 12 + (number - 1) + delta
+	return `${String(Math.floor(index / 12)).padStart(4, '0')}-${String((index % 12) + 1).padStart(2, '0')}`
+}
+
 /** The last `days` days, oldest first, ending today in `timeZone`. */
 export function lastDays(timeZone: string, days: number, at: number = Date.now()): string[] {
 	const today = dayIn(timeZone, at)

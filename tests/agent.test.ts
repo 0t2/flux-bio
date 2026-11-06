@@ -127,7 +127,7 @@ describe('the agent guide', () => {
 		const guide = await (await call('/llms.txt')).text()
 		for (const part of ['**Say it in plain words.**', 'nothing published and no short links has nothing to lose', 'not a second site']) expect(guide).toContain(part)
 		const trying = await (await call('/api/guide/trying-it')).text()
-		for (const part of ["means don't publish", 'never call it temporary', 'pnpm kv-usage --json', 'never costs money', "They don't need the dashboard", 'whoever invited them']) expect(trying).toContain(part)
+		for (const part of ["means don't publish", 'never call it temporary', 'pnpm usage --json', 'never costs money', "They don't need the dashboard", 'whoever invited them']) expect(trying).toContain(part)
 		const remove = await (await call('/api/guide/remove')).text()
 		for (const part of ['they can leave it', 'workers delete flux-bio-test --force', 'flux-bio-test-kv', 'clear yes']) expect(remove).toContain(part)
 		const update = await (await call('/api/guide/update')).text()

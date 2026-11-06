@@ -100,6 +100,8 @@ async function seed(): Promise<void> {
 		const slug = page === null ? `solo-${i}` : `p${page}-l${i % 8}`
 		links.push(insertLink.bind(id, slug, `https://example.com/${i}`, `Link ${i}`, page === null ? 'solo' : 'bio', page === null ? null : `page-${page}`, now - i))
 		for (let d = 0; d < 7; d++) stats.push(insertStat.bind(addDays(today, -d), id))
+		// Older numbers, which nothing about the last 7 days may read.
+		if (i < 1000) for (let d = 7; d < 67; d++) stats.push(insertStat.bind(addDays(today, -d), id))
 	}
 	for (let at = 0; at < links.length; at += 2000) await env.DB.batch(links.slice(at, at + 2000))
 	for (let at = 0; at < stats.length; at += 2000) await env.DB.batch(stats.slice(at, at + 2000))
@@ -111,12 +113,13 @@ async function seed(): Promise<void> {
 describe(`a site with ${PAGES} pages and ${LINKS} short links`, () => {
 	beforeAll(seed, 120_000)
 
-	// Every link here was clicked on each of the last 7 days, as bad as it gets for a whole-site total.
+	// Every link here was clicked on each of the last 7 days, as bad as it gets for a whole-site total, and a thousand of
+	// them on each of the 60 days before. Grouping costs D1 a second read of each row in the range.
 	it.each([
-		['the dashboard loading', '/api/state', 80_000, 12],
-		['the list of pages', '/api/pages', 80_000, 12],
+		['the dashboard loading', '/api/state', 100_000, 12],
+		['the list of pages', '/api/pages', 100_000, 12],
 		['a screenful of short links', '/api/links?limit=100', 2_000, 6],
-		['a page of stats', '/api/stats?page=page-1&days=30', 200, 6],
+		['a page of stats', '/api/stats?page=page-1&days=30', 1_200, 6],
 		['the sitemap', '/sitemap.xml', 1_000, 4],
 	])('%s stays within the free plan', async (_, path, rows, queries) => {
 		const cost = await measure(path)

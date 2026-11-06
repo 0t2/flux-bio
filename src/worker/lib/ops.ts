@@ -549,8 +549,9 @@ export function normalizeDomain(value: string): string {
 }
 
 /** Settings to save; a list of languages, a font switch, the bio switch or its redirect left out keeps the current one. */
-export type SettingsInput = Omit<Settings, 'languages' | 'hostFonts' | 'bio' | 'homeUrl' | 'qrLogo'> & {
+export type SettingsInput = Omit<Settings, 'languages' | 'hostFonts' | 'bio' | 'homeUrl' | 'qrLogo' | 'plan'> & {
 	qrLogo?: string
+	plan?: Settings['plan']
 	languages?: Settings['languages']
 	hostFonts?: boolean
 	bio?: boolean
@@ -571,6 +572,7 @@ export async function updateSettings(env: Env, input: SettingsInput): Promise<{ 
 		bio: input.bio ?? previous.bio,
 		homeUrl: input.homeUrl === undefined ? previous.homeUrl : (optionalUrl(input.homeUrl, msg('首頁轉址')) ?? ''),
 		qrLogo: input.qrLogo ?? previous.qrLogo,
+		plan: input.plan ?? previous.plan,
 	}
 	await saveSettingsStatement(db, next).run()
 	forgetPublicNames()

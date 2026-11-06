@@ -1,7 +1,7 @@
 import { createExecutionContext, env, waitOnExecutionContext } from 'cloudflare:test'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { PageJson } from '../src/shared/api'
-import { dayRange, isDay, kvLeftInPlainWords, kvNamespaceLabel, kvQuota, KV_DAILY_LIMITS, lastDays, nextReset, utcDay } from '../src/shared/kvUsage'
+import { d1Quota, dayRange, isDay, kvNamespaceLabel, kvQuota, KV_DAILY_LIMITS, lastDays, leftInPlainWords, nextReset, utcDay } from '../src/shared/usage'
 import app from '../src/worker/index'
 import { apiJson, IPHONE, ORIGIN } from './helpers'
 import { guideNames } from '../src/worker/lib/agent'
@@ -58,12 +58,19 @@ describe('days', () => {
 describe('what is left, for an owner', () => {
 	it('is page views and changes, not reads and writes', () => {
 		const usage = kvQuota([{ actionType: 'read', ops: 2000 }, { actionType: 'write', ops: 20 }] as never)
-		expect(kvLeftInPlainWords(usage)).toEqual({ pageViews: 49_000, changes: 980 })
+		expect(leftInPlainWords(usage)).toEqual({ pageViews: 49_000, changes: 980 })
+	})
+
+	it('is whichever of KV reads and D1 rows written runs out first', () => {
+		const kv = kvQuota([{ actionType: 'read', ops: 2000 }] as never)
+		const d1 = d1Quota([{ readRows: '1000', writtenRows: '70000' }, { readRows: 10, writtenRows: 5000 }])
+		expect(d1.rowsWritten).toEqual({ used: 75_000, limit: 100_000, left: 25_000, percent: 75 })
+		expect(leftInPlainWords(kv, d1)).toEqual({ pageViews: 25_000, changes: 1_000 })
 	})
 
 	it('never goes below nothing', () => {
 		const usage = kvQuota([{ actionType: 'read', ops: 200_000 }, { actionType: 'write', ops: 5000 }] as never)
-		expect(kvLeftInPlainWords(usage)).toEqual({ pageViews: 0, changes: 0 })
+		expect(leftInPlainWords(usage)).toEqual({ pageViews: 0, changes: 0 })
 	})
 })
 
@@ -80,7 +87,7 @@ describe('the guide', () => {
 
 	it('tells an agent how to answer "how much is left today", and what to say if it can only reach the API', () => {
 		expect(guide).toContain('**How much free quota is left.**')
-		expect(guide).toContain('pnpm kv-usage')
+		expect(guide).toContain('pnpm usage')
 		expect(guide).toContain('00:00 UTC')
 		expect(guide).toContain("If you can only reach this API, you can't read the quota")
 	})

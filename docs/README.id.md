@@ -72,7 +72,7 @@ Buat beberapa halaman bio sesuai gayamu: pilih tema dan warnanya, atau minta AI-
 
 ### Statistik
 
-- Tayangan, klik, rasio klik, sumber: dihitung tepat dan disimpan selamanya (D1).
+- Tayangan, klik, rasio klik, sumber: dihitung tepat (D1), per hari selama 13 bulan dan per bulan setelahnya.
 - Pengunjung unik, wilayah, peta pengunjung, operator, perangkat, browser, bahasa, situs eksternal, UTM, jam klik, aktivitas terbaru: disimpan 90 hari (Cloudflare Analytics Engine, tanpa perlu diatur).
 - Perbandingan dengan periode sebelumnya, halaman statistik sendiri untuk setiap tautan pendek, ekspor CSV.
 - Tanpa cookie, tanpa menyimpan IP atau string browser lengkap, dan lokasi hanya sampai kota; ID pengunjung adalah hash satu arah yang berganti setiap hari. Bot juga tidak dihitung.
@@ -166,7 +166,7 @@ Masing-masing mendapat baris sendiri di “Kampanye UTM”, dengan tayangan dan 
 - Kamu bisa melihat dari mana pengunjung datang, tetapi tidak siapa mereka. Instagram, Facebook, dan X tidak pernah memberi tahu situs lain akun mana yang mengetuk tautan, dan FluxBio tidak menyimpan apa pun yang bisa mengenali seseorang.
 - Nama `?s=` hanya boleh berisi huruf, angka, `-`, dan `_`, dan diubah menjadi huruf kecil; karakter lain dibuang. Tag UTM disimpan apa adanya, jadi `story` dan `Story` dihitung sebagai dua baris. Tulis dengan ejaan yang sama setiap kali.
 - Lokasi adalah kota yang diperkirakan Cloudflare dari alamat IP pengunjung. VPN, Relai Pribadi iCloud, dan jaringan kantor bisa menempatkan pengunjung di tempat lain.
-- Tayangan, klik, dan sumber dihitung persis dan disimpan selamanya. Wilayah, peta, jaringan, perangkat, bahasa, dan rincian UTM disimpan 90 hari, dan kunjungan baru muncul sekitar satu menit kemudian. Kamu bisa memilih apakah ikon sosial ikut dihitung. Tombol yang menampilkan alamat asli dihitung oleh skrip kecil di halaman, jadi pemblokir bisa membuat klik tidak terhitung; tautan pendek selalu terhitung.
+- Tayangan, klik, dan sumber dihitung persis. Setiap hari disimpan 13 bulan, lalu setiap bulan menjadi satu total yang disimpan selamanya; semuanya bisa diunduh dari Setelan. Wilayah, peta, jaringan, perangkat, bahasa, dan rincian UTM disimpan 90 hari, dan kunjungan baru muncul sekitar satu menit kemudian. Kamu bisa memilih apakah ikon sosial ikut dihitung. Tombol yang menampilkan alamat asli dihitung oleh skrip kecil di halaman, jadi pemblokir bisa membuat klik tidak terhitung; tautan pendek selalu terhitung.
 - Pengunjung unik dihitung per hari: orang yang sama di dua hari berbeda, atau di ponsel lalu di komputer, dihitung dua kali.
 - Bot dan pratinjau tautan (permintaan yang dibuat aplikasi chat saat seseorang menempelkan tautan) tidak dihitung, jadi angkanya bisa lebih kecil daripada di alat lain.
 - Tag UTM tautan pendek hanya ditambahkan ke tujuan utamanya, tidak ke alamat terpisah untuk iPhone atau Android, dan tidak pernah menimpa tag yang sudah ada di tujuan. Mengubahnya hanya berlaku untuk klik berikutnya.

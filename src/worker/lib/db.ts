@@ -114,6 +114,12 @@ const MIGRATIONS: string[][] = [
 		'CREATE INDEX IF NOT EXISTS pages_by_position ON pages (position, created_at)',
 		'CREATE INDEX IF NOT EXISTS pages_handle_nocase ON pages (handle COLLATE NOCASE)',
 	],
+	// A click inside a block, on a social icon or on the LINE button keeps the page it was on, so the page's numbers
+	// stay right when the block is deleted, and no list of pages has to be read to tell whose it was.
+	[
+		'ALTER TABLE stats ADD COLUMN page TEXT',
+		'CREATE INDEX IF NOT EXISTS stats_page_day ON stats (page, day) WHERE page IS NOT NULL',
+	],
 ]
 
 /** How many migrations a database has run once it is up to date. */
@@ -466,7 +472,7 @@ export function pageVersionStatements(db: D1Database, pageId: string, content: P
 
 // ---------------------------------------------------------------- settings, themes, secret
 
-async function readMeta(db: D1Database, key: string): Promise<unknown> {
+export async function readMeta(db: D1Database, key: string): Promise<unknown> {
 	const row = await db.prepare('SELECT value FROM _meta WHERE key = ?1').bind(key).first<{ value: string }>()
 	if (!row) return undefined
 	try {
@@ -476,7 +482,7 @@ async function readMeta(db: D1Database, key: string): Promise<unknown> {
 	}
 }
 
-function writeMetaStatement(db: D1Database, key: string, value: unknown): D1PreparedStatement {
+export function writeMetaStatement(db: D1Database, key: string, value: unknown): D1PreparedStatement {
 	return db
 		.prepare('INSERT INTO _meta (key, value) VALUES (?1, ?2) ON CONFLICT (key) DO UPDATE SET value = excluded.value')
 		.bind(key, JSON.stringify(value))

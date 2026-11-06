@@ -1,14 +1,15 @@
-// How much of the free plan's daily KV quota is used and left, on the Cloudflare account you are signed in to.
-//   pnpm kv-usage                     today, with what is left and when it resets
-//   pnpm kv-usage --date 2026-10-28   one UTC day
-//   pnpm kv-usage --days 7            the last 7 days, one line each
-//   pnpm kv-usage --json              the same as JSON, for scripts and agents
-//   pnpm kv-usage --account <id>      if you can reach several accounts (or set CLOUDFLARE_ACCOUNT_ID)
-// It reads Cloudflare's analytics and changes nothing. Numbers cover every Worker on the account, not only FluxBio.
+// How much of the free plan's daily KV and D1 quota is used and left, and how big each D1 database is, on the
+// Cloudflare account you are signed in to. Worker requests aren't in Cloudflare's analytics here: see the dashboard.
+//   pnpm usage                     today, with what is left and when it resets
+//   pnpm usage --date 2026-10-28   one UTC day
+//   pnpm usage --days 7            the last 7 days, one line each
+//   pnpm usage --json              the same as JSON, for scripts and agents
+//   pnpm usage --account <id>      if you can reach several accounts (or set CLOUDFLARE_ACCOUNT_ID)
+// It reads Cloudflare's analytics and changes nothing. Numbers cover every project on the account, not only FluxBio.
 import { execFile } from 'node:child_process'
 import { runnerImport } from 'vite'
 
-const { module: kv } = await runnerImport('./src/shared/kvUsage.ts')
+const { module: kv } = await runnerImport('./src/shared/usage.ts')
 const LABELS = { read: 'reads', write: 'writes', delete: 'deletes', list: 'lists' }
 const NOTE = 'Estimates from sampled analytics; the last few minutes may not be counted yet. Cloudflare keeps about 31 days.'
 
@@ -77,6 +78,20 @@ async function sql(account, query, since, until) {
 	}
 }
 
+/** Every D1 database on the account, with its size: `cf d1 list` has both. */
+async function databases() {
+	const result = await cf(['d1', 'list', '--per-page', '100'])
+	try {
+		const parsed = JSON.parse(result.stdout)
+		return (parsed.result ?? parsed).map((db) => ({ id: db.uuid, name: db.name, bytes: Number(db.file_size) || 0 }))
+	} catch {
+		return []
+	}
+}
+
+const D1_QUERY = 'SELECT databaseId, SUM(rowsRead * sampleInterval) AS readRows, SUM(rowsWritten * sampleInterval) AS writtenRows FROM events.d1BackendRequest'
+const megabytes = (bytes) => `${(bytes / 1024 ** 2).toFixed(1)} MB`
+
 async function namespaceNames() {
 	const result = await cf(['kv', 'namespaces', 'list', '--per-page', '100'])
 	try {
@@ -112,19 +127,19 @@ const now = new Date()
 
 if (opts.days) {
 	const days = kv.lastDays(now, Number(opts.days))
-	const rows = await sql(
-		account,
-		'SELECT toDate(timestamp) AS day, actionType, SUM(sampleInterval) AS ops FROM events.kvRequests GROUP BY day, actionType ORDER BY day DESC LIMIT 500',
-		`${days.at(-1)}T00:00:00Z`,
-	)
-	const report = days.map((day) => ({ day, usage: kv.kvQuota(rows.filter((row) => row.day === day)) }))
+	const since = `${days.at(-1)}T00:00:00Z`
+	const [rows, d1Rows] = await Promise.all([
+		sql(account, 'SELECT toDate(timestamp) AS day, actionType, SUM(sampleInterval) AS ops FROM events.kvRequests GROUP BY day, actionType ORDER BY day DESC LIMIT 500', since),
+		sql(account, `SELECT toDate(timestamp) AS day, SUM(rowsRead * sampleInterval) AS readRows, SUM(rowsWritten * sampleInterval) AS writtenRows FROM events.d1BackendRequest GROUP BY day ORDER BY day DESC LIMIT 500`, since),
+	])
+	const report = days.map((day) => ({ day, usage: kv.kvQuota(rows.filter((row) => row.day === day)), d1: kv.d1Quota(d1Rows.filter((row) => row.day === day)) }))
 	if (opts.json) {
-		console.log(JSON.stringify({ limits: kv.KV_DAILY_LIMITS, days: report, note: NOTE }, null, 2))
+		console.log(JSON.stringify({ limits: { kv: kv.KV_DAILY_LIMITS, d1: kv.D1_DAILY_LIMITS }, days: report, note: NOTE }, null, 2))
 	} else {
-		console.log(`KV on this Cloudflare account, last ${days.length} days (UTC)\n`)
-		console.log(`day         ${kv.KV_ACTIONS.map((action) => pad(LABELS[action], 8)).join('')}`)
-		for (const { day, usage } of report) console.log(`${day}  ${kv.KV_ACTIONS.map((action) => pad(number(usage[action].used), 8)).join('')}`)
-		console.log(`limit       ${kv.KV_ACTIONS.map((action) => pad(number(kv.KV_DAILY_LIMITS[action]), 8)).join('')}\n\n${NOTE}`)
+		console.log(`KV and D1 on this Cloudflare account, last ${days.length} days (UTC)\n`)
+		console.log(`day         ${kv.KV_ACTIONS.map((action) => pad(LABELS[action], 8)).join('')}${pad('D1 read', 11)}${pad('D1 written', 11)}`)
+		for (const { day, usage, d1 } of report) console.log(`${day}  ${kv.KV_ACTIONS.map((action) => pad(number(usage[action].used), 8)).join('')}${pad(number(d1.rowsRead.used), 11)}${pad(number(d1.rowsWritten.used), 11)}`)
+		console.log(`limit       ${kv.KV_ACTIONS.map((action) => pad(number(kv.KV_DAILY_LIMITS[action]), 8)).join('')}${pad(number(kv.D1_DAILY_LIMITS.rowsRead), 11)}${pad(number(kv.D1_DAILY_LIMITS.rowsWritten), 11)}\n\n${NOTE}`)
 	}
 	process.exit(0)
 }
@@ -133,23 +148,33 @@ const day = opts.date ?? kv.utcDay(now)
 const today = day === kv.utcDay(now)
 if (day > kv.utcDay(now)) fail(`${day} hasn't happened yet.`)
 const { since, until } = kv.dayRange(day)
-const [rows, names] = await Promise.all([
+const [rows, names, d1Rows, dbs] = await Promise.all([
 	sql(account, 'SELECT namespaceId, actionType, SUM(sampleInterval) AS ops FROM events.kvRequests GROUP BY namespaceId, actionType LIMIT 1000', since, today ? undefined : until),
 	namespaceNames(),
+	sql(account, `${D1_QUERY} GROUP BY databaseId LIMIT 1000`, since, today ? undefined : until),
+	databases(),
 ])
 const usage = kv.kvQuota(rows)
+const d1 = kv.d1Quota(d1Rows)
+const byDatabase = dbs
+	.map((db) => {
+		const row = d1Rows.find((entry) => entry.databaseId === db.id)
+		return { name: db.name, bytes: db.bytes, rowsRead: Number(row?.readRows ?? 0), rowsWritten: Number(row?.writtenRows ?? 0) }
+	})
+	.sort((a, b) => b.rowsWritten - a.rowsWritten || b.bytes - a.bytes)
+const storage = { databases: dbs.length, bytes: dbs.reduce((total, db) => total + db.bytes, 0), limits: kv.D1_STORAGE }
 const namespaces = byNamespace(rows, names)
 const reset = kv.nextReset(now)
 
 if (opts.json) {
-	console.log(JSON.stringify({ day, today, limits: 'free plan, per Cloudflare account, per UTC day', ...(today ? { resetsAt: reset.toISOString(), resetsInMinutes: Math.ceil((reset - now) / 60_000), plain: kv.kvLeftInPlainWords(usage) } : {}), usage, namespaces, note: NOTE }, null, 2))
+	console.log(JSON.stringify({ day, today, limits: 'free plan, per Cloudflare account, per UTC day', ...(today ? { resetsAt: reset.toISOString(), resetsInMinutes: Math.ceil((reset - now) / 60_000), plain: kv.leftInPlainWords(usage, d1) } : {}), usage, namespaces, d1, databases: byDatabase, storage, note: NOTE }, null, 2))
 	process.exit(0)
 }
 
-console.log(`KV on this Cloudflare account, ${today ? `today (${day} UTC)` : `${day} UTC`}`)
+console.log(`KV and D1 on this Cloudflare account, ${today ? `today (${day} UTC)` : `${day} UTC`}`)
 if (today) console.log(`Resets in ${duration(reset - now)}, at ${reset.toLocaleString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false })} your time.`)
 if (today) {
-	const left = kv.kvLeftInPlainWords(usage)
+	const left = kv.leftInPlainWords(usage, d1)
 	console.log(`In plain words: about ${number(left.pageViews)} more page views today, and about ${number(left.changes)} more changes (publishing, new short links).`)
 }
 console.log(`\n          ${pad('used', 8)}${pad('limit', 9)}${today ? pad('left', 9) : ''}${pad('used %', 8)}`)
@@ -164,4 +189,10 @@ if (namespaces.length) {
 } else {
 	console.log('\nNothing recorded for this day.')
 }
-console.log(`\nFree plan limits, shared by every Worker on the account. At a limit, that kind of operation fails until the reset.\n${NOTE}`)
+console.log(`\nD1 rows    ${pad('used', 10)}${pad('limit', 11)}${pad('used %', 8)}`)
+for (const [label, quota] of [['read', d1.rowsRead], ['written', d1.rowsWritten]]) console.log(`${label.padEnd(10)}${pad(number(quota.used), 10)}${pad(number(quota.limit), 11)}${pad(`${quota.percent}%`, 8)}`)
+console.log(`\nD1 databases: ${storage.databases} of ${storage.limits.databases}, ${megabytes(storage.bytes)} of ${megabytes(storage.limits.account)} in all; each can hold ${megabytes(storage.limits.database)}.`)
+for (const db of byDatabase) console.log(`  ${db.name.padEnd(Math.max(...byDatabase.map((entry) => entry.name.length)))}  ${pad(megabytes(db.bytes), 10)}  read ${number(db.rowsRead)}  written ${number(db.rowsWritten)}`)
+console.log(`\nFree plan limits, shared by every project on the account. At a limit, that kind of operation fails until the reset.`)
+console.log('Worker requests (100,000 a day) are not in this: see Workers & Pages → the Worker → Metrics in the Cloudflare dashboard.')
+console.log(NOTE)

@@ -72,7 +72,7 @@ Bau dir Bio-Seiten in deinem Stil: Wähle ein Theme und seine Farben oder lass d
 
 ### Statistiken
 
-- Aufrufe, Klicks, Klickrate und Quellen: exakt gezählt und dauerhaft gespeichert (D1).
+- Aufrufe, Klicks, Klickrate und Quellen: exakt gezählt (D1), 13 Monate pro Tag, danach pro Monat.
 - Eindeutige Besucher, Regionen, Besucherkarte, Netzbetreiber, Geräte, Browser, Sprachen, verweisende Websites, UTM, Klickzeiten und letzte Aktivität: 90 Tage lang (Cloudflare Analytics Engine, ohne Einrichtung).
 - Vergleich mit dem Vorzeitraum, eine eigene Statistikseite für jeden Kurzlink, CSV-Export.
 - Keine Cookies, keine IP-Adressen, keine vollständigen User-Agent-Strings, Standorte nur bis zur Stadt. Die Besucher-ID ist ein Einweg-Hash, der sich täglich ändert. Bots werden nicht mitgezählt.
@@ -166,7 +166,7 @@ Jede bekommt unter „UTM-Kampagnen“ eine eigene Zeile, mit Aufrufen und Klick
 - Du siehst, woher Besucher kommen, aber nicht, wer sie sind. Instagram, Facebook und X verraten anderen Websites nie, welches Konto einen Link angetippt hat, und FluxBio speichert nichts, was eine Person erkennbar macht.
 - Namen in `?s=` dürfen Buchstaben ohne Umlaute, Ziffern, `-` und `_` enthalten und werden kleingeschrieben; andere Zeichen fallen weg. UTM-Tags bleiben, wie sie geschrieben sind, `story` und `Story` zählen also als zwei Zeilen. Schreib sie immer gleich.
 - Der Ort ist die Stadt, die Cloudflare anhand der IP-Adresse schätzt. VPNs, iCloud Privat-Relay und Firmennetze können Besucher woanders verorten.
-- Aufrufe, Klicks und Quellen sind exakt und bleiben dauerhaft gespeichert. Regionen, Karte, Netzwerke, Geräte, Sprachen und UTM-Details bleiben 90 Tage, und neue Besuche erscheinen nach etwa einer Minute. Ob auch Social-Icons zählen, entscheidest du selbst. Buttons mit der echten Adresse zählt ein winziges Skript auf der Seite, ein Blocker kann also einen Klick verbergen; Kurzlinks zählen immer.
+- Aufrufe, Klicks und Quellen sind exakt. Jeder Tag bleibt 13 Monate gespeichert, danach jeder Monat als eine Summe, dauerhaft; in den Einstellungen lässt sich alles herunterladen. Regionen, Karte, Netzwerke, Geräte, Sprachen und UTM-Details bleiben 90 Tage, und neue Besuche erscheinen nach etwa einer Minute. Ob auch Social-Icons zählen, entscheidest du selbst. Buttons mit der echten Adresse zählt ein winziges Skript auf der Seite, ein Blocker kann also einen Klick verbergen; Kurzlinks zählen immer.
 - Eindeutige Besucher werden pro Tag gezählt: Dieselbe Person an zwei Tagen oder erst am Handy, dann am Computer zählt doppelt.
 - Bots und Linkvorschauen (der Abruf, den eine Chat-App macht, wenn jemand einen Link einfügt) zählen nicht, die Zahlen können also niedriger sein als in anderen Tools.
 - Die UTM-Tags eines Kurzlinks gehen nur an sein Hauptziel, nicht an eigene iPhone- oder Android-Adressen, und ersetzen nie ein Tag, das das Ziel schon hat. Änderungen gelten erst für spätere Klicks.

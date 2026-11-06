@@ -73,7 +73,7 @@ Build bio pages in your own style: pick a theme and its colors, or have your AI 
 
 ### Stats
 
-- Views, clicks, click-through rate and sources: exact counts, kept forever (D1).
+- Views, clicks, click-through rate and sources: exact counts (D1), by day for 13 months and by month after that.
 - Unique visitors, regions, a visitor map, carriers and ISPs, devices, browsers, languages, referring sites, UTM, clicks by hour and recent activity: kept for 90 days (Cloudflare Analytics Engine, no setup needed).
 - Comparisons with the previous period, a stats page for every short link, and CSV export.
 - No cookies, no IP addresses and no full user-agent strings, and locations go no further than the city. Visitor IDs are a one-way hash that changes every day, and bots aren't counted.
@@ -167,7 +167,7 @@ Each gets its own row under UTM campaigns, with views and clicks counted separat
 - You can see where visitors came from, but not who they are. Instagram, Facebook and X never tell other websites which account tapped a link, and FluxBio stores nothing that identifies a person.
 - `?s=` names may use letters, digits, `-` and `_`, and are lowercased; other characters are dropped. UTM tags are kept as written, so `story` and `Story` count as two rows. Spell them the same way every time.
 - Locations are Cloudflare's estimate of the city, based on the visitor's IP address. VPNs, iCloud Private Relay and company networks can place visitors somewhere else.
-- Views, clicks and sources are exact and kept forever. Regions, the map, networks, devices, languages and UTM details are kept for 90 days, and new visits take about a minute to show up. You choose whether social icons count too. Buttons showing the real address are counted by a tiny script on the page, so a blocker can hide a click; short links always count.
+- Views, clicks and sources are exact. Each day is kept for 13 months, then each month as one total, for good, and Settings downloads them all. Regions, the map, networks, devices, languages and UTM details are kept for 90 days, and new visits take about a minute to show up. You choose whether social icons count too. Buttons showing the real address are counted by a tiny script on the page, so a blocker can hide a click; short links always count.
 - Unique visitors are counted per day. The same person on two different days, or on a phone and then a computer, counts twice.
 - Bots and link previews (the request a chat app makes when someone pastes a link) aren't counted, so the numbers can be lower than other tools show.
 - A short link's UTM tags go to its main destination only, not to separate iPhone or Android addresses, and never replace a tag the destination already has. Changing them affects only later clicks.
