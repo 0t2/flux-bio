@@ -944,8 +944,17 @@
 	"免費方案的額度每天 {time} 重新計算，用完的那一項會停到那時候。": "Hạn mức của gói miễn phí bắt đầu lại mỗi ngày lúc {time}. Mục nào hết sẽ dừng đến lúc đó.",
 	"這個網站": "Trang web này",
 	"整個 Cloudflare 帳號，今天": "Toàn bộ tài khoản Cloudflare, hôm nay",
-	"部署到 Cloudflare 後，這裡會顯示整個帳號今天實際用了多少。": "Khi đã lên Cloudflare, đây sẽ hiện toàn bộ tài khoản thực sự đã dùng bao nhiêu hôm nay.",
 	"帳號的數字來自 Cloudflare，會晚幾分鐘，包含帳號裡的其他專案。Cloudflare 沒有提供請求數，這裡用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。": "Số liệu tài khoản lấy từ Cloudflare, trễ vài phút, và gồm cả các dự án khác của bạn. Cloudflare không cung cấp số yêu cầu, nên được ước tính từ {views} lượt xem và {clicks} lượt nhấp hôm nay của trang này, không tính hình ảnh và bot.",
 	"請求數用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。": "Số yêu cầu được ước tính từ {views} lượt xem và {clicks} lượt nhấp hôm nay của trang này, không tính hình ảnh và bot.",
-	"幫我查 Cloudflare 帳號今天的詳細用量，看是哪個專案用掉的": "Kiểm tra mức sử dụng chi tiết hôm nay của tài khoản Cloudflare và dự án nào đã dùng gì"
+	"幫我查 Cloudflare 帳號今天的詳細用量，看是哪個專案用掉的": "Kiểm tra mức sử dụng chi tiết hôm nay của tài khoản Cloudflare và dự án nào đã dùng gì",
+	"KV 刪除": "Lượt xóa KV",
+	"KV 列出": "Lượt liệt kê KV",
+	"資料庫數量": "Số cơ sở dữ liệu",
+	"本機預覽讀不到 Cloudflare 的帳號用量，部署到 Cloudflare 後就會顯示。": "Bản xem trước trên máy không đọc được mức sử dụng của tài khoản Cloudflare. Số liệu sẽ hiện khi trang đã lên Cloudflare.",
+	"這裡看不到，要問 AI": "Không xem được ở đây: hãy hỏi AI",
+	"每個 KV 命名空間和每個資料庫各用了多少，看是哪個專案用掉的": "Mỗi KV namespace và mỗi cơ sở dữ liệu đã dùng bao nhiêu, để biết dự án nào đã dùng",
+	"前幾天每天的用量，最多 31 天": "Mức sử dụng từng ngày trước đó, tối đa 31 ngày",
+	"帳號是不是 Workers Paid，AI 查到後會順便更新上面的方案": "Tài khoản có dùng Workers Paid không; AI sẽ cập nhật gói ở trên khi kiểm tra",
+	"每個 Worker 的請求數只有 Cloudflare 後台看得到：Workers & Pages → 選 Worker → Metrics。": "Số yêu cầu của từng Worker chỉ xem được trong bảng điều khiển Cloudflare: Workers & Pages → chọn Worker → Metrics.",
+	"部署後顯示": "Hiện sau khi triển khai"
 }

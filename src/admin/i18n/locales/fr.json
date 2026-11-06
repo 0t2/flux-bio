@@ -944,8 +944,17 @@
 	"免費方案的額度每天 {time} 重新計算，用完的那一項會停到那時候。": "Le quota de l’offre gratuite repart à zéro chaque jour à {time}. Ce qui est épuisé s’arrête jusque-là.",
 	"這個網站": "Ce site",
 	"整個 Cloudflare 帳號，今天": "Tout le compte Cloudflare, aujourd’hui",
-	"部署到 Cloudflare 後，這裡會顯示整個帳號今天實際用了多少。": "Une fois le site sur Cloudflare, vous verrez ici ce que le compte entier a réellement utilisé aujourd’hui.",
 	"帳號的數字來自 Cloudflare，會晚幾分鐘，包含帳號裡的其他專案。Cloudflare 沒有提供請求數，這裡用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。": "Les chiffres du compte viennent de Cloudflare, avec quelques minutes de retard, et incluent vos autres projets. Cloudflare ne donne pas le nombre de requêtes : il est estimé à partir des {views} vues et {clicks} clics d’aujourd’hui sur ce site, sans les images ni les robots.",
 	"請求數用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。": "Les requêtes sont estimées à partir des {views} vues et {clicks} clics d’aujourd’hui sur ce site, sans les images ni les robots.",
-	"幫我查 Cloudflare 帳號今天的詳細用量，看是哪個專案用掉的": "Regarde l’utilisation détaillée de mon compte Cloudflare aujourd’hui, et quel projet a utilisé quoi"
+	"幫我查 Cloudflare 帳號今天的詳細用量，看是哪個專案用掉的": "Regarde l’utilisation détaillée de mon compte Cloudflare aujourd’hui, et quel projet a utilisé quoi",
+	"KV 刪除": "Suppressions KV",
+	"KV 列出": "Listages KV",
+	"資料庫數量": "Nombre de bases de données",
+	"本機預覽讀不到 Cloudflare 的帳號用量，部署到 Cloudflare 後就會顯示。": "L’aperçu local ne peut pas lire l’utilisation de votre compte Cloudflare. Elle s’affiche une fois le site sur Cloudflare.",
+	"這裡看不到，要問 AI": "Pas visible ici : demandez à votre IA",
+	"每個 KV 命名空間和每個資料庫各用了多少，看是哪個專案用掉的": "Ce que chaque espace de noms KV et chaque base de données a utilisé, pour voir quel projet l’a utilisé",
+	"前幾天每天的用量，最多 31 天": "L’utilisation de chacun des jours précédents, jusqu’à 31 jours",
+	"帳號是不是 Workers Paid，AI 查到後會順便更新上面的方案": "Si le compte est sur Workers Paid ; votre IA met à jour l’offre ci-dessus en vérifiant",
+	"每個 Worker 的請求數只有 Cloudflare 後台看得到：Workers & Pages → 選 Worker → Metrics。": "Les requêtes de chaque Worker ne se voient que dans le tableau de bord Cloudflare : Workers & Pages → choisir le Worker → Metrics.",
+	"部署後顯示": "Affiché une fois déployé"
 }
