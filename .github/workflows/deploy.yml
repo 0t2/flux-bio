@@ -52,6 +52,8 @@ jobs:
               pnpm exec cf deploy
             fi
           fi
+          # The Traditional Chinese page's font, cut to the characters it shows now. Without it the page links Google's.
+          pnpm landing:fonts || echo "The landing page goes out with Noto Sans TC from Google Fonts."
           pnpm landing:deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
