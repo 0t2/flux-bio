@@ -632,7 +632,7 @@ composition in a shadow root, and the landing page's lists come from the themes,
   locale files, and at least one color set. Every color in a composition must be a variable from `pageVars()` or a mix
   of them, so it keeps working in colors an AI picks. Then `pnpm test`.
 - **What an AI can set** through the API, and the dashboard can't: `accent`, `accent2`, `bg`, `fg`, `font`, `headFont`,
-  `bodyFont`, `button`, `bgImage` and `bgDim` in `appearance`. A page with any of these shows on 外觀 as a look made by
+  `bodyFont`, `button`, `bgImage`, `bgDim` and `bgTile` in `appearance`. A page with any of these shows on 外觀 as a look made by
   AI, and picking a color set clears them. `coverImage` is the page's own picture: the owner uploads it in the profile,
   and picking a color set keeps it.
 - **Fonts.** `headFont` and `bodyFont` take any family on the list in `src/shared/googleFonts.ts`

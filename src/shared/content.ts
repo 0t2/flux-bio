@@ -221,6 +221,11 @@ export const AppearanceSchema = z.object({
 	bgImage: mediaRef.default(null),
 	/** How much of that layer covers the picture: enough for the page's text to stay readable on it. */
 	bgDim: z.number().min(0.4).max(0.95).default(0.75),
+	/**
+	 * 0: the picture covers the screen, one copy cropped to fit. Otherwise it repeats, each copy this many CSS pixels wide
+	 * (its height follows), so a pattern looks the same on a phone and a wide screen.
+	 */
+	bgTile: z.number().int().min(0).max(2000).default(0),
 })
 export type Appearance = z.infer<typeof AppearanceSchema>
 
@@ -362,6 +367,7 @@ export const ThemePresetSchema = z.object({
 	coverImage: mediaId.optional(),
 	bgImage: mediaId.optional(),
 	bgDim: z.number().min(0.4).max(0.95).optional(),
+	bgTile: z.number().int().min(0).max(2000).optional(),
 })
 export type ThemePreset = z.infer<typeof ThemePresetSchema>
 
@@ -381,7 +387,7 @@ export function presetFromAppearance(name: string, appearance: Appearance): Them
 		...(appearance.bodyFont && { bodyFont: appearance.bodyFont }),
 		button: appearance.button,
 		...(appearance.coverImage && { coverImage: appearance.coverImage }),
-		...(appearance.bgImage && { bgImage: appearance.bgImage, bgDim: appearance.bgDim }),
+		...(appearance.bgImage && { bgImage: appearance.bgImage, bgDim: appearance.bgDim, ...(appearance.bgTile && { bgTile: appearance.bgTile }) }),
 	}
 }
 
@@ -401,13 +407,14 @@ export function appearanceFromPreset(preset: ThemePreset, current: Appearance): 
 		coverImage: preset.coverImage ?? current.coverImage ?? null,
 		bgImage: preset.bgImage ?? null,
 		bgDim: preset.bgDim ?? 0.75,
+		bgTile: preset.bgTile ?? 0,
 	}
 }
 
 const sameColor = (a: string | undefined, b: string | undefined) => (a ?? '').toUpperCase() === (b ?? '').toUpperCase()
 
 export function samePreset(
-	a: Pick<ThemePreset, 'base' | 'accent' | 'accent2' | 'bg' | 'fg' | 'font' | 'headFont' | 'bodyFont' | 'button' | 'coverImage' | 'bgImage'>,
+	a: Pick<ThemePreset, 'base' | 'accent' | 'accent2' | 'bg' | 'fg' | 'font' | 'headFont' | 'bodyFont' | 'button' | 'coverImage' | 'bgImage' | 'bgTile'>,
 	appearance: Appearance,
 ): boolean {
 	return (
@@ -421,7 +428,9 @@ export function samePreset(
 		a.font === appearance.font &&
 		a.button === appearance.button &&
 		(!a.coverImage || a.coverImage === appearance.coverImage) &&
-		(a.bgImage ?? null) === appearance.bgImage
+		(a.bgImage ?? null) === appearance.bgImage &&
+		// How a background repeats only matters when there is one.
+		(!a.bgImage || (a.bgTile ?? 0) === appearance.bgTile)
 	)
 }
 
@@ -437,7 +446,7 @@ export function randomString(length: number, alphabet = ID_ALPHABET): string {
 export const newId = (): string => randomString(10)
 
 export function defaultAppearance(): Appearance {
-	return { theme: 'liquid', accent: '', accent2: '', bg: '', fg: '', font: 'auto', headFont: '', bodyFont: '', button: 'auto', showSocial: true, coverImage: null, bgImage: null, bgDim: 0.75 }
+	return { theme: 'liquid', accent: '', accent2: '', bg: '', fg: '', font: 'auto', headFont: '', bodyFont: '', button: 'auto', showSocial: true, coverImage: null, bgImage: null, bgDim: 0.75, bgTile: 0 }
 }
 
 export function emptyLink(): LinkItem {
