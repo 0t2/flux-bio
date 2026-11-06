@@ -345,6 +345,9 @@ Rules worth knowing:
   `inAppPrompt` shows Instagram, Threads and Facebook users how to open the link in their browser
   first (`?inapp=preview` shows that page anywhere); `iosUrl`/`androidUrl` send those devices
   elsewhere, e.g. to an app store.
+- **Images nothing uses.** An upload stays in KV after the last page stops showing it. `GET /api/media/unused` lists those, and `DELETE` removes them:
+  ids that appear nowhere in a draft, a published page, a kept version, a QR code, the settings or a saved theme, and weren't uploaded in the last 7 days
+  (`lib/media.ts`; D1 looks through every text, so a new field that holds a picture needs nothing there). Nothing does this by itself.
 - **Images.** Set `profile.avatar`, `seo.image`, gallery and product images to media ids from
   `/api/media`. With `seo.imageMode: "auto"` the dashboard draws a share card when publishing;
   pages published through the API fall back to the avatar. An agent that can run commands uses a screenshot of the page instead: guide topic `share-image`, through

@@ -226,6 +226,18 @@ describe(`a site with ${PAGES} pages and ${LINKS} short links`, () => {
 		expect(body.links[0]!.stats.total).toBeGreaterThan(0)
 	})
 
+	it('finding unused pictures reads each page, kept version and short link once, in one trip to D1', async () => {
+		const cost = await measure('/api/media/unused')
+		expect(cost.status).toBe(200)
+		expect((JSON.parse(cost.body) as { unused: string[] }).unused).toEqual([])
+		// Signing in, then one batch: D1 looks through the texts, and the Worker gets only those that could name a picture.
+		expect(cost.queries).toBeLessThanOrEqual(3)
+		// These pages have no pictures, so none is opened: one with pictures costs a few hundred rows more, one per value in it.
+		expect(cost.rowsRead).toBeLessThan(2 * (3 * PAGES + LINKS))
+		// One list of KV, which holds no pictures here.
+		expect(cost.kv).toBe(1)
+	})
+
 	it('holds more than the old limits of 50 pages and 5,000 short links', async () => {
 		const state = JSON.parse((await measure('/api/state')).body) as { pages: { id: string; clicks7d: number; links: number; dirty: boolean }[]; limits?: unknown }
 		expect(state.pages.length).toBeGreaterThan(50)
