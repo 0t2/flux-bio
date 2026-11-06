@@ -177,7 +177,7 @@ Masing-masing mendapat baris sendiri di “Kampanye UTM”, dengan tayangan dan 
 <details>
 <summary><b>Apakah berbayar?</b></summary>
 
-FluxBio gratis dan open source. FluxBio berjalan di akun Cloudflare milikmu, yang paket gratisnya cukup untuk puluhan ribu tayangan halaman dan beberapa ratus perubahan per hari. Biasanya itu lebih dari cukup untuk perorangan dan toko kecil. Langganan AI seperti Claude atau ChatGPT terpisah, dan Claude Code memerlukan paket Claude berbayar.
+FluxBio gratis dan open source. FluxBio berjalan di akun Cloudflare milikmu, yang paket gratisnya cukup untuk sepuluh ribu sampai puluhan ribu tayangan halaman per hari, tergantung gambar di halamanmu, dan beberapa ratus perubahan. Biasanya itu lebih dari cukup untuk perorangan dan toko kecil. Langganan AI seperti Claude atau ChatGPT terpisah, dan Claude Code memerlukan paket Claude berbayar.
 
 </details>
 

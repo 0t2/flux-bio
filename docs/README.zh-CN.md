@@ -177,7 +177,7 @@ Instagram 个人简介、快拍和帖子都算 Instagram。想比较它们，就
 <details>
 <summary><b>要钱吗？</b></summary>
 
-FluxBio 免费、开源，运行在你自己的 Cloudflare 账号上。Cloudflare 的免费方案每天大约够几万次页面浏览和几百次修改，个人和小店通常用不完。Claude、ChatGPT 这类 AI 的订阅费另计，Claude Code 需要 Claude 的付费方案。
+FluxBio 免费、开源，运行在你自己的 Cloudflare 账号上。Cloudflare 的免费方案每天大约够一万到几万次页面浏览（看页面上的图片多少）和几百次修改，个人和小店通常用不完。Claude、ChatGPT 这类 AI 的订阅费另计，Claude Code 需要 Claude 的付费方案。
 
 </details>
 

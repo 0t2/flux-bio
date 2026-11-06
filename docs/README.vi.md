@@ -177,7 +177,7 @@ Mỗi vị trí có một dòng riêng trong “Chiến dịch UTM”, lượt x
 <details>
 <summary><b>Có mất phí không?</b></summary>
 
-FluxBio miễn phí và mã nguồn mở. Nó chạy trên tài khoản Cloudflare của chính bạn, với gói miễn phí đủ cho hàng chục nghìn lượt xem trang và vài trăm lần thay đổi mỗi ngày. Như vậy thường là dư cho cá nhân và cửa hàng nhỏ. Phí đăng ký AI như Claude hay ChatGPT tính riêng, và Claude Code cần gói Claude trả phí.
+FluxBio miễn phí và mã nguồn mở. Nó chạy trên tài khoản Cloudflare của chính bạn, với gói miễn phí đủ cho từ mười nghìn đến vài chục nghìn lượt xem trang mỗi ngày, tùy số ảnh trên trang, và vài trăm lần thay đổi. Như vậy thường là dư cho cá nhân và cửa hàng nhỏ. Phí đăng ký AI như Claude hay ChatGPT tính riêng, và Claude Code cần gói Claude trả phí.
 
 </details>
 

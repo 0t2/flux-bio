@@ -177,7 +177,7 @@ Instagram 프로필 링크, 스토리, 게시물은 모두 Instagram으로 집�
 <details>
 <summary><b>비용이 드나요?</b></summary>
 
-FluxBio는 무료 오픈소스이고, 내 Cloudflare 계정에서 돌아가요. Cloudflare 무료 플랜은 하루에 페이지 조회 수만 번과 수정 수백 번을 감당할 수 있어서, 개인이나 작은 가게에는 보통 충분해요. Claude나 ChatGPT 같은 AI 구독료는 별도이고, Claude Code는 Claude 유료 플랜이 필요해요.
+FluxBio는 무료 오픈소스이고, 내 Cloudflare 계정에서 돌아가요. Cloudflare 무료 플랜은 하루에 페이지 조회 1만~수만 번(페이지의 이미지 수에 따라 달라요)과 수정 수백 번을 감당할 수 있어서, 개인이나 작은 가게에는 보통 충분해요. Claude나 ChatGPT 같은 AI 구독료는 별도이고, Claude Code는 Claude 유료 플랜이 필요해요.
 
 </details>
 
