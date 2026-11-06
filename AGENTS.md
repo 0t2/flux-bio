@@ -515,7 +515,10 @@ tests/                  Vitest tests (run in workerd)
   left unless the page shows opening hours. System pages go by the `site` record a copy of the Worker last saw, for up to
   a minute (`systemSite`), because anyone can ask for addresses that don't exist. Any change to D1 that visitors would see
   must also rewrite KV; follow the patterns in `lib/ops.ts`. A missing KV entry is rebuilt from D1
-  on the next visit, so KV can be treated as a cache.
+  on the next visit, so KV can be treated as a cache. KV copies aren't parsed when read, so one written by an older
+  version lacks any field added since: anything that changes what a copy holds, a new page content field included, raises
+  `COPY_VERSION` in `lib/cache.ts`, which makes older copies count as missing (`tests/copy-version.test.ts` notices new
+  content fields). The first visit to each page after such a deploy costs a D1 read and a KV write.
 - **With `bio` off, KV holds no pages.** So a redirect needs no extra read to know the setting: switching
   off deletes every page's snapshot, the one in `site` too (D1 first, or a visit could rebuild one), and `snapshotOf` returns null
   while it is off, for every write and for the rebuild from D1. A page's address then costs a miss and one

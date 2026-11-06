@@ -19,6 +19,7 @@ import { fill, msg } from '../../templates/msg'
 import { ApiError } from '../types'
 import { deleteFontFiles, hostFonts, parseHostedFonts, unusedFontFiles } from './fonts'
 import {
+	COPY_VERSION,
 	deleteNamed,
 	getLinkRecord,
 	getSite,
@@ -137,7 +138,7 @@ function linkNeedsWorker(link: LinkRow): boolean {
 export async function snapshotOf(db: D1Database, page: PageRow, settings: Settings): Promise<Snapshot | null> {
 	if (!settings.bio || !page.published || !page.publishedAt) return null
 	return {
-		v: 3,
+		v: COPY_VERSION,
 		viaShortLink: (await listPageLinks(db, page.id)).filter(linkNeedsWorker).map((link) => link.id),
 		pageId: page.id,
 		handle: page.handle,
@@ -217,7 +218,7 @@ async function siteRecord(db: D1Database, settings: Settings, pages: PageRow[]):
 	// Null with pages off or the home page not published yet: nothing that reads this record can then name a page.
 	const page = home ? await snapshotOf(db, home, settings) : null
 	return {
-		v: 3,
+		v: COPY_VERSION,
 		home: page?.handle ?? '',
 		locale: settings.locale,
 		languages: settings.languages,

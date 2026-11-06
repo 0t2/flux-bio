@@ -13,8 +13,16 @@ import type { LinkRow } from './db'
  * to tell them apart. "/" reads the `site` record, which carries the home page's copy.
  */
 
+/**
+ * The shape of what KV holds for visitors. A copy written in another shape counts as missing and is rebuilt from D1,
+ * where content is parsed and gets the defaults of fields added since. So anything that changes what a copy holds, a
+ * new field in page content included, raises this: otherwise pages published before it are drawn from copies that
+ * lack the field, and fail until published again. `tests/copy-version.test.ts` notices new content fields.
+ */
+export const COPY_VERSION = 4
+
 export interface Snapshot {
-	v: 3
+	v: typeof COPY_VERSION
 	pageId: string
 	handle: string
 	content: PageContent
@@ -33,7 +41,7 @@ export interface Snapshot {
 
 /** What "/" and the system pages need: the home page itself, and how pages look. */
 export interface SiteRecord {
-	v: 3
+	v: typeof COPY_VERSION
 	/** Handle of the page served at "/", or "". */
 	home: string
 	locale: Locale
@@ -80,7 +88,7 @@ export type Named = { page: Snapshot; link?: undefined } | { link: LinkRecord; p
 /** The page or short link at a name, in one read. A copy in a shape this version doesn't write counts as missing, and is rebuilt from D1. */
 export async function getNamed(env: Env, name: string): Promise<Named | null> {
 	const named = await env.KV.get<Partial<Named>>(nameKey(name), 'json')
-	if (named?.page?.v === 3) return { page: named.page }
+	if (named?.page?.v === COPY_VERSION) return { page: named.page }
 	return named?.link ? { link: named.link } : null
 }
 
@@ -107,7 +115,7 @@ export function deleteNamed(env: Env, name: string): Promise<void> {
 
 export async function getSite(env: Env): Promise<SiteRecord | null> {
 	const site = await env.KV.get<SiteRecord>(SITE_KEY, 'json')
-	return site?.v === 3 && (!site.page || site.page.v === 3) ? site : null
+	return site?.v === COPY_VERSION && (!site.page || site.page.v === COPY_VERSION) ? site : null
 }
 
 export function putSite(env: Env, site: SiteRecord): Promise<void> {
