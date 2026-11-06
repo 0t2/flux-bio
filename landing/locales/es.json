@@ -152,5 +152,7 @@
 	"s184": "Unos {cost}",
 	"s185": "Es una estimación aproximada. Para saber cuánto usará tu página, pregúntale a tu IA.",
 	"s187": "Gratuito",
-	"s188": "Plan"
+	"s188": "Plan",
+	"s189": "Imágenes desplegadas con el sitio",
+	"s190": "Pídele a tu IA que despliegue tus imágenes junto con el sitio, y cargarlas no gastará cuota. No hay botón para esto en el panel, y las imágenes que subas después cuentan hasta el siguiente despliegue."
 }

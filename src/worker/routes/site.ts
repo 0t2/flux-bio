@@ -57,7 +57,8 @@ export const PREVIEW_CSP = csp("'self'")
 export const CUSTOM_CSP = 'sandbox allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads'
 
 /** Uploaded images are never documents: no scripts even when opened directly. */
-const MEDIA_CSP = "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox"
+/** Also in public/_headers, for pictures shipped as static files (pnpm deploy:images). */
+export const MEDIA_CSP = "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox"
 
 export const site = new Hono<AppEnv>({ strict: false })
 

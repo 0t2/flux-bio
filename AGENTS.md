@@ -233,6 +233,16 @@ pnpm exec cf workers secrets update ADMIN_PASSWORD --worker flux-bio --type secr
 Then check it with `POST /api/settings/verify-domain` and save it with `PUT /api/settings` (or ask
 the owner's AI to). Once saved, short links, QR codes and the API's `short` field use the domain.
 
+**Pictures as static files.** Each picture a visitor's browser doesn't have yet costs a Worker request and a KV read, and
+on a page with several they are most of what a view costs. `pnpm deploy:images --site https://<site>` downloads the pictures
+the site's pages use into `public/media/` (gitignored) and deploys with them as static files: Cloudflare answers those
+without running the Worker, free and unlimited, at the same `/media/<id>`, with the headers in `public/_headers`. A picture
+uploaded since then is served from KV as before, until the next run, and a picture no page uses any more is left out.
+It needs a full token in `FLUXBIO_TOKEN` or the admin password in `.secrets.env`, and the owner's computer: the dashboard
+can't deploy. So offer it, in plain words, when the owner adds pictures or asks about quota, and after new uploads. A deploy
+without it (`pnpm run deploy`, or GitHub Actions) ships whatever `public/media/` holds, nothing on a fresh checkout, and
+the pictures go back to costing quota without anything breaking. With `--mode staging` it reads and deploys the test site.
+
 **A test site.** To try a change first, run it on the owner's computer: `pnpm exec cf dev --mode staging` (with
 `ADMIN_PASSWORD` in `.dev.vars`) makes nothing on Cloudflare and uses none of their quota, and only that computer can open it.
 Deploy one to Cloudflare only if the owner asks, say to show someone else, and say first that it takes a second D1 database
@@ -375,6 +385,7 @@ pnpm i18n check  # lists dashboard text that isn't translated yet
 pnpm landing     # builds the landing page (see "The landing page"); pnpm landing:deploy also deploys it
 pnpm shots       # retakes the landing page's dashboard screenshots from the sample pages, in a throwaway local site
 pnpm brand       # remakes the favicon, app icons and the landing page's logo pictures from LOGO_PATH in src/templates/icons.ts
+pnpm deploy:images --site <url>  # deploy with the site's pictures as static files, which cost no quota (--no-deploy, --mode staging)
 pnpm usage       # today's free KV and D1 quota used and left, and each D1 database's size, on the signed-in Cloudflare account (--date, --days, --json)
 ```
 

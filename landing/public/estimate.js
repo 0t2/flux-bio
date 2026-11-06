@@ -30,6 +30,7 @@ if (form && result && panel) {
 	const rate = document.getElementById('est-rate')
 	const rateOut = document.getElementById('est-rate-out')
 	const images = document.getElementById('est-images')
+	const shipped = document.getElementById('est-shipped')
 	const verdict = document.getElementById('est-verdict')
 	const max = document.getElementById('est-max')
 	const cost = document.getElementById('est-cost')
@@ -49,7 +50,8 @@ if (form && result && panel) {
 	function update() {
 		const daily = whole(views, 0)
 		const clickShare = Number(rate.value) / 100
-		const pictures = Math.min(whole(images, 0), 50)
+		// Pictures deployed with the site are static files, which Cloudflare serves without the Worker or KV.
+		const pictures = shipped.checked ? 0 : Math.min(whole(images, 0), 50)
 		rateOut.textContent = `${rate.value}%`
 
 		// What `amount` page views a day take.

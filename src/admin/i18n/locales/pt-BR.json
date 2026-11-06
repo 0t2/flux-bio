@@ -956,5 +956,8 @@
 	"前幾天每天的用量，最多 31 天": "O uso de cada um dos dias anteriores, até 31 dias",
 	"帳號是不是 Workers Paid，AI 查到後會順便更新上面的方案": "Se a conta está no Workers Paid; sua IA atualiza o plano acima quando verificar",
 	"每個 Worker 的請求數只有 Cloudflare 後台看得到：Workers & Pages → 選 Worker → Metrics。": "As requisições de cada Worker só aparecem no painel da Cloudflare: Workers & Pages → escolha o Worker → Metrics.",
-	"部署後顯示": "Aparece depois de publicar"
+	"部署後顯示": "Aparece depois de publicar",
+	"讓圖片不算額度": "Imagens que não gastam cota",
+	"頁面上的圖片可以跟網站一起部署，之後訪客看圖片就不算請求和 KV 讀取。這要由你的 AI 在電腦上部署，後台沒有這個按鈕；之後新上傳的圖片，要再部署一次才不算。": "As imagens da sua página podem ser publicadas junto com o site, e aí carregá-las não gasta requisições nem leituras do KV. Quem faz isso é a sua IA, no seu computador: não há botão para isso aqui. Imagens enviadas depois contam até a próxima publicação.",
+	"把頁面上的圖片跟網站一起部署，讓看圖片不算額度": "Publique as imagens da minha página junto com o site, para que não gastem cota"
 }

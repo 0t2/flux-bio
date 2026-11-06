@@ -152,5 +152,7 @@
 	"s184": "Environ {cost}",
 	"s185": "C’est une estimation approximative. Pour savoir ce que votre page utilisera vraiment, demandez à votre IA.",
 	"s187": "Gratuite",
-	"s188": "Offre"
+	"s188": "Offre",
+	"s189": "Images déployées avec le site",
+	"s190": "Demandez à votre IA de déployer vos images avec le site : les charger ne coûtera plus de quota. Il n’y a pas de bouton pour cela dans le tableau de bord, et les images ajoutées ensuite comptent jusqu’au déploiement suivant."
 }

@@ -152,5 +152,7 @@
 	"s184": "Khoảng {cost}",
 	"s185": "Đây là ước tính sơ bộ. Muốn biết trang của bạn thực sự dùng bao nhiêu, hãy hỏi AI của bạn.",
 	"s187": "Miễn phí",
-	"s188": "Gói"
+	"s188": "Gói",
+	"s189": "Ảnh được triển khai cùng trang web",
+	"s190": "Nhờ AI của bạn triển khai ảnh cùng trang web, khi đó khách tải ảnh sẽ không tốn hạn mức. Trang quản trị không có nút này, và ảnh tải lên sau đó vẫn tính cho đến lần triển khai tiếp theo."
 }
