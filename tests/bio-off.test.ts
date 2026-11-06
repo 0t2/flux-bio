@@ -105,7 +105,7 @@ describe('with pages on', () => {
 		const { kv, reads } = countingKv()
 		const response = await callWith(kv, '/solo')
 		expect(response.status).toBe(302)
-		expect(reads).toEqual(['link:solo'])
+		expect(reads).toEqual(['name:solo'])
 	})
 })
 
@@ -129,11 +129,11 @@ describe('with pages off', () => {
 	})
 
 	it('deletes the snapshots, and a visit does not bring them back', async () => {
-		expect(await env.KV.get('page:shop')).toBeNull()
-		expect(await env.KV.get('page:club')).toBeNull()
+		expect(await env.KV.get('name:shop')).toBeNull()
+		expect(await env.KV.get('name:club')).toBeNull()
 		await visit('/shop')
 		await visit('/_c/shop/video-one/play')
-		expect(await env.KV.get('page:shop')).toBeNull()
+		expect(await env.KV.get('name:shop')).toBeNull()
 	})
 
 	it('keeps every page, draft and short link in D1', async () => {
@@ -159,15 +159,15 @@ describe('with pages off', () => {
 	})
 
 	it('still rebuilds a short link missing from KV, a page\'s too', async () => {
-		await env.KV.delete('link:buy')
+		await env.KV.delete('name:buy')
 		expect((await visit('/buy')).headers.get('location')).toBe('https://example.com/buy')
-		expect(await env.KV.get('link:buy')).not.toBeNull()
+		expect(await env.KV.get('name:buy')).not.toBeNull()
 	})
 
 	it('does not spend a KV read more on a redirect', async () => {
 		const { kv, reads } = countingKv()
 		expect((await callWith(kv, '/solo')).status).toBe(302)
-		expect(reads).toEqual(['link:solo'])
+		expect(reads).toEqual(['name:solo'])
 	})
 
 	it('does not point back to the page from a link\'s own pages', async () => {
@@ -233,17 +233,17 @@ describe('with pages off', () => {
 	it('writes no snapshot when publishing, renaming or changing settings', async () => {
 		await apiJson(`/pages/${shop}/draft`, { method: 'PUT', json: shopPage('Buy today') })
 		await apiJson(`/pages/${shop}/publish`, { method: 'POST' })
-		expect(await env.KV.get('page:shop')).toBeNull()
+		expect(await env.KV.get('name:shop')).toBeNull()
 		expect((await visit('/shop')).status).toBe(404)
 		expect((await apiJson<{ page: PageJson }>(`/pages/${shop}`)).page.published?.items[0]).toMatchObject({ title: 'Buy today' })
 
 		await apiJson(`/pages/${club}`, { method: 'PATCH', json: { handle: 'clubhouse' } })
-		expect(await env.KV.get('page:clubhouse')).toBeNull()
+		expect(await env.KV.get('name:clubhouse')).toBeNull()
 		expect((await visit('/clubhouse')).status).toBe(404)
 
 		await save({ timezone: 'Asia/Taipei', languages: ['ja'] })
-		expect(await env.KV.get('page:shop')).toBeNull()
-		expect(await env.KV.get('page:clubhouse')).toBeNull()
+		expect(await env.KV.get('name:shop')).toBeNull()
+		expect(await env.KV.get('name:clubhouse')).toBeNull()
 		await save({ timezone: 'UTC', languages: [] })
 	})
 
@@ -256,7 +256,7 @@ describe('with pages off', () => {
 		const backup = await apiJson('/export')
 		await apiJson('/import', { method: 'POST', json: backup })
 		expect(await settingsNow()).toMatchObject({ bio: false })
-		expect(await env.KV.get('page:shop')).toBeNull()
+		expect(await env.KV.get('name:shop')).toBeNull()
 		expect((await visit('/shop')).status).toBe(404)
 		expect((await visit('/buy')).status).toBe(302)
 	})
@@ -269,11 +269,11 @@ describe('switching back on', () => {
 
 	it('restores every published page at once, with what was published while off', async () => {
 		// Nothing is written ahead: a visit rebuilds a page's copy, so pages nobody visits cost no KV writes.
-		expect(await env.KV.get('page:clubhouse')).toBeNull()
+		expect(await env.KV.get('name:clubhouse')).toBeNull()
 		const page = await visit('/shop')
 		expect(page.status).toBe(200)
 		expect(await page.text()).toContain('Buy today')
-		expect(await env.KV.get('page:shop')).not.toBeNull()
+		expect(await env.KV.get('name:shop')).not.toBeNull()
 		expect((await visit('/clubhouse')).status).toBe(200)
 		expect(await (await visit('/')).text()).toContain('The Shop')
 		expect(await (await visit('/shoq')).text()).toContain('Did you mean')

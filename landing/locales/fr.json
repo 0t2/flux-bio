@@ -135,7 +135,7 @@
 	"s162": "Oui. Votre IA crée une page d’exemple sur votre ordinateur, sans aucun compte. Son adresse ne s’ouvre que sur votre ordinateur : vous ne pouvez pas l’envoyer à un ami, et après un redémarrage, demandez à votre IA de la rouvrir, rien n’est perdu. Quand elle vous plaît, créez un compte Cloudflare gratuit pour la mettre en ligne, et ce que vous avez fait suit. Sinon, demandez à votre IA de supprimer le dossier.",
 	"s163": "Quel trafic l’offre gratuite peut-elle tenir ?",
 	"s164": "Imaginons que votre compte Cloudflare ne contienne que FluxBio. Indiquez le trafic attendu pour voir si l’offre gratuite suffit et, sinon, ce que coûte Workers Paid par mois.",
-	"s165": "Avec les valeurs par défaut (5 images par page, trois visiteurs sur dix qui touchent un lien, tous les visiteurs nouveaux), l’offre gratuite tient environ 13 000 vues de page par jour, et davantage quand les gens reviennent. Workers Paid coûte 5 $ US par mois et inclut environ 1,3 million de vues.",
+	"s165": "Avec les valeurs par défaut (5 images par page, trois visiteurs sur dix qui touchent un lien, tous les visiteurs nouveaux), l’offre gratuite tient environ 15 000 vues de page par jour, et davantage quand les gens reviennent. Workers Paid coûte 5 $ US par mois et inclut environ 1,5 million de vues.",
 	"s169": "Vues de page par jour",
 	"s171": "Visiteurs qui touchent un lien",
 	"s172": "Images par page",

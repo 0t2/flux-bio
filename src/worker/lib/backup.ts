@@ -20,7 +20,7 @@ import {
 	type LinkRow,
 } from './db'
 import { toLinkRecord } from './cache'
-import { dropCopies, rebuildCache } from './ops'
+import { dropCopies, forgetSite, rebuildCache } from './ops'
 
 export async function exportData(env: Env): Promise<Backup> {
 	const [pages, rows, settings, themes] = await Promise.all([
@@ -172,6 +172,7 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 		oldLinks
 			.filter((row) => row.status === 'active' && !row.slug.startsWith('~') && incoming.get(row.slug) !== JSON.stringify(toLinkRecord(row)))
 			.map((row) => row.slug),
+		{ home: true },
 	)
 	await db.batch([
 		db.prepare('DELETE FROM page_versions'),
@@ -225,6 +226,7 @@ export async function clearAllData(env: Env): Promise<{ keys: number }> {
 	])
 	// KV first: if the migrations fail (say, racing another isolate), nothing old is left for visitors and a retry finishes.
 	const keys = await deleteKeys(env, () => true)
+	forgetSite()
 	await migrate(db)
 	return { keys }
 }

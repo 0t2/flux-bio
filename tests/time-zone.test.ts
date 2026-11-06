@@ -5,7 +5,7 @@ import { emptyContent, emptyLink, newItem, type Settings } from '../src/shared/c
 import { dayIn } from '../src/shared/time'
 import { api, apiJson, visit } from './helpers'
 
-// The time zone lives in the "site" record only, so changing it rewrites no short link or page copy.
+// In KV the time zone lives in the "site" record only, so changing it rewrites no short link or page copy.
 
 async function save(patch: Partial<Settings>): Promise<void> {
 	const { settings } = await apiJson<StateResponse>('/state')
@@ -23,24 +23,23 @@ describe('time zone', () => {
 	it('counts clicks in the new time zone without touching the short links', async () => {
 		await save({ timezone: WEST })
 		const { link } = await apiJson<{ link: { id: string } }>('/links', { method: 'POST', json: { url: 'https://example.com/tz', slug: 'tz-link' } })
-		const before = await env.KV.get('link:tz-link')
+		const before = await env.KV.get('name:tz-link')
 		await save({ timezone: EAST })
 		// The copy visitors read is as it was: nothing in it depends on the time zone.
-		expect(await env.KV.get('link:tz-link')).toBe(before)
+		expect(await env.KV.get('name:tz-link')).toBe(before)
 		expect(before).not.toContain('Pacific')
 		const { status } = await visit('/tz-link')
 		expect(status).toBe(302)
 		expect(await daysCounted(link.id)).toEqual([dayIn(EAST, Date.now())])
 	})
 
-	it('rebuilds a site record that has no time zone', async () => {
+	it('rebuilds a site record in a shape this version does not write', async () => {
 		await save({ timezone: EAST })
 		const site = JSON.parse((await env.KV.get('site')) ?? '{}') as Record<string, unknown>
 		expect(site.timezone).toBe(EAST)
-		delete site.timezone
-		await env.KV.put('site', JSON.stringify(site))
+		await env.KV.put('site', JSON.stringify({ ...site, v: 2, timezone: undefined }))
 		await visit('/')
-		expect((JSON.parse((await env.KV.get('site')) ?? '{}') as Record<string, unknown>).timezone).toBe(EAST)
+		expect(JSON.parse((await env.KV.get('site')) ?? '{}')).toMatchObject({ v: 3, timezone: EAST })
 	})
 
 	it('shows opening hours in the new time zone without rewriting the page', async () => {
@@ -50,9 +49,9 @@ describe('time zone', () => {
 		const { page } = await apiJson<{ page: { id: string } }>('/pages', { method: 'POST', json: { handle: 'tz-page', name: 'Hours' } })
 		await apiJson(`/pages/${page.id}/draft`, { method: 'PUT', json: content })
 		expect((await api(`/pages/${page.id}/publish`, { method: 'POST' })).ok).toBe(true)
-		const snapshot = await env.KV.get('page:tz-page')
+		const snapshot = await env.KV.get('name:tz-page')
 		await save({ timezone: EAST })
-		expect(await env.KV.get('page:tz-page')).toBe(snapshot)
+		expect(await env.KV.get('name:tz-page')).toBe(snapshot)
 		expect((await visit('/tz-page')).status).toBe(200)
 		expect(await daysCounted(page.id)).toEqual([dayIn(EAST, Date.now())])
 	})

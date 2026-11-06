@@ -3,7 +3,7 @@
 // then gives the usual answer in a sentence, and the form stays hidden.
 //
 // What each visit costs was measured on FluxBio itself (tests/kv-cost.test.ts, tests/scale.test.ts): a page view is
-// one Worker request, two KV reads and one D1 row written, and each picture on the page one more request and KV read
+// one Worker request, one KV read and one D1 row written, and each picture on the page one more request and KV read
 // for a visitor who hasn't got it yet. A tap on a link is one request, one KV read and one row. Each view and click is one Analytics Engine event. Prices are Cloudflare's, as published in November 2026.
 const FREE_PER_DAY = { requests: 100_000, kvReads: 100_000, rowsWritten: 100_000, events: 100_000 }
 const PAID = {
@@ -57,7 +57,7 @@ if (form && result && panel) {
 		// What `amount` page views a day take.
 		const costs = (amount) => ({
 			requests: amount * (1 + pictures + clickShare),
-			kvReads: amount * (2 + pictures + clickShare),
+			kvReads: amount * (1 + pictures + clickShare),
 			rowsWritten: amount * (1 + clickShare),
 			events: amount * (1 + clickShare),
 		})

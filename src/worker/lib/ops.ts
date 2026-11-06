@@ -1,5 +1,4 @@
 import {
-	DEFAULT_SETTINGS,
 	emptyContent,
 	isHttpUrl,
 	linkItems,
@@ -20,8 +19,7 @@ import { fill, msg } from '../../templates/msg'
 import { ApiError } from '../types'
 import { deleteFontFiles, hostFonts, parseHostedFonts, unusedFontFiles } from './fonts'
 import {
-	deleteLinkRecord,
-	deleteSnapshot,
+	deleteNamed,
 	getLinkRecord,
 	getSite,
 	putLinkRecord,
@@ -162,14 +160,24 @@ export async function snapshotOf(db: D1Database, page: PageRow, settings: Settin
  * has changed and the owner can try again. The fresh copy is written
  * afterwards; if that write fails, visitors get the D1 version, which is
  * already right, and the next visit tries to put it back in KV.
+ *
+ * `home` says one of the pages is the home page: its copy is also inside the "site" record, which "/" reads.
  */
-export async function dropCopies(env: Env, handles: string[], slugs: string[]): Promise<void> {
+export async function dropCopies(env: Env, handles: string[], slugs: string[], { home = false } = {}): Promise<void> {
 	try {
-		await Promise.all([...handles.map((handle) => deleteSnapshot(env, handle)), ...slugs.map((slug) => deleteLinkRecord(env, slug))])
+		await Promise.all([...[...handles, ...slugs].map((name) => deleteNamed(env, name)), home ? dropHomeCopy(env) : null])
 	} catch (error) {
 		console.error('KV refused a delete', error)
 		throw new ApiError(503, 'kv', msg('Cloudflare KV 暫時寫不進去，這次的修改沒有儲存，請稍後再試。'))
 	}
+}
+
+/** Taking the home page's copy away is writing the "site" record without it. "/" then asks D1 until the record is written again. */
+async function dropHomeCopy(env: Env): Promise<void> {
+	const site = await getSite(env)
+	if (!site?.page) return
+	const { page: _page, ...rest } = site
+	await storeSite(env, rest)
 }
 
 /** Writes fresh KV copies; see dropCopies for why a failure here only costs speed. */
@@ -179,12 +187,16 @@ export async function putCopies(writes: (Promise<unknown> | null)[]): Promise<vo
 	}
 }
 
-/** Rewrites the "site" record: which page is at "/" and how system pages look. */
+/** Rewrites the "site" record: the home page as "/" serves it, and how system pages look. */
 export async function writeSite(env: Env, settings: Settings, pages?: PageRow[]): Promise<SiteRecord> {
-	const site = siteRecord(settings, pages ?? (await sitePages(env.DB, settings)))
-	rememberTimeZone(settings.timezone)
-	await putSite(env, site)
+	const site = await siteRecord(env.DB, settings, pages ?? (await sitePages(env.DB, settings)))
+	await storeSite(env, site)
 	return site
+}
+
+function storeSite(env: Env, site: SiteRecord): Promise<void> {
+	rememberSite(site)
+	return putSite(env, site)
 }
 
 /** The pages the "site" record is made from: the home page and the first few published ones, whatever the site's size. */
@@ -196,55 +208,92 @@ async function sitePages(db: D1Database, settings: Settings): Promise<PageRow[]>
 /** How many published pages "/" offers when no page is home. */
 const SITE_RECORD_PAGES = 10
 
-function siteRecord(settings: Settings, pages: PageRow[]): SiteRecord {
+async function siteRecord(db: D1Database, settings: Settings, pages: PageRow[]): Promise<SiteRecord> {
 	const home = pages.find((page) => page.id === settings.home)
 	const look = (home?.published ?? home?.draft ?? pages.find((page) => page.published)?.published)?.appearance ?? null
+	// Null with pages off or the home page not published yet: nothing that reads this record can then name a page.
+	const page = home ? await snapshotOf(db, home, settings) : null
 	return {
-		v: 2,
-		// With pages off, nothing that reads this record can name one.
-		home: settings.bio ? (home?.handle ?? '') : '',
+		v: 3,
+		home: page?.handle ?? '',
 		locale: settings.locale,
 		languages: settings.languages,
 		look,
-		published: settings.bio ? pages.filter((page) => page.published).map((page) => page.handle).slice(0, SITE_RECORD_PAGES) : [],
+		published: settings.bio ? pages.filter((entry) => entry.published).map((entry) => entry.handle).slice(0, SITE_RECORD_PAGES) : [],
 		bio: settings.bio,
 		homeUrl: settings.homeUrl,
 		timezone: settings.timezone,
+		...(page && { page }),
 	}
 }
 
-/** Builds the "site" record from D1 when KV doesn't have it yet, e.g. right after upgrading from v0.1. */
+/** Builds the "site" record from D1 when KV doesn't have it, or has it without the home page's copy. */
 export async function siteFromDb(env: Env): Promise<SiteRecord> {
 	await ensureSchema(env.DB)
 	const settings = await loadSettings(env.DB)
-	const site = siteRecord(settings, await sitePages(env.DB, settings))
-	rememberTimeZone(settings.timezone)
-	await putCopies([putSite(env, site)])
+	const site = await siteRecord(env.DB, settings, await sitePages(env.DB, settings))
+	await putCopies([storeSite(env, site)])
 	return site
 }
 
-/** The "site" record: KV first, then D1. A copy from before it carried the time zone is rebuilt. */
+/** The "site" record as it is now: KV first, then D1. This is the read "/" costs. */
 export async function findSite(env: Env): Promise<SiteRecord> {
 	const site = await getSite(env)
-	if (!site?.timezone) return siteFromDb(env)
-	rememberTimeZone(site.timezone)
+	if (!site) return siteFromDb(env)
+	rememberSite(site)
 	return site
 }
 
-let timeZoneMemo: { timeZone: string; until: number } | null = null
+/** How long a copy of the Worker goes by the "site" record it last saw, for system pages and for the time zone. */
+const SYSTEM_PAGE_MEMO = 60 * 1000
+const TIME_ZONE_MEMO = 5 * 60 * 1000
 
-function rememberTimeZone(timeZone: string): void {
-	timeZoneMemo = { timeZone, until: Date.now() + 5 * 60 * 1000 }
+let siteMemo: { site: SiteRecord; at: number } | null = null
+let timeZoneMemo: { timeZone: string; at: number } | null = null
+
+function rememberSite(site: SiteRecord): void {
+	// Never the home page's copy: "/" always reads the record itself.
+	const { page: _page, ...rest } = site
+	siteMemo = { site: rest, at: Date.now() }
+	timeZoneMemo = { timeZone: site.timezone, at: siteMemo.at }
+}
+
+/** After a wipe: nothing this copy of the Worker remembers is true any more. */
+export function forgetSite(): void {
+	siteMemo = null
+	timeZoneMemo = null
 }
 
 /**
- * The site's time zone for a visit. Short links and page copies don't carry it, so changing it rewrites
- * none of them: a copy of the Worker reads the "site" record at most once in 5 minutes for it, and only
- * when a visit comes in. The copy that saved the change knows at once; the others catch up within 5 minutes.
+ * The "site" record for a system page: its language, its look, whether pages are on. Anyone can ask for addresses
+ * that don't exist as often as they like, so a copy of the Worker reads it at most once a minute for them. Without
+ * the home page's copy, and null when KV has no record yet: a system page then wears the default look.
+ */
+export async function systemSite(env: Env): Promise<SiteRecord | null> {
+	if (siteMemo && Date.now() - siteMemo.at < SYSTEM_PAGE_MEMO) return siteMemo.site
+	const site = await getSite(env)
+	if (site) rememberSite(site)
+	return site ? (siteMemo?.site ?? site) : null
+}
+
+/**
+ * The site's time zone for a visit. Short links and page copies don't carry it, so changing it rewrites none of
+ * them. A copy of the Worker that doesn't know it asks D1, at most once in 5 minutes, and not KV: of the two,
+ * KV's reads are the scarce ones. A visit to "/" brings it along in the "site" record. The copy that saved the
+ * change knows at once; the others catch up within 5 minutes.
  */
 export async function siteTimeZone(env: Env): Promise<string> {
-	if (timeZoneMemo && timeZoneMemo.until > Date.now()) return timeZoneMemo.timeZone
-	return (await findSite(env)).timezone ?? DEFAULT_SETTINGS.timezone
+	if (timeZoneMemo && Date.now() - timeZoneMemo.at < TIME_ZONE_MEMO) return timeZoneMemo.timeZone
+	try {
+		await ensureSchema(env.DB)
+		const { timezone } = await loadSettings(env.DB)
+		timeZoneMemo = { timeZone: timezone, at: Date.now() }
+		return timezone
+	} catch (error) {
+		// Visitors are served from KV alone: D1 not answering mustn't take a page down with it.
+		console.error('D1 did not give the time zone', error)
+		return (await findSite(env)).timezone
+	}
 }
 
 // ---------------------------------------------------------------- pages
@@ -412,7 +461,7 @@ export async function publishPage(env: Env, pageId: string, { by = null, seen }:
 	)
 	// Links that were live and now change or leave lose their KV copy first, and so does the page.
 	const replaced = ownRows.filter((row) => row.status === 'active' && !row.slug.startsWith('~') && !unchanged.has(row.slug))
-	await dropCopies(env, [page.handle], replaced.map((row) => row.slug))
+	await dropCopies(env, [page.handle], replaced.map((row) => row.slug), { home: settings.home === pageId })
 	await db.batch(statements)
 	forgetPublicNames()
 
@@ -492,11 +541,11 @@ export async function renamePage(env: Env, id: string, input: string): Promise<P
 	for (const link of linkItems(page.draft)) {
 		if (normalizeSlug(link.slug) === handle) throw new ApiError(409, 'slug-taken', { key: msg('「{handle}」是這一頁某個連結的代稱，請換一個'), params: { handle } })
 	}
-	await dropCopies(env, [page.handle, handle], [])
+	const settings = await loadSettings(db)
+	await dropCopies(env, [page.handle, handle], [], { home: settings.home === id })
 	await db.prepare('UPDATE pages SET handle = ?1 WHERE id = ?2').bind(handle, id).run()
 	forgetPublicNames()
 	const renamed = { ...page, handle }
-	const settings = await loadSettings(db)
 	const snapshot = await snapshotOf(env.DB, renamed, settings)
 	await putCopies([snapshot ? putSnapshot(env, snapshot) : null, settings.home === id ? writeSite(env, settings) : null])
 	return renamed
@@ -521,6 +570,7 @@ export async function deletePage(env: Env, id: string): Promise<void> {
 		env,
 		[page.handle],
 		own.filter((row) => row.status === 'active' && !row.slug.startsWith('~')).map((row) => row.slug),
+		{ home: settings.home === id },
 	)
 	await db.batch([
 		db
@@ -604,14 +654,15 @@ export async function updateSettings(env: Env, input: SettingsInput): Promise<{ 
 		if (handles.length > budget) copiesLeft = true
 		const dropped = handles.slice(0, budget)
 		budget -= dropped.length
-		await drop(dropped, (handle) => deleteSnapshot(env, handle))
+		await drop(dropped, (handle) => deleteNamed(env, handle))
 	} else if (next.bio && !bioChanged && homeChanged) {
 		// Only the two pages that stop or start being the home page say so in their snapshot.
 		const pages = await getPagesByIds(db, [previous.home, next.home].filter(Boolean))
 		const snapshots = await Promise.all(pages.map((page) => snapshotOf(db, page, next)))
 		await putCopies(snapshots.map((snapshot) => (snapshot ? putSnapshot(env, snapshot) : null)))
 	}
-	// The time zone is in the "site" record only; visits pick it up from there (siteTimeZone).
+	// The home page's copy is in the "site" record, so this is also what brings "/" up to date. The time zone is
+	// in that record and nowhere else in KV; visits elsewhere ask for it (siteTimeZone).
 	if (!bioChanged && (everyPage || homeChanged || timezoneChanged || previous.homeUrl !== next.homeUrl)) await writeSite(env, next)
 	await deleteFontFiles(env, unusedFonts.slice(0, KV_OPS_AT_ONCE))
 	return { settings: next, copiesLeft }
@@ -626,11 +677,11 @@ export async function updateSettings(env: Env, input: SettingsInput): Promise<{ 
 async function switchBio(env: Env, previous: Settings, next: Settings): Promise<void> {
 	const stale = next.bio ? [] : await publishedHandles(env.DB)
 	try {
-		await Promise.all([putSite(env, siteRecord(next, await sitePages(env.DB, next))), ...stale.map((handle) => deleteSnapshot(env, handle))])
+		await Promise.all([storeSite(env, await siteRecord(env.DB, next, await sitePages(env.DB, next))), ...stale.map((handle) => deleteNamed(env, handle))])
 	} catch (error) {
 		console.error('KV refused the bio switch', error)
 		await saveSettingsStatement(env.DB, previous).run()
-		await putCopies([putSite(env, siteRecord(previous, await sitePages(env.DB, previous)))])
+		await putCopies([storeSite(env, await siteRecord(env.DB, previous, await sitePages(env.DB, previous)))])
 		throw new ApiError(503, 'kv', msg('Cloudflare KV 暫時寫不進去，這次的修改沒有儲存，請稍後再試。'))
 	}
 }
@@ -803,7 +854,8 @@ export async function setPageLinkSlug(
 	const draftUpdatedAt = Math.max(now, page.draftUpdatedAt + 1)
 
 	// A button that hides its address points at the old slug until the page's copy is rewritten.
-	await dropCopies(env, inPublished ? [page.handle] : [], active && !unchanged ? [active.slug] : [])
+	const home = Boolean(inPublished) && settings.home === pageId
+	await dropCopies(env, inPublished ? [page.handle] : [], active && !unchanged ? [active.slug] : [], { home })
 	const saved = await db
 		.prepare('UPDATE pages SET draft = ?1, published = ?2, draft_updated_at = ?3 WHERE id = ?4 AND draft_updated_at = ?5')
 		.bind(JSON.stringify(draft), published && JSON.stringify(published), draftUpdatedAt, pageId, page.draftUpdatedAt)
@@ -812,7 +864,7 @@ export async function setPageLinkSlug(
 	await upsertLinkStatement(db, next).run()
 	forgetPublicNames()
 	const snapshot = inPublished ? await snapshotOf(db, { ...page, draft, published, draftUpdatedAt }, settings) : null
-	await putCopies([putLinkRecord(env, slug, toLinkRecord(next)), snapshot ? putSnapshot(env, snapshot) : null])
+	await putCopies([putLinkRecord(env, slug, toLinkRecord(next)), snapshot ? putSnapshot(env, snapshot) : null, home ? writeSite(env, settings) : null])
 	return { row: next, draftUpdatedAt }
 }
 
@@ -868,14 +920,16 @@ export async function updateLink(env: Env, id: string, patch: LinkPatch): Promis
 	// A new password or an archived link must never be left to an old KV copy.
 	// A password can't wait for the page's copy either: its button must stop showing the address at once.
 	const page = row.pageId && linkNeedsWorker(row) !== linkNeedsWorker(next) ? await getPage(db, row.pageId) : null
+	const home = page?.id === settings.home
 	if (row.status === 'active' && (routingChanged || moved || next.status !== 'active')) {
-		await dropCopies(env, page ? [page.handle] : [], moved ? [row.slug, next.slug] : [row.slug])
+		await dropCopies(env, page ? [page.handle] : [], moved ? [row.slug, next.slug] : [row.slug], { home })
 	}
 	await upsertLinkStatement(db, next).run()
 	const snapshot = page ? await snapshotOf(db, page, settings) : null
 	await putCopies([
 		next.status === 'active' && (routingChanged || moved || row.status !== 'active') ? putLinkRecord(env, next.slug, toLinkRecord(next)) : null,
 		snapshot ? putSnapshot(env, snapshot) : null,
+		snapshot && home ? writeSite(env, settings) : null,
 	])
 	return next
 }
@@ -895,8 +949,10 @@ export async function linkRecordFromDb(env: Env, slug: string): Promise<LinkReco
 /** Falls back to D1 when KV has no snapshot for a handle, and repairs KV. */
 export async function snapshotFromDb(env: Env, handle: string): Promise<Snapshot | null> {
 	await ensureSchema(env.DB)
-	const [page, settings] = await Promise.all([getPageByHandle(env.DB, handle), loadSettings(env.DB)])
-	const snapshot = page ? await snapshotOf(env.DB, page, settings) : null
+	// Most misses are addresses that were never anything, so the settings are only read for a page that exists.
+	const page = await getPageByHandle(env.DB, handle)
+	if (!page?.published) return null
+	const snapshot = await snapshotOf(env.DB, page, await loadSettings(env.DB))
 	if (snapshot) await putCopies([putSnapshot(env, snapshot)])
 	return snapshot
 }
