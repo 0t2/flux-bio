@@ -79,7 +79,8 @@ await webPage.setContent(`<!doctype html><body style="margin:0"><svg width="1444
 		<path d="M550 290C720 302 900 300 1010 270C1090 248 1100 150 1190 150"/><path d="M990 456H1190"/><path d="M550 622C720 610 900 612 1010 642C1090 664 1100 762 1190 762"/>
 	</g>
 	${card(800, 65, LIME, true)}${card(1190, 65, OFF_WHITE, false)}${card(800, 371, OFF_WHITE, false)}${card(1190, 371, LIME, true)}${card(800, 677, LIME, false)}${card(1190, 677, OFF_WHITE, true)}
-	<g transform="translate(20 226) scale(14.4)">${logoSvg(32).replace(/^<svg[^>]*>|<\/svg>$/g, '')}</g>
+	<!-- The mark's body where the arms leave it; the aerial rises above. -->
+	<g transform="translate(2.8 168.7) scale(15.48)">${logoSvg(32).replace(/^<svg[^>]*>|<\/svg>$/g, '')}</g>
 </svg>`)
 const png = await webPage.screenshot({ type: 'png', omitBackground: true })
 const webp = await webPage.evaluate(async (base64) => {

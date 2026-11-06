@@ -11,8 +11,8 @@ import motion from '../landing/public/motion.js?raw'
 import template from '../landing/template.html?raw'
 import { charactersBeyondAscii, coversPage, PLEX, plexFiles, type ChineseFont } from '../landing/fonts'
 import landingHeaders from '../landing/public/_headers?raw'
-import { THEME_IDS, type ThemeId } from '../src/shared/content'
-import { previewPage, previewsIn, THEME_SAMPLES } from '../landing/previews'
+import { THEME_IDS } from '../src/shared/content'
+import { previewPage, previewsIn } from '../landing/previews'
 
 // The fluxbio.link landing page, its sample pages and the README come in every language.
 const words = import.meta.glob<Record<string, string>>('../landing/locales/*.json', { import: 'default', eager: true })
@@ -215,79 +215,67 @@ describe('while the phones load', () => {
 })
 
 describe('on a touch screen', () => {
-	it('moves between things with a finger, leaving up and down and zooming to the browser', () => {
-		expect(motion).toContain("swipe(stage,")
+	it('moves between things with a finger, leaving up and down to the browser', () => {
 		expect(motion).toContain("swipe(templates,")
-		expect(template).toMatch(/\.stage\{touch-action:pan-y pinch-zoom/)
 		expect(template).toMatch(/\.tpls\{[^}]*touch-action:pan-y pinch-zoom/)
 	})
 
-	it('plays the phones by itself only for someone who has not asked for less motion', () => {
-		expect(motion).toContain('if (still || !seen || resting || chosen || document.hidden) return')
+	it('holds still for someone who has asked for less motion', () => {
+		expect(template).toContain('@media (prefers-reduced-motion:reduce){*{animation:none!important')
 	})
 
-	it('has the headline, the phones and the pills first on a phone', () => {
+	it('has the headline, then the terminal and the octopus, first on a phone', () => {
 		const phone = template.slice(template.indexOf('/* On a phone: the headline'))
-		expect(phone).toMatch(/\.hero h1\{order:-3\}/)
-		expect(phone).toMatch(/\.stage\{[^}]*order:-2/)
-		expect(phone).toMatch(/\.pick\{order:-1/)
+		expect(phone).toMatch(/\.hero h1\{order:-2\}/)
+		expect(phone).toMatch(/\.octo\{order:-1/)
 	})
 })
 
 describe('the logo', () => {
 	it('comes from one place', () => {
 		const page = renderLanding(template, words['../landing/locales/en.json']!, 'en')
-		expect(page.match(new RegExp(LOGO_PATH.slice(0, 40), 'g'))).toHaveLength(2)
+		// The header, the footer, and the octopus bot at the end of the headline.
+		expect(page.match(new RegExp(LOGO_PATH.slice(0, 40), 'g'))).toHaveLength(3)
 		expect(template).not.toContain('<path d="M16 3c6.5')
 		expect(favicon).toContain(LOGO_PATH)
 	})
 })
 
 describe('the hero', () => {
-	it('shows every kind of page, each in a theme whose sample is that kind', () => {
-		const hero = template.slice(template.indexOf('<div class="stage"'), template.indexOf('id="features"'))
-		const frames = [...hero.matchAll(/class="phone p-(\w+)" for="u-\1"><iframe src="\/preview\/\{\{@lang\}\}\/(\w+)"/g)].map((match) => [match[1], match[2]] as const)
-		expect(frames.map(([kind]) => kind)).toEqual([...STARTER_IDS])
-		for (const [kind, theme] of frames) {
-			expect(THEME_IDS as readonly string[]).toContain(theme)
-			expect(THEME_SAMPLES[theme as ThemeId]?.[0]).toBe(kind)
-		}
+	const hero = template.slice(template.indexOf('<section class="hero"'), template.indexOf('id="features"'))
+
+	// The terminal types what an owner says to their AI, in words every language already has from the AI section, and
+	// ticks off steps that are translated too.
+	it('asks for what the AI section offers, and ticks off translated steps', () => {
+		const asked = [...hero.matchAll(/\{\{(s14[2-6])\}\}/g)].map((match) => match[1])
+		expect(asked.length).toBeGreaterThanOrEqual(3)
+		for (const key of asked) expect(template.indexOf(`{{${key}}}`)).toBeLessThan(template.indexOf('id="features"'))
+		const steps = [...hero.matchAll(/\{\{(s(?:19[4-9]|20[01]))\}\}/g)].map((match) => match[1])
+		expect(new Set(steps).size).toBe(8)
 	})
 
-	it('links to the whole gallery, which still has every theme', () => {
-		expect(template).toContain('<a class="pick-more" href="#themes">{{s140}}')
-		for (const [file, text] of Object.entries(words)) expect(text.s140, file).not.toMatch(/\d/)
-		expect(renderLanding(template, words['../landing/locales/en.json']!, 'en').match(/class="tile"/g)).toHaveLength(THEME_IDS.length)
+	it('types with a script from this site, and reads whole without it', () => {
+		expect(template).toContain('<script src="/terminal.js" defer></script>')
+		expect(template.match(/<script(?![^>]*\bsrc=)[^>]*>/g)).toBeNull()
+		expect(hero).toMatch(/<span class="t-say">\{\{s14\d\}\}/)
 	})
 
-	// The pills and the phone are worked with ~ from the radios, and the buttons should come first for the keyboard.
-	it('puts the headline with the words, and the radios after the buttons and ahead of what they control', () => {
-		const order = ['class="hero-copy"', '<h1 id="hero-title"', 'class="btn primary"', 'id="u-creator"', 'id="u-org"', '<div class="pick"', '<div class="stage"', 'class="phone p-org"', 'class="pick-more"', 'id="features"']
-		const hero = template.slice(template.indexOf('<section class="hero"'))
+	it('puts the words first, then the terminal, then what the octopus holds', () => {
+		const order = ['class="hero-copy"', '<h1 id="hero-title"', 'class="lead"', 'class="btn primary"', 'class="octo"', 'class="term"', 'class="octo-fit"']
 		const places = order.map((text) => hero.indexOf(text))
 		expect(places).not.toContain(-1)
 		expect(places).toEqual([...places].sort((a, b) => a - b))
-		for (const kind of STARTER_IDS) {
-			expect(template).toContain(`#u-${kind}:checked~.pick label[for=u-${kind}]`)
-			expect(template).toContain(`#u-${kind}:checked~.stage .p-${kind}`)
-		}
 	})
 
-	// The phones stick out past the page's column. Cutting them with anything but a full-width section slices one in mid-air on
-	// a wide screen, and leaving it to the body lets the whole page be dragged sideways.
-	it('cuts the phones with a section as wide as the window', () => {
+	it('leaves the whole gallery, with every theme, to its own section', () => {
+		expect(renderLanding(template, words['../landing/locales/en.json']!, 'en').match(/class="tile"/g)).toHaveLength(THEME_IDS.length)
+	})
+
+	// What the octopus holds sticks out past the page's column. Cutting it with anything but a full-width section slices
+	// a card in mid-air on a wide screen, and leaving it to the body lets the whole page be dragged sideways.
+	it('cuts what the octopus holds with a section as wide as the window', () => {
 		expect(template).toContain('<section class="hero" aria-labelledby="hero-title">\n<div class="hero-row wrap">')
 		expect(template).toMatch(/\.hero\{[^}]*overflow:clip/)
-	})
-
-	// With z-index the picked phone jumped on top the moment it was clicked, and each switch repainted the page.
-	it('stacks the phones by depth, on layers made ahead of time', () => {
-		// On the layer inside .stage: on a phone .stage cuts them short, and cutting an element flattens what's in it.
-		expect(template).toMatch(/\.phones\{[^}]*transform-style:preserve-3d/)
-		expect(template).not.toMatch(/\.stage\{[^}]*transform-style/)
-		expect(template).toMatch(/\.stage \.phone\{[^}]*will-change:transform/)
-		const phones = template.slice(template.indexOf('.stage .phone{'), template.indexOf('@media (prefers-reduced-motion:reduce){.stage'))
-		expect(phones).not.toContain('z-index')
 	})
 
 	it('names the product once in the footer', () => {
