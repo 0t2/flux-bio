@@ -944,8 +944,17 @@
 	"免費方案的額度每天 {time} 重新計算，用完的那一項會停到那時候。": "A cota do plano gratuito recomeça todo dia às {time}. O que acabar fica parado até lá.",
 	"這個網站": "Este site",
 	"整個 Cloudflare 帳號，今天": "Toda a conta da Cloudflare, hoje",
-	"部署到 Cloudflare 後，這裡會顯示整個帳號今天實際用了多少。": "Depois que estiver na Cloudflare, aqui aparece quanto a conta inteira usou de verdade hoje.",
 	"帳號的數字來自 Cloudflare，會晚幾分鐘，包含帳號裡的其他專案。Cloudflare 沒有提供請求數，這裡用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。": "Os números da conta vêm da Cloudflare, com alguns minutos de atraso, e incluem seus outros projetos. A Cloudflare não informa as requisições, então elas são estimadas a partir das {views} visualizações e {clicks} cliques de hoje neste site, sem imagens nem bots.",
 	"請求數用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。": "As requisições são estimadas a partir das {views} visualizações e {clicks} cliques de hoje neste site, sem imagens nem bots.",
-	"幫我查 Cloudflare 帳號今天的詳細用量，看是哪個專案用掉的": "Veja o uso detalhado de hoje na minha conta da Cloudflare e qual projeto usou o quê"
+	"幫我查 Cloudflare 帳號今天的詳細用量，看是哪個專案用掉的": "Veja o uso detalhado de hoje na minha conta da Cloudflare e qual projeto usou o quê",
+	"KV 刪除": "Exclusões no KV",
+	"KV 列出": "Listagens no KV",
+	"資料庫數量": "Número de bancos de dados",
+	"本機預覽讀不到 Cloudflare 的帳號用量，部署到 Cloudflare 後就會顯示。": "A prévia local não consegue ler o uso da sua conta da Cloudflare. Ele aparece quando o site estiver na Cloudflare.",
+	"這裡看不到，要問 AI": "Não aparece aqui: pergunte à sua IA",
+	"每個 KV 命名空間和每個資料庫各用了多少，看是哪個專案用掉的": "Quanto cada namespace do KV e cada banco de dados usou, para ver qual projeto usou",
+	"前幾天每天的用量，最多 31 天": "O uso de cada um dos dias anteriores, até 31 dias",
+	"帳號是不是 Workers Paid，AI 查到後會順便更新上面的方案": "Se a conta está no Workers Paid; sua IA atualiza o plano acima quando verificar",
+	"每個 Worker 的請求數只有 Cloudflare 後台看得到：Workers & Pages → 選 Worker → Metrics。": "As requisições de cada Worker só aparecem no painel da Cloudflare: Workers & Pages → escolha o Worker → Metrics.",
+	"部署後顯示": "Aparece depois de publicar"
 }

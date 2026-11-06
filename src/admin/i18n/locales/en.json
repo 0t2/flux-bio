@@ -944,8 +944,17 @@
 	"免費方案的額度每天 {time} 重新計算，用完的那一項會停到那時候。": "The free plan's quota starts over every day at {time}. Whatever runs out stops until then.",
 	"這個網站": "This site",
 	"整個 Cloudflare 帳號，今天": "Whole Cloudflare account, today",
-	"部署到 Cloudflare 後，這裡會顯示整個帳號今天實際用了多少。": "Once this is on Cloudflare, this shows how much the whole account actually used today.",
 	"帳號的數字來自 Cloudflare，會晚幾分鐘，包含帳號裡的其他專案。Cloudflare 沒有提供請求數，這裡用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。": "Account numbers come from Cloudflare, a few minutes late, and include your other projects. Cloudflare doesn't report requests, so they're estimated from this site's {views} views and {clicks} clicks today, without pictures or bots.",
 	"請求數用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。": "Requests are estimated from this site's {views} views and {clicks} clicks today, without pictures or bots.",
-	"幫我查 Cloudflare 帳號今天的詳細用量，看是哪個專案用掉的": "Look up my Cloudflare account's detailed usage for today, and which project used what"
+	"幫我查 Cloudflare 帳號今天的詳細用量，看是哪個專案用掉的": "Look up my Cloudflare account's detailed usage for today, and which project used what",
+	"KV 刪除": "KV deletes",
+	"KV 列出": "KV lists",
+	"資料庫數量": "Number of databases",
+	"本機預覽讀不到 Cloudflare 的帳號用量，部署到 Cloudflare 後就會顯示。": "The local preview can't read your Cloudflare account's usage. It shows once this is on Cloudflare.",
+	"這裡看不到，要問 AI": "Not shown here: ask your AI",
+	"每個 KV 命名空間和每個資料庫各用了多少，看是哪個專案用掉的": "How much each KV namespace and each database used, to see which project used it",
+	"前幾天每天的用量，最多 31 天": "Each of the past days' usage, up to 31 days",
+	"帳號是不是 Workers Paid，AI 查到後會順便更新上面的方案": "Whether the account is on Workers Paid; your AI updates the plan above when it checks",
+	"每個 Worker 的請求數只有 Cloudflare 後台看得到：Workers & Pages → 選 Worker → Metrics。": "Requests per Worker are only in the Cloudflare dashboard: Workers & Pages → pick the Worker → Metrics.",
+	"部署後顯示": "Shown once deployed"
 }

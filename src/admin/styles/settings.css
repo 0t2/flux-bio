@@ -502,6 +502,13 @@
 	background: var(--danger);
 }
 /* Stacked buttons, as wide as the wider of them, beside the text like the backup row's one. */
+.usage-ai {
+	margin: 8px 0 12px;
+	padding-inline-start: 20px;
+	font-size: 14px;
+	line-height: 1.7;
+	color: var(--text-2);
+}
 .set-backup-row > .set-stats-actions {
 	flex: none;
 	display: flex;

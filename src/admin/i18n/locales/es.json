@@ -944,8 +944,17 @@
 	"免費方案的額度每天 {time} 重新計算，用完的那一項會停到那時候。": "La cuota del plan gratuito se reinicia cada día a las {time}. Lo que se agote se detiene hasta entonces.",
 	"這個網站": "Este sitio",
 	"整個 Cloudflare 帳號，今天": "Toda la cuenta de Cloudflare, hoy",
-	"部署到 Cloudflare 後，這裡會顯示整個帳號今天實際用了多少。": "Cuando esté en Cloudflare, aquí verás cuánto usó de verdad toda la cuenta hoy.",
 	"帳號的數字來自 Cloudflare，會晚幾分鐘，包含帳號裡的其他專案。Cloudflare 沒有提供請求數，這裡用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。": "Las cifras de la cuenta vienen de Cloudflare, con unos minutos de retraso, e incluyen tus otros proyectos. Cloudflare no informa las solicitudes, así que se estiman a partir de las {views} visitas y {clicks} clics de hoy en este sitio, sin imágenes ni bots.",
 	"請求數用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。": "Las solicitudes se estiman a partir de las {views} visitas y {clicks} clics de hoy en este sitio, sin imágenes ni bots.",
-	"幫我查 Cloudflare 帳號今天的詳細用量，看是哪個專案用掉的": "Revisa el uso detallado de hoy en mi cuenta de Cloudflare y qué proyecto usó qué"
+	"幫我查 Cloudflare 帳號今天的詳細用量，看是哪個專案用掉的": "Revisa el uso detallado de hoy en mi cuenta de Cloudflare y qué proyecto usó qué",
+	"KV 刪除": "Borrados de KV",
+	"KV 列出": "Listados de KV",
+	"資料庫數量": "Número de bases de datos",
+	"本機預覽讀不到 Cloudflare 的帳號用量，部署到 Cloudflare 後就會顯示。": "La vista previa local no puede leer el uso de tu cuenta de Cloudflare. Aparece cuando el sitio está en Cloudflare.",
+	"這裡看不到，要問 AI": "No se ve aquí: pregúntale a tu IA",
+	"每個 KV 命名空間和每個資料庫各用了多少，看是哪個專案用掉的": "Cuánto usó cada espacio de nombres de KV y cada base de datos, para ver qué proyecto lo usó",
+	"前幾天每天的用量，最多 31 天": "El uso de cada uno de los días anteriores, hasta 31 días",
+	"帳號是不是 Workers Paid，AI 查到後會順便更新上面的方案": "Si la cuenta tiene Workers Paid; tu IA actualiza el plan de arriba cuando lo revisa",
+	"每個 Worker 的請求數只有 Cloudflare 後台看得到：Workers & Pages → 選 Worker → Metrics。": "Las solicitudes de cada Worker solo se ven en el panel de Cloudflare: Workers & Pages → elige el Worker → Metrics.",
+	"部署後顯示": "Se muestra al desplegar"
 }
