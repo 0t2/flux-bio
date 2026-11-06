@@ -9,6 +9,7 @@ import favicon from '../public/favicon.svg?raw'
 import { LOGO_PATH } from '../src/templates/icons'
 import motion from '../landing/public/motion.js?raw'
 import template from '../landing/template.html?raw'
+import landingHeaders from '../landing/public/_headers?raw'
 import { THEME_IDS, type ThemeId } from '../src/shared/content'
 import { previewPage, previewsIn, THEME_SAMPLES } from '../landing/previews'
 
@@ -85,6 +86,13 @@ describe('the site', () => {
 		expect(renderLanding(template, english, 'en')).not.toContain('language.js')
 		expect(languageScript()).toContain('location.replace')
 		expect(languageScript()).not.toMatch(/:\s*(readonly\s+)?string/)
+	})
+
+	it('lets a browser keep its pictures for a day and the sample pages for an hour, and asks again for the pages themselves', () => {
+		const rule = (pattern: string) => landingHeaders.split(/\n(?=\S)/).find((block) => block.split('\n')[0] === pattern) ?? ''
+		for (const pattern of ['/images/*', '/:language/dash-*']) expect(rule(pattern), pattern).toMatch(/Cache-Control: public, max-age=86400\b/)
+		expect(rule('/preview/*')).toMatch(/Cache-Control: public, max-age=3600\b/)
+		for (const pattern of ['/', '/:language/', '/*']) expect(rule(pattern), pattern).not.toContain('Cache-Control')
 	})
 
 	it('has an address per language, and English from the menu stays English', () => {
