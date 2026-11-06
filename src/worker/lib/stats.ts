@@ -12,7 +12,8 @@ import { chunks, ensureSchema } from './db'
  * Targets: a page view counts under the page's id, a short link click or a tap
  * on the link's button under the link's id, a click inside a block (a product, a video, the map
  * button) under "<item id>.<part>", a click on a social icon, on a page
- * that counts them, under "<social id>.social", and the LINE button under "<page id>.line". Those with a "." keep
+ * that counts them, under "<social id>.social", the LINE button under "<page id>.line", and an embed's button under
+ * "<item id>.<provider>", or "<page id>.<provider>" for the floating one. Those with a "." keep
  * their page in `page`, since only the page knows its blocks; a link's page is in `links`.
  */
 

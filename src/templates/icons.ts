@@ -35,6 +35,8 @@ export const ICONS = {
 	map: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.2"/>',
 	phone: '<path d="M6.6 3.5h2.6l1.6 4-2 1.3a11 11 0 0 0 6.4 6.4l1.3-2 4 1.6v2.6a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2z"/>',
 	heading: '<path d="M6 4v16"/><path d="M18 4v16"/><path d="M6 12h12"/>',
+	// A mug with a heart on it, for a Ko-fi card and button: drawn here, not Ko-fi's own mark.
+	cup: '<path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 10.5h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 3.5v2.5"/><path d="M12 3.5v2.5"/><path fill="currentColor" stroke="none" d="M10 16.4c-1-.7-2.7-1.9-2.7-3.4a1.35 1.35 0 0 1 2.7-.6 1.35 1.35 0 0 1 2.7.6c0 1.5-1.7 2.7-2.7 3.4z"/>',
 	arrowUp: '<path d="M12 19V5"/><path d="M6 11l6-6 6 6"/>',
 	more: '<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>',
 	download: '<path d="M12 4v12"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/>',

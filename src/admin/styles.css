@@ -950,6 +950,22 @@ button:disabled {
 	}
 }
 
+/* The floating embed button's service and account. */
+.embed-row {
+	display: grid;
+	grid-template-columns: minmax(120px, 160px) minmax(0, 1fr);
+	gap: 8px;
+	align-items: center;
+}
+.embed-row .hint {
+	grid-column: 1 / -1;
+}
+@media (max-width: 520px) {
+	.embed-row {
+		grid-template-columns: 1fr;
+	}
+}
+
 .avatar-row {
 	display: flex;
 	align-items: center;

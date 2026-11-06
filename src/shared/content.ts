@@ -1,5 +1,6 @@
 import { z } from './zod'
 import { msg } from '../templates/msg'
+import { EMBED_ACTIONS, EMBED_PROVIDERS, EMBEDS, type EmbedProvider } from './embeds'
 import { findFont } from './fonts'
 
 export const THEME_IDS = ['liquid', 'editorial', 'brutal', 'jelly', 'minimal', 'aurora', 'notebook', 'boutique', 'sunset', 'sky', 'pop', 'portrait', 'sheet', 'rail', 'duo', 'relief', 'bento', 'dots', 'pastel', 'letter', 'obsidian', 'moon', 'chips', 'tracks'] as const
@@ -52,7 +53,7 @@ export type LinkIcon = (typeof LINK_ICONS)[number]
 export const LOCALES = ['zh-TW', 'en', 'zh-CN', 'ja', 'ko', 'es', 'pt-BR', 'fr', 'de', 'id', 'th', 'vi', 'ar'] as const
 export type Locale = (typeof LOCALES)[number]
 
-export const ITEM_KINDS = ['link', 'heading', 'video', 'gallery', 'product', 'hours'] as const
+export const ITEM_KINDS = ['link', 'heading', 'video', 'gallery', 'product', 'hours', 'embed'] as const
 export type ItemKind = (typeof ITEM_KINDS)[number]
 
 export const ITEM_LIMIT = 100
@@ -163,6 +164,21 @@ export const HoursItemSchema = z.object({
 })
 export type HoursItem = z.infer<typeof HoursItemSchema>
 
+/**
+ * A card for the owner's account on another service (EMBEDS in src/shared/embeds.ts): a link to it that, on a live page,
+ * opens the service's own panel over the page. Nothing loads from the service until a visitor taps.
+ */
+export const EmbedItemSchema = z.object({
+	id: itemId,
+	kind: z.literal('embed'),
+	provider: z.enum(EMBED_PROVIDERS).describe(`The service, whose panel opens over the page on a tap: ${EMBED_PROVIDERS.map((id) => `${id} (${EMBEDS[id].about})`).join(', ')}`),
+	account: z.string().max(2048).describe("The owner's account on that service. Its address, or the service's own embed code, works too"),
+	title: z.string().max(80),
+	note: z.string().max(120).describe('One line under the title, e.g. what tips pay for; "" for none'),
+	hidden: z.boolean(),
+})
+export type EmbedItem = z.infer<typeof EmbedItemSchema>
+
 export const ItemSchema = z.discriminatedUnion('kind', [
 	LinkItemSchema,
 	HeadingItemSchema,
@@ -170,6 +186,7 @@ export const ItemSchema = z.discriminatedUnion('kind', [
 	GalleryItemSchema,
 	ProductItemSchema,
 	HoursItemSchema,
+	EmbedItemSchema,
 ])
 export type Item = z.infer<typeof ItemSchema>
 export type BlockItem = Exclude<Item, LinkItem | HeadingItem>
@@ -291,6 +308,11 @@ export const PageContentSchema = z.object({
 	/** Left out or false: nobody hears about a tap on a social icon. */
 	/** Left out, there is no LINE button floating at the bottom right. */
 	lineButton: z.string().max(2048).optional().describe("Where the LINE button floating at the bottom right of the page goes: an address like https://lin.ee/… or an official account's @id. Left out or empty, there is no button"),
+	/** Left out, there is no button floating at the bottom right for another service. */
+	embedButton: z
+		.object({ provider: z.enum(EMBED_PROVIDERS), account: z.string().max(2048) })
+		.optional()
+		.describe("A button floating at the bottom right, above the LINE button when there is one, that opens a service's panel over the page as an `embed` card's button does: `provider` and `account` as there. Left out, or with no account, there is none"),
 	countSocials: z.boolean().optional().describe("Count clicks on this page's social icons, at one Worker request and one KV read per click. Email icons are never counted"),
 })
 export type PageContent = z.infer<typeof PageContentSchema>
@@ -494,7 +516,14 @@ function makeItem(kind: ItemKind): Item {
 			return { id, kind, title: '', products: [newProduct()], moreUrl: '', hidden: false }
 		case 'hours':
 			return { id, kind, title: msg('營業時間'), week: defaultWeek(), note: '', address: '', phone: '', showMap: true, hidden: false }
+		case 'embed':
+			return newEmbed('kofi', id)
 	}
+}
+
+/** A fresh card for a service, titled for what its button does (in zh-TW, like newItem). */
+export function newEmbed(provider: EmbedProvider, id = newId()): EmbedItem {
+	return { id, kind: 'embed', provider, account: '', title: EMBED_ACTIONS[EMBEDS[provider].action].title, note: '', hidden: false }
 }
 
 export function defaultSeo(): Seo {
@@ -556,6 +585,7 @@ export const SOCIAL_PART = 'social'
 export const LINK_PART = 'link'
 /** The page's floating LINE button in /_c, filed under "<page id>.line". */
 export const LINE_PART = 'line'
+// An embed's button is filed under "<item id>.<provider>", the floating one under "<page id>.<provider>" (EMBED_PROVIDERS).
 
 /** Turns what someone typed for a social icon into a usable href, or null. */
 export function socialHref(platform: SocialPlatform, value: string): string | null {

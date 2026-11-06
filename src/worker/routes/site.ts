@@ -17,12 +17,13 @@ import {
 	type PageContent,
 	type Settings,
 } from '../../shared/content'
+import { embedAccount, EMBEDS, type EmbedProvider } from '../../shared/embeds'
 import { FONT_FILE } from '../../shared/fonts'
 import { requestedLocale, resolveLocale } from '../../shared/locale'
 import { normalizeSlug, slugProblem } from '../../shared/slug'
 import { detectOs, detectSource, sourceFromUserAgent } from '../../shared/source'
 import { translatedLocales } from '../../shared/translations'
-import { renderBioPage, TAP_SCRIPT_HASH, visibleItems } from '../../templates/render'
+import { pageEmbeds, renderBioPage, SHEET_SCRIPT_HASH, TAP_SCRIPT_HASH, visibleItems } from '../../templates/render'
 import { renderSystemPage, type SystemPageKind, type SystemPageOptions } from '../../templates/system'
 import { agentGuide, agentSkill, guideSite, workerNameOf } from '../lib/agent'
 import { getLinkRecord, getNamed, getSnapshot, mediaKey, type LinkRecord, type SiteRecord, type Snapshot } from '../lib/cache'
@@ -42,11 +43,19 @@ type SiteContext = Context<AppEnv>
 
 /** Videos and maps load in frames only after a tap; everything else on public pages is plain HTML. */
 const FRAMES = "'self' https://www.youtube-nocookie.com https://player.vimeo.com https://maps.google.com https://www.google.com"
-const csp = (ancestors: string, script = "'none'") =>
-	`default-src 'none'; script-src ${script}; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; frame-src ${FRAMES}; form-action 'self'; base-uri 'none'; frame-ancestors ${ancestors}`
+const csp = (ancestors: string, script = "'none'", frames = FRAMES) =>
+	`default-src 'none'; script-src ${script}; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; frame-src ${frames}; form-action 'self'; base-uri 'none'; frame-ancestors ${ancestors}`
 const PAGE_CSP = csp("'none'")
-/** A page of links: the one script that reports a tap, by its hash, and somewhere for it and the ping attribute to report to. */
-const BIO_CSP = `${csp("'none'", `'${TAP_SCRIPT_HASH}'`)}; connect-src 'self'`
+/**
+ * A page of links: the script that reports a tap, by its hash, and somewhere for it and the ping attribute to report to.
+ * A page with an embed also runs the one that opens its panel, and may frame that service, and only that one: its
+ * panel loads only after a tap.
+ */
+function bioCsp(embeds: readonly EmbedProvider[]): string {
+	if (!embeds.length) return `${csp("'none'", `'${TAP_SCRIPT_HASH}'`)}; connect-src 'self'`
+	const frames = new Set(embeds.flatMap((provider) => EMBEDS[provider].origins))
+	return `${csp("'none'", `'${TAP_SCRIPT_HASH}' '${SHEET_SCRIPT_HASH}'`, [FRAMES, ...frames].join(' '))}; connect-src 'self'`
+}
 
 /** The dashboard's preview tab; it may be framed by the dashboard. */
 export const PREVIEW_CSP = csp("'self'")
@@ -325,7 +334,7 @@ async function serveBio(c: SiteContext, snapshot: Snapshot): Promise<Response> {
 		url: '',
 		page: snapshot.pageId,
 	})
-	return c.html(html, 200, { 'cache-control': 'no-cache', 'content-security-policy': BIO_CSP, ...varyByLanguage(languages.languages) })
+	return c.html(html, 200, { 'cache-control': 'no-cache', 'content-security-policy': bioCsp(pageEmbeds(snapshot.content)), ...varyByLanguage(languages.languages) })
 }
 
 /** A page whose built-in text can follow the visitor's browser differs by Accept-Language, which caches must know. */
@@ -346,6 +355,10 @@ function tapOn({ content, handle, pageId }: Snapshot, id: string, part: string):
 		const url = content.lineButton?.trim() ? socialHref('line', content.lineButton) : null
 		return url ? { target: `${pageId}.${LINE_PART}`, url, slug: handle } : null
 	}
+	// "page" is a possible item id too: only a page with the button takes it for the button.
+	const button = content.embedButton
+	const account = id === 'page' && button?.provider === part ? embedAccount(button) : null
+	if (button && account) return { target: `${pageId}.${part}`, url: EMBEDS[button.provider].page(account), slug: handle }
 	if (part === SOCIAL_PART && content.countSocials) {
 		const social = content.socials.find((entry) => entry.id === id)
 		const url = social ? socialHref(social.platform, social.url) : null
@@ -374,6 +387,10 @@ function blockTarget(item: Item, part: string): string | null {
 			return part === 'more' ? typed(item.moreUrl) : typed(item.products.find((product) => product.id === part)?.url ?? '')
 		case 'hours':
 			return part === 'map' && item.address.trim() ? mapsUrl(item.address) : null
+		case 'embed': {
+			const account = part === item.provider ? embedAccount(item) : null
+			return account ? EMBEDS[item.provider].page(account) : null
+		}
 		default:
 			return null
 	}

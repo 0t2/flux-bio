@@ -1,5 +1,6 @@
 import document from 'virtual:fluxbio-openapi'
 import { BUTTON_IDS, FONT_IDS, ITEM_KINDS, LOCALES, newItem, SOCIAL_PLATFORMS, THEME_IDS } from '../../shared/content'
+import { EMBED_PROVIDERS, EMBEDS } from '../../shared/embeds'
 import { RESERVED_SLUGS } from '../../shared/slug'
 import { VERSIONS_KEPT } from './mode'
 import { OPERATIONS } from './openapi'
@@ -237,11 +238,11 @@ The owner can also make one without you: Settings → Download backup saves one 
 
 \`draft\` is a \`PageContent\` (full schema in the OpenAPI document under \`components.schemas.PageContent\`):
 - \`profile\`: \`name\`, \`bio\`, \`avatar\` (media id or null).
-- \`appearance\`: \`theme\` (${THEME_IDS.join(', ')}), \`accent\`, \`accent2\`, \`bg\` (background) and \`fg\` (text), each \`#rrggbb\` or "" for the theme's own, \`font\` (${FONT_IDS.join(', ')}), \`headFont\` and \`bodyFont\` (Google Fonts family names from \`GET /api/fonts\`, or ""), \`button\` (${BUTTON_IDS.join(', ')}), \`showSocial\`. \`coverImage\` and \`bgImage\` (media ids or null), \`bgDim\` and \`bgTile\` (see "Make a theme"). \`liquid\`, \`editorial\`, \`brutal\`, \`aurora\`, \`portrait\`, \`rail\`, \`dots\` and \`obsidian\` keep a dark background and the other themes a light one, so a background of the other kind is darkened or lightened to fit; a text color that reads below 4.5:1 on the background is replaced by the theme's own. Tell the owner when that happens.
+- \`appearance\`: \`theme\` (${THEME_IDS.join(', ')}), \`accent\`, \`accent2\`, \`bg\` (background) and \`fg\` (text), each \`#rrggbb\` or "" for the theme's own, \`font\` (${FONT_IDS.join(', ')}), \`headFont\` and \`bodyFont\` (Google Fonts family names from \`GET /api/fonts\`, or ""), \`button\` (${BUTTON_IDS.join(', ')}), \`showSocial\`. \`coverImage\` and \`bgImage\` (media ids or null), \`bgDim\`, \`bgTile\` ("Make a theme"). \`liquid\`, \`editorial\`, \`brutal\`, \`aurora\`, \`portrait\`, \`rail\`, \`dots\` and \`obsidian\` keep a dark background and the other themes a light one, so a background of the other kind is darkened or lightened to fit; a text color that reads below 4.5:1 on the background is replaced by the theme's own. Tell the owner when that happens.
 - \`socials\`: up to 12 of ${SOCIAL_PLATFORMS.join(', ')}, each \`{ id, platform, url }\`.
 - \`items\`: the page from top to bottom. Each has a unique \`id\` of 4–32 characters from \`A-Za-z0-9_-\`; make new ids up (e.g. 8 random letters) and keep existing ones, because stats are counted per id.
 - \`seo\`, \`showBadge\` ("Made with ♥️ and FluxBio" in the footer).
-- \`lineButton\`: a LINE button floating at the bottom right: an address like \`https://lin.ee/…\` or an official account's \`@id\`. Offer it to a shop, or anyone whose customers use LINE, as in Taiwan, Japan and Thailand.
+- \`lineButton\`, \`embedButton\`: buttons floating at the bottom right. LINE takes an address like \`https://lin.ee/…\` or an official account's \`@id\`: offer it to a shop, or anyone whose customers use LINE, as in Taiwan, Japan and Thailand.
 - \`countSocials\`: \`true\` also counts taps on social icons, at one Worker request and one KV read per click. Email icons never count.
 
 A link's button shows its real address, and a small script reports the tap, so a blocker can hide some of those clicks. \`hideUrl: true\` sends the button through its short link instead, which suits affiliate links, and every click counts. A link with a password, UTM tags, device addresses, \`lineExternal\` or \`inAppPrompt\` always does, because those only happen there. Every link has a short link for sharing elsewhere.
@@ -254,6 +255,7 @@ Rules:
 - Bio links (links on a page) change only through the draft and publish. \`PATCH /api/links/{id}\` takes their password, UTM, smart routing, QR style and slug, but refuses url, title and schedule. A slug changes at once. \`PUT /api/pages/{id}/links/{itemId}/short\` also makes the short link of a link not yet published.
 - A link outside its \`startsAt\`–\`endsAt\` window is hidden from the page; its short URL says "not open yet" or "expired".
 - \`video\` takes a YouTube or Vimeo URL. \`gallery\` holds up to 10 images, \`product\` up to 8 cards. \`hours\` lists the week Monday first.
+- \`embed\` opens a service's panel over the page, loading it only on a tap. \`provider\`: ${EMBED_PROVIDERS.map((id) => `\`${id}\` (${EMBEDS[id].about})`).join(', ')}. \`account\` also takes the address or embed code. \`embedButton\` \`{ provider, account }\` floats one at the bottom right. Offer them to anyone taking tips or bookings.
 
 ## Endpoints
 
