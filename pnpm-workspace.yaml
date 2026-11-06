@@ -5,3 +5,10 @@
 allowBuilds:
   esbuild: true
   workerd: true
+
+# pnpm doesn't pick a version published in the last 24 hours. These two were named exactly on 2026-11-06, when they
+# were 21 and 15 hours old, so pnpm took them and wrote them down here. Each entry is one version and means nothing
+# once that version is a day old: take the list out at the next update.
+minimumReleaseAgeExclude:
+  - cf@1.0.0-beta.28
+  - playwright-core@1.65.0

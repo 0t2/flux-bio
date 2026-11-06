@@ -695,7 +695,9 @@ Chinese, Japanese and Korean fonts are megabytes each and would need subsetting 
   downloads two runtimes, and `pnpm dev` runs another than `pnpm test`.
 - **pnpm waits a day for a new release.** A version published in the last 24 hours isn't picked (`minimumReleaseAge`, pnpm's
   default since 11), so `pnpm update --latest` can stop one release short. Run it again the next day; don't turn the rule
-  off, since everyone who installs this project gets what the lockfile names.
+  off, since everyone who installs this project gets what the lockfile names. When the owner wants one sooner, name that
+  version exactly (`pnpm add -D --save-exact <package>@<version>`): pnpm takes it and lists it under
+  `minimumReleaseAgeExclude` in `pnpm-workspace.yaml`, one version at a time, and the list comes out at the next update.
 - **pnpm's settings are in `pnpm-workspace.yaml`.** pnpm 11 and later ignore a `pnpm` field in `package.json`, and stop at a
   setting they don't know. A dependency with an install script has to be named under `allowBuilds` there, or the install
   stops and says which.
