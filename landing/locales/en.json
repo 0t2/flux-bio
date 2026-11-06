@@ -152,5 +152,7 @@
 	"s184": "About {cost}",
 	"s185": "A rough estimate. To know what your own page will use, ask your AI.",
 	"s187": "Free",
-	"s188": "Plan"
+	"s188": "Plan",
+	"s189": "Pictures deployed with the site",
+	"s190": "Ask your AI to deploy your pictures with the site, and visitors loading them cost no quota. There's no button for it in the dashboard, and pictures uploaded later count until the next deploy."
 }

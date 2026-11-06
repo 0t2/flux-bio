@@ -90,6 +90,10 @@ export function UsageSection() {
 					? t('帳號的數字來自 Cloudflare，會晚幾分鐘，包含帳號裡的其他專案。Cloudflare 沒有提供請求數，這裡用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。', { views: formatNumber(usage.today.views), clicks: formatNumber(usage.today.clicks) })
 					: t('請求數用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。', { views: formatNumber(usage.today.views), clicks: formatNumber(usage.today.clicks) })}
 			</p>
+			<h3 className="usage-group">{t('讓圖片不算額度')}</h3>
+			<p className="hint">{t('頁面上的圖片可以跟網站一起部署，之後訪客看圖片就不算請求和 KV 讀取。這要由你的 AI 在電腦上部署，後台沒有這個按鈕；之後新上傳的圖片，要再部署一次才不算。')}</p>
+			<AskAi say={t('把頁面上的圖片跟網站一起部署，讓看圖片不算額度')} />
+
 			<h3 className="usage-group">{t('這裡看不到，要問 AI')}</h3>
 			<ul className="usage-ai">
 				<li>{t('每個 KV 命名空間和每個資料庫各用了多少，看是哪個專案用掉的')}</li>

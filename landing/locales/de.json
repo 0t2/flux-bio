@@ -152,5 +152,7 @@
 	"s184": "Etwa {cost}",
 	"s185": "Eine grobe Schätzung. Was deine Seite wirklich verbraucht, kann dir deine KI sagen.",
 	"s187": "Kostenlos",
-	"s188": "Tarif"
+	"s188": "Tarif",
+	"s189": "Bilder mit der Seite deployt",
+	"s190": "Bitte deine KI, deine Bilder mit der Seite zu deployen; dann kostet ihr Laden kein Kontingent. Im Dashboard gibt es dafür keinen Knopf, und später hochgeladene Bilder zählen bis zum nächsten Deployment."
 }
