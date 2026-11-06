@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import { linkItems, type PageContent, type ThemeId } from '../../shared/content'
 import { THEME_CSS } from '../../templates/compositions'
 import { iconSvg, type IconName } from '../../templates/icons'
@@ -6,6 +6,7 @@ import { esc } from '../../templates/html'
 import { BASE_CSS, initials } from '../../templates/render'
 import type { ResolvedAppearance } from '../../templates/themes'
 import { t } from '../i18n'
+import { loadStylesheet } from '../lib/fontPreview'
 import '../styles/library.css'
 
 /** What the previews show: the page being edited, in each theme. */
@@ -43,6 +44,15 @@ const SOCIALS: [IconName, string][] = [
 	['facebook', 'Facebook'],
 	['mail', 'Email'],
 ]
+
+/**
+ * The fonts of the built-in themes. In the dashboard itself only these thumbnails are set in them, so they come with
+ * the first thumbnail, not with every screen: this stylesheet is several hundred kilobytes, most of it the list of
+ * files Chinese fonts are cut into, and in the page's head it held up the first paint. The dashboard's own fonts are
+ * in admin/index.html. Noto Sans TC is in both, in different weights.
+ */
+const THEME_FONTS =
+	'https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+TC:wght@900&family=Noto+Serif+TC:wght@500&family=LXGW+WenKai+TC:wght@400&family=Plus+Jakarta+Sans:wght@400..800&family=Manrope:wght@400..800&family=Nunito:wght@400..800&family=Nunito+Sans:wght@400..800&family=DM+Sans:wght@400..800&family=Lora:wght@400..700&display=swap'
 
 // A page's own CSS, with its document-level rules moved onto the element that stands in for <body>. One sheet per theme, shared by every thumbnail.
 const SHEETS = new Map<ThemeId, CSSStyleSheet>()
@@ -106,6 +116,8 @@ export function MiniBio({
 	}</header>${coverImage ? `<figure class="cover"><img src="/media/${esc(coverImage)}" alt="" loading="lazy"></figure>` : ''}<div class="items">${links
 		.map((title, index) => `<a class="link${index === 0 ? ' feat' : ''}"><span class="t"><b>${esc(title)}</b></span><span class="go">${iconSvg('arrowUpRight', 16)}</span></a>`)
 		.join('')}</div></main></div>`
+
+	useEffect(() => void loadStylesheet(THEME_FONTS), [])
 
 	useLayoutEffect(() => {
 		const root = host.current!.shadowRoot ?? host.current!.attachShadow({ mode: 'open' })

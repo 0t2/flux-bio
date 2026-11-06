@@ -31,8 +31,11 @@ export function EditorPage() {
 	// Someone's own HTML comes from the server, so the phone reloads it each time it has been saved.
 	const [saves, setSaves] = useState(0)
 	const saved = page.saveStatus === 'saved'
+	const opened = useRef(true)
 	useEffect(() => {
-		if (saved) setSaves((count) => count + 1)
+		// Not when the editor opens: the phone has only just loaded what is saved.
+		if (opened.current) opened.current = false
+		else if (saved) setSaves((count) => count + 1)
 	}, [saved, draft.custom])
 	const shown = useMemo(() => (trial ? starterPreview(trial, draft.profile.name, t) : draft), [trial, draft])
 

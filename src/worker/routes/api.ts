@@ -482,6 +482,15 @@ api.post('/pages', async (c) => {
 })
 
 api.get('/pages/:id', async (c) => {
+	// A caller that says which draft it holds (If-None-Match with its draftUpdatedAt) gets 304 while that is still
+	// the one. The dashboard asks every time its window comes back, and reading and sending a whole page to
+	// compare one number would be most of what that costs. No ETag goes out: a draft's version says nothing of
+	// the page's address or the languages turned on, so no cache may answer in the Worker's place.
+	const held = c.req.header('if-none-match')?.trim().replace(/^"|"$/g, '')
+	if (held) {
+		const row = await c.env.DB.prepare('SELECT draft_updated_at AS version FROM pages WHERE id = ?1').bind(c.req.param('id')).first<{ version: number }>()
+		if (row && String(row.version) === held) return c.body(null, 304, { 'cache-control': 'no-store' })
+	}
 	const [page, settings] = await Promise.all([loadPage(c), loadSettings(c.env.DB)])
 	return c.json({ page: { ...pageJson(page), untranslated: untranslated(page.draft, settings.languages) } })
 })

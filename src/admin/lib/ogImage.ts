@@ -1,9 +1,12 @@
-import type { Appearance, PageContent } from '../../shared/content'
+import type { PageContent } from '../../shared/content'
 import { LOGO_INK, LOGO_LIME, LOGO_PATH } from '../../templates/icons'
 import { initials } from '../../templates/render'
 import { FONT_STACKS, resolveAppearance } from '../../templates/themes'
 import { request } from '../api'
 import { loadStylesheet } from './fontPreview'
+import { staleShareCard, type ShareCardInput } from './shareCard'
+
+export { shareCardInput, shareCardKey, shareImageIsStale, type ShareCardInput } from './shareCard'
 
 /**
  * The share card (1200 × 630) shown when a page is pasted into LINE,
@@ -14,36 +17,6 @@ import { loadStylesheet } from './fontPreview'
 
 export const CARD_WIDTH = 1200
 export const CARD_HEIGHT = 630
-
-export interface ShareCardInput {
-	name: string
-	tagline: string
-	/** e.g. "links.example.com/mei". */
-	displayUrl: string
-	avatarUrl: string | null
-	appearance: Appearance
-}
-
-export function shareCardInput(content: PageContent, displayUrl: string): ShareCardInput {
-	return {
-		name: content.seo.title.trim() || content.profile.name.trim() || 'FluxBio',
-		tagline: content.seo.tagline.trim() || content.profile.bio.trim().split('\n')[0] || '',
-		displayUrl,
-		avatarUrl: content.profile.avatar ? `/media/${content.profile.avatar}` : null,
-		appearance: content.appearance,
-	}
-}
-
-/** A short fingerprint of what the card shows, stored as `seo.autoImageKey`. */
-export function shareCardKey(input: ShareCardInput): string {
-	const text = JSON.stringify([input.name, input.tagline, input.displayUrl, input.avatarUrl, input.appearance])
-	let hash = 0x811c9dc5
-	for (let i = 0; i < text.length; i++) {
-		hash ^= text.charCodeAt(i)
-		hash = Math.imul(hash, 0x01000193)
-	}
-	return `v1-${(hash >>> 0).toString(16)}`
-}
 
 async function loadImage(url: string): Promise<HTMLImageElement | null> {
 	try {
@@ -206,11 +179,9 @@ function toBlob(canvas: HTMLCanvasElement): Promise<Blob> {
  * needed doing.
  */
 export async function refreshShareImage(draft: PageContent, displayUrl: string): Promise<PageContent | null> {
-	// A custom page says for itself what its share preview is.
-	if (draft.custom || draft.seo.imageMode !== 'auto') return null
-	const input = shareCardInput(draft, displayUrl)
-	const key = shareCardKey(input)
-	if (draft.seo.autoImage && draft.seo.autoImageKey === key) return null
+	const stale = staleShareCard(draft, displayUrl)
+	if (!stale) return null
+	const { input, key } = stale
 	const blob = await toBlob(await drawShareCard(input))
 	const { id } = await request<{ id: string }>('/media', { method: 'POST', body: blob })
 	return { ...draft, seo: { ...draft.seo, autoImage: id, autoImageKey: key } }

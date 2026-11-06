@@ -92,6 +92,14 @@ export function ShortLinksPage() {
 		}
 	}
 
+	// A saved change comes back from the Worker as the link, so it goes into the list where it is: reading the list
+	// again would cost a request and drop whatever "load more" had added. Its clicks are the ones already shown.
+	const replace = useCallback((changed: LinkJson) => {
+		const keep = (link: LinkJson) => (link.id === changed.id ? { ...changed, stats: link.stats } : link)
+		setData((current) => current && { ...current, links: current.links.map(keep) })
+		setSelectedApart((current) => current && keep(current))
+	}, [])
+
 	// Reload after publishing: new bio links appear here as short links. The list is searched on the Worker, so typing waits for a pause.
 	useEffect(() => {
 		const timer = setTimeout(() => void load(), query ? 250 : 0)
@@ -208,7 +216,7 @@ export function ShortLinksPage() {
 								key={selected.id}
 								link={selected}
 								pageName={selected.pageId ? (pageNames.get(selected.pageId) ?? '') : ''}
-								onChanged={() => load()}
+								onChanged={replace}
 							/>
 						)}
 					</div>
@@ -283,7 +291,7 @@ function CreateForm({ onCreated, compact }: { onCreated: (id: string) => void; c
 	)
 }
 
-function LinkDetail({ link, pageName, onChanged }: { link: LinkJson; pageName: string; onChanged: () => void }) {
+function LinkDetail({ link, pageName, onChanged }: { link: LinkJson; pageName: string; onChanged: (link: LinkJson) => void }) {
 	const app = useApp()
 	const [editing, setEditing] = useState(false)
 	const status = statusOf(link)
@@ -292,9 +300,9 @@ function LinkDetail({ link, pageName, onChanged }: { link: LinkJson; pageName: s
 
 	async function setArchived(archived: boolean) {
 		try {
-			await request(`/links/${link.id}`, { method: 'PATCH', json: { status: archived ? 'archived' : 'active' } })
+			const saved = await request<{ link: LinkJson }>(`/links/${link.id}`, { method: 'PATCH', json: { status: archived ? 'archived' : 'active' } })
 			toast(archived ? t('已封存，這個短網址不會再轉址') : t('已恢復'))
-			onChanged()
+			onChanged(saved.link)
 		} catch (error) {
 			toast(error instanceof Error ? error.message : t('操作失敗'))
 		}
@@ -331,9 +339,9 @@ function LinkDetail({ link, pageName, onChanged }: { link: LinkJson; pageName: s
 			{editing ? (
 				<EditForm
 					link={link}
-					onDone={() => {
+					onDone={(saved) => {
 						setEditing(false)
-						onChanged()
+						onChanged(saved)
 					}}
 				/>
 			) : (
@@ -434,15 +442,17 @@ function LinkQr({ link }: { link: LinkJson }) {
 	)
 }
 
-function SmartRouting({ link, onChanged }: { link: LinkJson; onChanged: () => void }) {
+function SmartRouting({ link, onChanged }: { link: LinkJson; onChanged: (link: LinkJson) => void }) {
 	const [ios, setIos] = useState(link.iosUrl ?? '')
 	const [android, setAndroid] = useState(link.androidUrl ?? '')
 	const [error, setError] = useState<string | null>(null)
+	// The link as the Worker last answered with it.
+	const answered = useRef(link)
 
 	async function send(patch: Record<string, unknown>): Promise<boolean> {
 		setError(null)
 		try {
-			await request(`/links/${link.id}`, { method: 'PATCH', json: patch })
+			answered.current = (await request<{ link: LinkJson }>(`/links/${link.id}`, { method: 'PATCH', json: patch })).link
 			return true
 		} catch (caught) {
 			setError(caught instanceof ApiError ? caught.message : t('儲存失敗'))
@@ -452,7 +462,7 @@ function SmartRouting({ link, onChanged }: { link: LinkJson; onChanged: () => vo
 
 	function saved() {
 		toast(t('已儲存，立即生效'))
-		onChanged()
+		onChanged(answered.current)
 	}
 
 	async function save(patch: Record<string, unknown>) {
@@ -515,7 +525,7 @@ function SmartRouting({ link, onChanged }: { link: LinkJson; onChanged: () => vo
 	)
 }
 
-function EditForm({ link, onDone }: { link: LinkJson; onDone: () => void }) {
+function EditForm({ link, onDone }: { link: LinkJson; onDone: (saved: LinkJson) => void }) {
 	const app = useApp()
 	const page = useOptionalPage()
 	const [url, setUrl] = useState(link.url)
@@ -552,9 +562,9 @@ function EditForm({ link, onDone }: { link: LinkJson; onDone: () => void }) {
 				if (page?.id === link.pageId) await page.shortLink(link.id, slug.trim())
 				else patch.slug = slug.trim()
 			}
-			await request(`/links/${link.id}`, { method: 'PATCH', json: patch })
+			const saved = await request<{ link: LinkJson }>(`/links/${link.id}`, { method: 'PATCH', json: patch })
 			toast(t('已儲存，立即生效'))
-			onDone()
+			onDone(saved.link)
 		} catch (caught) {
 			setError(caught instanceof ApiError ? caught.message : t('儲存失敗'))
 		} finally {
