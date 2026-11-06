@@ -1,7 +1,8 @@
 /**
- * The sums behind `pnpm kv-usage`: how much of the free plan's daily KV quota is
+ * The sums behind `pnpm usage`: how much of the free plan's daily KV and D1 quota is
  * used and left. The limits are for a whole Cloudflare account and reset at 00:00 UTC.
  * https://developers.cloudflare.com/kv/platform/pricing/
+ * https://developers.cloudflare.com/d1/platform/pricing/
  */
 export const KV_DAILY_LIMITS = { read: 100_000, write: 1_000, delete: 1_000, list: 1_000 } as const
 export type KvAction = keyof typeof KV_DAILY_LIMITS
@@ -15,12 +16,34 @@ export interface KvQuota {
 	percent: number
 }
 
+/** D1's daily limits on the free plan, and how much it may hold. */
+export const D1_DAILY_LIMITS = { rowsRead: 5_000_000, rowsWritten: 100_000 } as const
+export const D1_STORAGE = { database: 500 * 1024 ** 2, account: 5 * 1024 ** 3, databases: 10 } as const
+export type D1Measure = keyof typeof D1_DAILY_LIMITS
+
+/** One row from the D1 analytics query: one database's rows, summed. */
+export interface D1Row {
+	readRows: number | string
+	writtenRows: number | string
+}
+
+function quota(used: number, limit: number): KvQuota {
+	return { used, limit, left: Math.max(0, limit - used), percent: Math.round((used / limit) * 1000) / 10 }
+}
+
+export function d1Quota(rows: readonly D1Row[]): Record<D1Measure, KvQuota> {
+	const sum = (pick: (row: D1Row) => number | string) => rows.reduce((total, row) => total + (Number(pick(row)) || 0), 0)
+	return { rowsRead: quota(sum((row) => row.readRows), D1_DAILY_LIMITS.rowsRead), rowsWritten: quota(sum((row) => row.writtenRows), D1_DAILY_LIMITS.rowsWritten) }
+}
+
 /**
- * What is left in terms an owner can picture. A page view reads twice (tests/kv-cost.test.ts) and each image once more,
- * so this is the most it could be; a change is about one write (a publish, a new short link).
+ * What is left in terms an owner can picture. A page view reads KV twice (tests/kv-cost.test.ts) and each image once
+ * more, and writes a D1 row for its count, so this is the most it could be; a change is about one KV write (a publish,
+ * a new short link).
  */
-export function kvLeftInPlainWords(usage: Record<KvAction, KvQuota>): { pageViews: number; changes: number } {
-	return { pageViews: Math.floor(usage.read.left / 2), changes: usage.write.left }
+export function leftInPlainWords(kv: Record<KvAction, KvQuota>, d1?: Record<D1Measure, KvQuota>): { pageViews: number; changes: number } {
+	const views = Math.floor(kv.read.left / 2)
+	return { pageViews: d1 ? Math.min(views, d1.rowsWritten.left) : views, changes: kv.write.left }
 }
 
 /** One row from the analytics query: operations of one kind, summed. */
@@ -34,13 +57,7 @@ export function kvQuota(rows: readonly KvRow[]): Record<KvAction, KvQuota> {
 	for (const row of rows) {
 		if (row.actionType in used) used[row.actionType as KvAction] += Number(row.ops) || 0
 	}
-	return Object.fromEntries(
-		KV_ACTIONS.map((action) => {
-			const limit = KV_DAILY_LIMITS[action]
-			const count = used[action]
-			return [action, { used: count, limit, left: Math.max(0, limit - count), percent: Math.round((count / limit) * 1000) / 10 }]
-		}),
-	) as Record<KvAction, KvQuota>
+	return Object.fromEntries(KV_ACTIONS.map((action) => [action, quota(used[action], KV_DAILY_LIMITS[action])])) as Record<KvAction, KvQuota>
 }
 
 /** What to call a namespace. Analytics can report operations under an id of all zeros, seen on a namespace made minutes earlier. They still count. */

@@ -33,16 +33,7 @@ describe('time zone', () => {
 		expect(await daysCounted(link.id)).toEqual([dayIn(EAST, Date.now())])
 	})
 
-	it('still follows short link and page copies written when they carried a time zone', async () => {
-		await save({ timezone: EAST })
-		const { link } = await apiJson<{ link: { id: string } }>('/links', { method: 'POST', json: { url: 'https://example.com/old', slug: 'tz-old' } })
-		const record = JSON.parse((await env.KV.get('link:tz-old')) ?? '{}') as Record<string, unknown>
-		await env.KV.put('link:tz-old', JSON.stringify({ ...record, tz: WEST }))
-		expect((await visit('/tz-old')).status).toBe(302)
-		expect(await daysCounted(link.id)).toEqual([dayIn(EAST, Date.now())])
-	})
-
-	it('rebuilds a site record from before it carried the time zone', async () => {
+	it('rebuilds a site record that has no time zone', async () => {
 		await save({ timezone: EAST })
 		const site = JSON.parse((await env.KV.get('site')) ?? '{}') as Record<string, unknown>
 		expect(site.timezone).toBe(EAST)

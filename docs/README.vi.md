@@ -72,7 +72,7 @@ Tạo vài trang bio đúng phong cách của bạn: chọn chủ đề và bộ
 
 ### Thống kê
 
-- Lượt xem, lượt nhấp, tỷ lệ nhấp, nguồn: đếm chính xác, lưu vĩnh viễn (D1).
+- Lượt xem, lượt nhấp, tỷ lệ nhấp, nguồn: đếm chính xác (D1), theo ngày trong 13 tháng, sau đó theo tháng.
 - Khách truy cập duy nhất, khu vực, bản đồ khách truy cập, nhà mạng, thiết bị, trình duyệt, ngôn ngữ, trang web bên ngoài, UTM, khung giờ nhấp, hoạt động gần đây: lưu 90 ngày (Cloudflare Analytics Engine, không cần thiết lập).
 - So sánh với kỳ trước, trang thống kê riêng cho từng liên kết rút gọn, xuất CSV.
 - Không dùng cookie, không lưu IP, không lưu chuỗi trình duyệt đầy đủ, vị trí chỉ đến cấp thành phố; ID khách truy cập là mã băm một chiều đổi mới mỗi ngày. Bot cũng không được tính.
@@ -166,7 +166,7 @@ Mỗi vị trí có một dòng riêng trong “Chiến dịch UTM”, lượt x
 - Bạn biết được khách đến từ đâu, nhưng không biết họ là ai. Instagram, Facebook và X không bao giờ cho trang web khác biết tài khoản nào đã chạm vào liên kết, và FluxBio không lưu bất cứ thứ gì nhận diện được một người.
 - Tên trong `?s=` chỉ dùng chữ cái không dấu, chữ số, `-` và `_`, và được chuyển thành chữ thường; các ký tự khác bị bỏ đi. Thẻ UTM được giữ nguyên như khi viết, nên `story` và `Story` được tính là hai dòng. Hãy viết giống nhau mỗi lần.
 - Vị trí là thành phố mà Cloudflare ước tính từ địa chỉ IP của khách. VPN, Chuyển tiếp bảo mật iCloud và mạng công ty có thể khiến khách hiện ở nơi khác.
-- Lượt xem, lượt nhấp và nguồn là số chính xác và được lưu vĩnh viễn. Khu vực, bản đồ, mạng, thiết bị, ngôn ngữ và chi tiết UTM được lưu 90 ngày, và lượt truy cập mới xuất hiện sau khoảng một phút. Bạn tự chọn có đếm cả biểu tượng mạng xã hội hay không. Nút hiện địa chỉ thật được đếm bằng một đoạn mã nhỏ trên trang, nên trình chặn có thể làm mất lượt nhấp; liên kết rút gọn thì luôn được đếm.
+- Lượt xem, lượt nhấp và nguồn là số chính xác. Mỗi ngày được giữ 13 tháng, sau đó mỗi tháng còn một con số tổng, lưu vĩnh viễn; có thể tải tất cả từ Cài đặt. Khu vực, bản đồ, mạng, thiết bị, ngôn ngữ và chi tiết UTM được lưu 90 ngày, và lượt truy cập mới xuất hiện sau khoảng một phút. Bạn tự chọn có đếm cả biểu tượng mạng xã hội hay không. Nút hiện địa chỉ thật được đếm bằng một đoạn mã nhỏ trên trang, nên trình chặn có thể làm mất lượt nhấp; liên kết rút gọn thì luôn được đếm.
 - Khách truy cập duy nhất được tính theo ngày: cùng một người vào hai ngày khác nhau, hoặc dùng điện thoại rồi máy tính, được tính hai lần.
 - Bot và bản xem trước liên kết (yêu cầu mà ứng dụng chat gửi khi có người dán liên kết) không được tính, nên con số có thể thấp hơn các công cụ khác.
 - Thẻ UTM của liên kết rút gọn chỉ thêm vào đích chính, không thêm vào địa chỉ riêng cho iPhone hay Android, và không bao giờ thay thẻ mà đích đã có. Thay đổi thẻ chỉ áp dụng cho các lượt nhấp sau đó.

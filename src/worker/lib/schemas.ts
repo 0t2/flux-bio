@@ -32,6 +32,9 @@ export const SettingsInput = SettingsSchema.extend({
 	languages: SettingsSchema.shape.languages.optional(),
 	hostFonts: SettingsSchema.shape.hostFonts.optional().describe('Copy fonts to this site instead of loading them from Google. Left out keeps the current value'),
 	bio: SettingsSchema.shape.bio.optional().describe('false makes this site only a link shortener: public pages go offline, short links keep working, nothing is deleted, and true brings the pages back. Left out keeps the current value'),
+	plan: SettingsSchema.shape.plan
+		.optional()
+		.describe('The Cloudflare plan the owner is on, "free" or "paid", which this site cannot see for itself. It sets the limits usage reminders use. Left out keeps it'),
 	qrLogo: SettingsSchema.shape.qrLogo.optional().describe('Media id of the picture in QR codes that follow the default and whose page has none; "" removes it. Left out keeps it'),
 	homeUrl: SettingsSchema.shape.homeUrl.optional().describe('Where "/" redirects while bio is false: an http or https URL, or "" for a small page saying this address is for short links. Left out keeps the current value'),
 })
@@ -62,6 +65,19 @@ export const LinkListQuery = z.object({
 	cursor: z.string().max(200).optional().describe('nextCursor from the page before'),
 	kind: z.enum(['bio', 'solo']).optional().describe('Only links on pages, or only standalone ones'),
 	q: z.string().trim().max(100).optional().describe('Part of the slug, the address or the title'),
+})
+
+const MONTH = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/)
+
+/** GET /api/stats/export */
+export const StatsExportQuery = z.object({
+	cursor: z.string().max(400).optional().describe('nextCursor from the page before'),
+	before: MONTH.optional().describe('Only numbers from before this month, "YYYY-MM"'),
+})
+
+/** POST /api/stats/clear */
+export const StatsClearInput = z.object({
+	before: MONTH.describe('Delete every number from before this month, "YYYY-MM". It must be at least 6 months back, past what the stats pages show'),
 })
 
 /** GET /api/links/clicked */

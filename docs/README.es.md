@@ -72,7 +72,7 @@ Crea páginas bio con tu estilo: elige un tema y sus colores, o pídele a tu IA 
 
 ### Estadísticas
 
-- Visitas, clics, tasa de clics y origen: conteo exacto que se guarda para siempre (D1).
+- Visitas, clics, tasa de clics y origen: conteo exacto (D1), por día durante 13 meses y por mes después.
 - Visitantes únicos, regiones, mapa de visitantes, operadores, dispositivos, navegadores, idiomas, sitios externos, UTM, clics por hora y actividad reciente: se guardan 90 días (Cloudflare Analytics Engine, sin configurar nada).
 - Comparación con el período anterior, una página de estadísticas para cada enlace corto y exportación a CSV.
 - Sin cookies y sin guardar IPs ni el user agent completo del navegador, y la ubicación no pasa de la ciudad; el ID de visitante es un hash unidireccional que cambia cada día. Los bots tampoco se cuentan.
@@ -166,7 +166,7 @@ Cada uno tiene su propia fila en “Campañas UTM”, con visitas y clics por se
 - Ves de dónde vienen los visitantes, no quiénes son. Instagram, Facebook y X nunca dicen a otros sitios qué cuenta tocó un enlace, y FluxBio no guarda nada que identifique a una persona.
 - Los nombres de `?s=` admiten letras sin tilde, números, `-` y `_`, y se pasan a minúsculas; los demás caracteres se eliminan. Las etiquetas UTM se guardan tal cual, así que `story` y `Story` cuentan como dos filas: escríbelas siempre igual.
 - La ubicación es la ciudad que Cloudflare estima a partir de la IP del visitante. Las VPN, el Relay privado de iCloud y las redes de empresa pueden situar a alguien en otro lugar.
-- Las visitas, los clics y los orígenes son exactos y se guardan para siempre. Las regiones, el mapa, las redes, los dispositivos, los idiomas y el detalle de UTM se guardan 90 días, y las visitas nuevas tardan alrededor de un minuto en aparecer. Tú eliges si los íconos sociales también cuentan. Los botones que muestran la dirección real se cuentan con un script mínimo en la página, así que un bloqueador puede ocultar algún clic; los enlaces cortos siempre se cuentan.
+- Las visitas, los clics y los orígenes son exactos. Cada día se guarda 13 meses y después cada mes queda como un total, para siempre; desde Ajustes puedes descargarlo todo. Las regiones, el mapa, las redes, los dispositivos, los idiomas y el detalle de UTM se guardan 90 días, y las visitas nuevas tardan alrededor de un minuto en aparecer. Tú eliges si los íconos sociales también cuentan. Los botones que muestran la dirección real se cuentan con un script mínimo en la página, así que un bloqueador puede ocultar algún clic; los enlaces cortos siempre se cuentan.
 - Los visitantes únicos se cuentan por día: la misma persona en dos días distintos, o en el móvil y luego en el ordenador, cuenta dos veces.
 - Los bots y las vistas previas de enlaces (la petición que hace una app de chat cuando alguien pega un enlace) no se cuentan, así que las cifras pueden ser menores que en otras herramientas.
 - Las etiquetas UTM de un enlace corto van solo a su destino principal, no a las direcciones aparte para iPhone o Android, y nunca sustituyen una etiqueta que el destino ya tenga. Cambiarlas solo afecta a los clics posteriores.

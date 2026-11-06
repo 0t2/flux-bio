@@ -20,7 +20,7 @@
     "landing:deploy": "node landing/build.mjs && cd landing && cf deploy --prebuilt",
     "shots": "node scripts/shots.mjs",
     "brand": "node scripts/brand.mjs",
-    "kv-usage": "node scripts/kv-usage.mjs"
+    "usage": "node scripts/usage.mjs"
   },
   "cloudflare": {
     "bindings": {

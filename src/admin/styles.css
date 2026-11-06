@@ -995,6 +995,33 @@ button:disabled {
 	background: var(--accent-soft);
 	border-color: rgba(79, 112, 0, 0.35);
 }
+.banner.usage-note {
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: 10px;
+	line-height: 1.6;
+}
+.banner.usage-note.info {
+	background: var(--info-soft);
+	border-color: transparent;
+	color: var(--text-2);
+}
+.banner.usage-note > svg {
+	flex: none;
+	margin-top: 3px;
+}
+.banner.usage-note.info > svg {
+	color: var(--info);
+}
+.banner.usage-note p {
+	flex: 1 1 260px;
+	margin: 0;
+}
+.usage-note-actions {
+	display: flex;
+	gap: 8px;
+}
 
 .empty {
 	padding: 24px;

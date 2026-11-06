@@ -56,6 +56,51 @@ export interface PageSummary {
 	untranslated: number
 }
 
+/** GET /api/usage: how close the site is to its Cloudflare plan's limits, as far as it can tell. */
+export interface UsageResponse {
+	plan: 'free' | 'paid'
+	database: {
+		bytes: number
+		/** The plan's largest database. */
+		limit: number
+	}
+	/** Views and clicks counted since midnight UTC, when Cloudflare's daily quotas start again. */
+	today: {
+		since: string
+		views: number
+		clicks: number
+		/** "analytics" counts since midnight UTC; "stats", without Analytics Engine, the site's own calendar day. */
+		from: 'analytics' | 'stats'
+	}
+	/**
+	 * What those cost, by the measured cost of each: a request each, two KV reads a view and one a click, a row written
+	 * each. Pictures, bots and other Workers on the account aren't in it, so the real use is higher.
+	 */
+	estimate: { requests: number; kvReads: number; rowsWritten: number }
+	/** The free plan's daily limits for the same; null on the paid plan, which bills past them instead. */
+	dailyLimits: { requests: number; kvReads: number; rowsWritten: number } | null
+	stats: {
+		/** Months of daily numbers kept; older months are kept as one number a month. */
+		dailyMonths: number
+		oldestMonth: string | null
+		/** The next month whose days become one number, and the day that happens. */
+		nextMerge: { month: string; on: string } | null
+		/** Older months are still being made into one number each, a little at every dashboard visit. */
+		merging: boolean
+		/** Everything before this month is being deleted. */
+		clearing: string | null
+		/** The latest month POST /api/stats/clear takes. */
+		clearableBefore: string
+	}
+}
+
+/** GET /api/stats/export */
+export interface StatsExportResponse {
+	columns: readonly ['day', 'kind', 'target', 'page', 'slug', 'title', 'source', 'count']
+	rows: [string, string, string, string, string, string, string, number][]
+	nextCursor: string | null
+}
+
 /** GET /api/state */
 export interface StateResponse {
 	version: string

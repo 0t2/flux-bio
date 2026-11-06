@@ -10,6 +10,7 @@ import { BioSection } from './settings/BioSection'
 import { ConnectAi } from './settings/ConnectAi'
 import { DangerSection } from './settings/DangerSection'
 import { QrDefaultsSection } from './settings/QrDefaultsSection'
+import { StatsDataSection } from './settings/StatsDataSection'
 import { REPO_URL } from './settings/util'
 import '../styles/settings.css'
 
@@ -45,6 +46,7 @@ export function SettingsPage() {
 				<QrDefaultsSection />
 				<ConnectAi />
 				<BackupSection />
+				<StatsDataSection />
 				<DangerSection />
 				<p className="set-footer">
 					<span>FluxBio v{app.version}</span>

@@ -65,12 +65,15 @@ describe('the guide', () => {
 	it('has the agent ask, and skip the question when the request already answers it', () => {
 		expect(guide).toContain('**Ask how they want to go about it.**')
 		expect(guide).toContain('publish straight away, or look at a preview first?')
-		expect(guide).toContain('deploy straight to the live site, or try it on a test site first?')
+		expect(guide).toContain('deploy straight to the live site, or try it on their computer first?')
 		expect(guide).toContain('Skip it when their request already says')
 	})
 
-	it('offers a test site only to an agent that can deploy one', () => {
-		expect(guide).toContain("Offer a test site only if you can run commands in the owner's FluxBio folder")
+	it("tries changes on the owner's computer, and makes a second site only when the owner asks, saying what it takes", () => {
+		expect(guide).toContain("Recommend their computer if the site has visitors and you can run commands there")
+		expect(topic).toContain('it uses none of their quota')
+		expect(topic).toContain('only if the owner asks for one')
+		expect(topic).toContain('it takes a second D1 database (10 per account on the free plan)')
 	})
 
 	it('never moves things to the live site with an import, and checks where it is before replacing anything', () => {
