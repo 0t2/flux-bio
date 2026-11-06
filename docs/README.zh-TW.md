@@ -177,7 +177,7 @@ IG 個人簡介、限動和貼文都算 Instagram。想比較它們，就給每�
 <details>
 <summary><b>要錢嗎？</b></summary>
 
-FluxBio 免費、開源，跑在你自己的 Cloudflare 帳號。Cloudflare 的免費方案每天大約夠幾萬次頁面瀏覽和幾百次修改，個人和小店通常用不完。Claude、ChatGPT 這類 AI 的訂閱費另計，Claude Code 需要 Claude 的付費方案。
+FluxBio 免費、開源，跑在你自己的 Cloudflare 帳號。Cloudflare 的免費方案每天大約夠一萬到幾萬次頁面瀏覽（看頁面上的圖片多少）和幾百次修改，個人和小店通常用不完。Claude、ChatGPT 這類 AI 的訂閱費另計，Claude Code 需要 Claude 的付費方案。
 
 </details>
 

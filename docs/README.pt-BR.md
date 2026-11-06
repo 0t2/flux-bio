@@ -177,7 +177,7 @@ Cada um ganha sua própria linha em “Campanhas UTM”, com visualizações e c
 <details>
 <summary><b>Custa alguma coisa?</b></summary>
 
-O FluxBio é gratuito e de código aberto. Ele roda na sua própria conta da Cloudflare, cujo plano gratuito cobre dezenas de milhares de visualizações de página e algumas centenas de alterações por dia. Isso costuma ser mais do que pessoas e pequenas lojas precisam. Assinaturas de IAs como Claude ou ChatGPT são à parte, e o Claude Code exige um plano pago do Claude.
+O FluxBio é gratuito e de código aberto. Ele roda na sua própria conta da Cloudflare, cujo plano gratuito cobre de dez mil a dezenas de milhares de visualizações de página por dia, conforme as imagens da sua página, e algumas centenas de alterações. Isso costuma ser mais do que pessoas e pequenas lojas precisam. Assinaturas de IAs como Claude ou ChatGPT são à parte, e o Claude Code exige um plano pago do Claude.
 
 </details>
 

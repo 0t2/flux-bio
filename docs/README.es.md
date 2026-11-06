@@ -177,7 +177,7 @@ Cada uno tiene su propia fila en “Campañas UTM”, con visitas y clics por se
 <details>
 <summary><b>¿Cuesta algo?</b></summary>
 
-FluxBio es gratuito y de código abierto. Funciona en tu propia cuenta de Cloudflare, cuyo plan gratuito cubre decenas de miles de visitas a la página y varios cientos de cambios al día. Suele ser más de lo que necesitan las personas y las tiendas pequeñas. Las suscripciones a IA como Claude o ChatGPT van aparte, y Claude Code requiere un plan de pago de Claude.
+FluxBio es gratuito y de código abierto. Funciona en tu propia cuenta de Cloudflare, cuyo plan gratuito cubre de diez mil a varias decenas de miles de visitas a la página al día, según las imágenes de tu página, y varios cientos de cambios. Suele ser más de lo que necesitan las personas y las tiendas pequeñas. Las suscripciones a IA como Claude o ChatGPT van aparte, y Claude Code requiere un plan de pago de Claude.
 
 </details>
 
