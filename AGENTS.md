@@ -363,7 +363,8 @@ Rules worth knowing:
 
 fluxbio.link is the project's own site, a separate static site in `landing/`. Nothing of it reaches a self-hosted FluxBio: `cf deploy` only
 uses `src/` and `public/`. So an agent deploying or running someone's FluxBio has nothing to do in that folder, and shouldn't run its
-commands, which deploy to fluxbio.link. Working on the site is described in `landing/AGENTS.md`.
+commands: `pnpm landing:deploy` is for fluxbio.link and refuses on any other Cloudflare account. Working on the site is described in
+`landing/AGENTS.md`.
 
 One thing there depends on the product: the site shows screenshots of the dashboard. After a change to how the dashboard looks, they are out of
 date until retaken, which `landing/AGENTS.md` describes ("Retake the dashboard screenshots") and only the maintainer's computer can do.

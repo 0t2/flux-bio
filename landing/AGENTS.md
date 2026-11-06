@@ -10,7 +10,7 @@ Worker requests, D1 or KV, and it can't touch the account's quota.
 
 ```sh
 pnpm landing           # builds it into landing/.cloudflare/output
-pnpm landing:deploy    # fetches the screenshots a checkout lacks, builds and deploys
+pnpm landing:deploy    # on the account that serves fluxbio.link only: fetches the screenshots a checkout lacks, builds and deploys
 pnpm landing:fonts     # makes the Traditional Chinese page's font from the characters it shows now (a deploy from GitHub Actions does this itself)
 pnpm landing:pictures  # fetches from fluxbio.link the dashboard screenshots this checkout lacks (--check only lists them)
 pnpm shots             # retakes the dashboard screenshots from the sample pages, in a throwaway local site

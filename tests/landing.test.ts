@@ -11,6 +11,9 @@ import motion from '../landing/public/motion.js?raw'
 import template from '../landing/template.html?raw'
 import { charactersBeyondAscii, coversPage, PLEX, plexFiles, type ChineseFont } from '../landing/fonts'
 import landingHeaders from '../landing/public/_headers?raw'
+import landingBuild from '../landing/build.mjs?raw'
+import landingOwner from '../scripts/landing-owner.mjs?raw'
+import { scripts } from '../package.json'
 import { THEME_IDS } from '../src/shared/content'
 import { previewPage, previewsIn } from '../landing/previews'
 
@@ -170,6 +173,16 @@ describe('the site', () => {
 describe('someone hosting their own FluxBio', () => {
 	const shipped = import.meta.glob('../public/**/*', { query: '?url' })
 	const product = import.meta.glob<string>(['../src/worker/**/*.ts', '../src/admin/**/*.{ts,tsx}', '../src/shared/*.ts', '../src/templates/*.ts', '../cloudflare.config.ts'], { query: '?raw', import: 'default', eager: true })
+
+	it("can't deploy the project's site by mistake: the command first checks the account serves fluxbio.link", () => {
+		expect(scripts['landing:deploy']).toMatch(/^node scripts\/landing-owner\.mjs && /)
+		// The check and the build have to mean the same Worker and domain.
+		for (const name of ["'fluxbio-showcase'", "'fluxbio.link'"]) {
+			expect(landingOwner, name).toContain(name)
+			expect(landingBuild, name).toContain(name)
+		}
+		expect(landingOwner).toContain('process.exit(1)')
+	})
 
 	it('gets none of its files', () => {
 		const files = Object.keys(shipped)
