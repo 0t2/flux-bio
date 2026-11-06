@@ -89,6 +89,17 @@ async function databases() {
 	}
 }
 
+/** "free" or "paid", from the account's subscriptions; null if Cloudflare didn't say. */
+async function plan() {
+	const result = await cf(['accounts', 'subscriptions', 'get'])
+	try {
+		const parsed = JSON.parse(result.stdout)
+		return kv.workersPlan(parsed.result ?? parsed)
+	} catch {
+		return null
+	}
+}
+
 const D1_QUERY = 'SELECT databaseId, SUM(rowsRead * sampleInterval) AS readRows, SUM(rowsWritten * sampleInterval) AS writtenRows FROM events.d1BackendRequest'
 const megabytes = (bytes) => `${(bytes / 1024 ** 2).toFixed(1)} MB`
 
@@ -148,11 +159,12 @@ const day = opts.date ?? kv.utcDay(now)
 const today = day === kv.utcDay(now)
 if (day > kv.utcDay(now)) fail(`${day} hasn't happened yet.`)
 const { since, until } = kv.dayRange(day)
-const [rows, names, d1Rows, dbs] = await Promise.all([
+const [rows, names, d1Rows, dbs, workers] = await Promise.all([
 	sql(account, 'SELECT namespaceId, actionType, SUM(sampleInterval) AS ops FROM events.kvRequests GROUP BY namespaceId, actionType LIMIT 1000', since, today ? undefined : until),
 	namespaceNames(),
 	sql(account, `${D1_QUERY} GROUP BY databaseId LIMIT 1000`, since, today ? undefined : until),
 	databases(),
+	plan(),
 ])
 const usage = kv.kvQuota(rows)
 const d1 = kv.d1Quota(d1Rows)
@@ -167,11 +179,12 @@ const namespaces = byNamespace(rows, names)
 const reset = kv.nextReset(now)
 
 if (opts.json) {
-	console.log(JSON.stringify({ day, today, limits: 'free plan, per Cloudflare account, per UTC day', ...(today ? { resetsAt: reset.toISOString(), resetsInMinutes: Math.ceil((reset - now) / 60_000), plain: kv.leftInPlainWords(usage, d1) } : {}), usage, namespaces, d1, databases: byDatabase, storage, note: NOTE }, null, 2))
+	console.log(JSON.stringify({ day, today, limits: 'free plan, per Cloudflare account, per UTC day', ...(today ? { resetsAt: reset.toISOString(), resetsInMinutes: Math.ceil((reset - now) / 60_000), plain: kv.leftInPlainWords(usage, d1) } : {}), plan: workers, usage, namespaces, d1, databases: byDatabase, storage, note: NOTE }, null, 2))
 	process.exit(0)
 }
 
 console.log(`KV and D1 on this Cloudflare account, ${today ? `today (${day} UTC)` : `${day} UTC`}`)
+if (workers) console.log(`Workers plan: ${workers === 'paid' ? 'Workers Paid, which bills past the limits below instead of stopping' : 'Free'}`)
 if (today) console.log(`Resets in ${duration(reset - now)}, at ${reset.toLocaleString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false })} your time.`)
 if (today) {
 	const left = kv.leftInPlainWords(usage, d1)

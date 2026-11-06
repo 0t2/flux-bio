@@ -1,7 +1,7 @@
 import { createExecutionContext, env, waitOnExecutionContext } from 'cloudflare:test'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { PageJson } from '../src/shared/api'
-import { d1Quota, dayRange, isDay, kvNamespaceLabel, kvQuota, KV_DAILY_LIMITS, lastDays, leftInPlainWords, nextReset, utcDay } from '../src/shared/usage'
+import { d1Quota, dayRange, isDay, kvNamespaceLabel, kvQuota, KV_DAILY_LIMITS, lastDays, leftInPlainWords, nextReset, utcDay, workersPlan } from '../src/shared/usage'
 import app from '../src/worker/index'
 import { apiJson, IPHONE, ORIGIN } from './helpers'
 import { guideNames } from '../src/worker/lib/agent'
@@ -71,6 +71,16 @@ describe('what is left, for an owner', () => {
 	it('never goes below nothing', () => {
 		const usage = kvQuota([{ actionType: 'read', ops: 200_000 }, { actionType: 'write', ops: 5000 }] as never)
 		expect(leftInPlainWords(usage)).toEqual({ pageViews: 0, changes: 0 })
+	})
+})
+
+describe('the Workers plan', () => {
+	it('is paid only with a live Workers Paid subscription', () => {
+		const free = [{ state: 'Paid', rate_plan: { id: 'free', public_name: 'Cloudflare Free Plan' } }, { state: 'Paid', rate_plan: { id: 'r2_paid', public_name: 'R2 Paid' } }]
+		expect(workersPlan(free)).toBe('free')
+		expect(workersPlan([...free, { state: 'Paid', rate_plan: { id: 'workers_paid', public_name: 'Workers Paid' } }])).toBe('paid')
+		expect(workersPlan([{ state: 'Cancelled', rate_plan: { id: 'workers_paid', public_name: 'Workers Paid' } }])).toBe('free')
+		expect(workersPlan([])).toBe('free')
 	})
 })
 

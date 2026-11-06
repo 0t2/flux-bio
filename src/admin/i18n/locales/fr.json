@@ -918,10 +918,7 @@
 	"每天的瀏覽和點擊次數保留 {months} 個月，更早的月份只留每月總數。": "Les vues et clics quotidiens sont gardés {months} mois. Les mois plus anciens ne gardent que leur total mensuel.",
 	"下載成 CSV 檔，Excel 和 Google 試算表都能開。下載不會刪掉任何資料。": "Un fichier CSV qui s’ouvre dans Excel ou Google Sheets. Le télécharger ne supprime rien.",
 	"下載點擊數據": "Télécharger les statistiques",
-	"資料庫已用 {used}，這個方案最多 {limit}。": "La base de données utilise {used} sur les {limit} permis par cette offre.",
 	"正在清除 {month} 以前的點擊數據，每次打開後台會清掉一部分。": "Suppression des statistiques d’avant {month} en cours. Une partie part à chaque ouverture du tableau de bord.",
-	"我換成 Cloudflare 付費方案了，幫我更新 FluxBio 的方案設定": "Je suis passé à une offre payante de Cloudflare. Mets à jour l’offre dans les réglages de FluxBio",
-	"我換回 Cloudflare 免費方案了，幫我更新 FluxBio 的方案設定": "Je suis revenu à l’offre gratuite de Cloudflare. Mets à jour l’offre dans les réglages de FluxBio",
 	"清除舊數據": "Supprimer les anciennes données",
 	"已下載，舊數據會在接下來幾次打開後台時陸續清除": "Téléchargé. Les anciennes statistiques seront supprimées au fil des prochaines ouvertures du tableau de bord.",
 	"沒有完成，請再試一次": "Ça n’a pas abouti. Réessayez.",
@@ -934,5 +931,13 @@
 	"對象": "Élément",
 	"次數": "Nombre",
 	"只能清除 {month} 以前的點擊數據，比這更新的還會顯示在數據頁": "Seules les statistiques d’avant {month} peuvent être supprimées. Les plus récentes s’affichent encore dans les statistiques.",
-	"清除點擊數據": "Supprimer les statistiques"
+	"清除點擊數據": "Supprimer les statistiques",
+	"今天的請求": "Requêtes aujourd’hui",
+	"今天的 KV 讀取": "Lectures KV aujourd’hui",
+	"今天的資料庫寫入": "Écritures en base de données aujourd’hui",
+	"用量": "Utilisation",
+	"Cloudflare 方案：Workers Paid。超過內含的額度會照用量計費，網站不會停。": "Offre Cloudflare : Workers Paid. Ce qui dépasse l’inclus est facturé à l’usage, et le site continue de fonctionner.",
+	"Cloudflare 方案：免費。每天的額度用完，網站會停到 {time} 重新計算。": "Offre Cloudflare : gratuite. Si une limite quotidienne est atteinte, le site s’arrête jusqu’à {time}, quand tout repart à zéro.",
+	"今天到目前有 {views} 次瀏覽、{clicks} 次點擊。今天的數字是這個網站自己估的，圖片、機器人和帳號裡的其他專案沒有算進去。": "Aujourd’hui jusqu’ici : {views} vues et {clicks} clics. Les chiffres du jour sont une estimation du site lui-même : les images, les robots et les autres projets de votre compte n’y sont pas.",
+	"幫我查 Cloudflare 帳號今天實際用了多少": "Regarde combien mon compte Cloudflare a réellement utilisé aujourd’hui"
 }

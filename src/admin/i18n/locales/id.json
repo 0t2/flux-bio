@@ -918,10 +918,7 @@
 	"每天的瀏覽和點擊次數保留 {months} 個月，更早的月份只留每月總數。": "Tayangan dan klik harian disimpan {months} bulan. Bulan yang lebih lama hanya menyimpan total bulanan.",
 	"下載成 CSV 檔，Excel 和 Google 試算表都能開。下載不會刪掉任何資料。": "File CSV yang bisa dibuka di Excel atau Google Spreadsheet. Mengunduh tidak menghapus apa pun.",
 	"下載點擊數據": "Unduh statistik",
-	"資料庫已用 {used}，這個方案最多 {limit}。": "Basis data memakai {used} dari {limit} yang diizinkan paket ini.",
 	"正在清除 {month} 以前的點擊數據，每次打開後台會清掉一部分。": "Sedang menghapus statistik sebelum {month}. Sebagian terhapus setiap kali dasbor dibuka.",
-	"我換成 Cloudflare 付費方案了，幫我更新 FluxBio 的方案設定": "Saya sudah pindah ke paket berbayar Cloudflare. Tolong perbarui setelan paket FluxBio",
-	"我換回 Cloudflare 免費方案了，幫我更新 FluxBio 的方案設定": "Saya kembali ke paket gratis Cloudflare. Tolong perbarui setelan paket FluxBio",
 	"清除舊數據": "Hapus data lama",
 	"已下載，舊數據會在接下來幾次打開後台時陸續清除": "Sudah diunduh. Statistik lama akan dihapus bertahap dalam beberapa kali berikutnya dasbor dibuka.",
 	"沒有完成，請再試一次": "Tidak selesai. Coba lagi.",
@@ -934,5 +931,13 @@
 	"對象": "Objek",
 	"次數": "Jumlah",
 	"只能清除 {month} 以前的點擊數據，比這更新的還會顯示在數據頁": "Hanya statistik sebelum {month} yang bisa dihapus. Yang lebih baru masih tampil di halaman statistik.",
-	"清除點擊數據": "Hapus statistik"
+	"清除點擊數據": "Hapus statistik",
+	"今天的請求": "Permintaan hari ini",
+	"今天的 KV 讀取": "Pembacaan KV hari ini",
+	"今天的資料庫寫入": "Penulisan basis data hari ini",
+	"用量": "Pemakaian",
+	"Cloudflare 方案：Workers Paid。超過內含的額度會照用量計費，網站不會停。": "Paket Cloudflare: Workers Paid. Pemakaian di atas jatah yang termasuk ditagih sesuai pemakaian, dan situs tetap berjalan.",
+	"Cloudflare 方案：免費。每天的額度用完，網站會停到 {time} 重新計算。": "Paket Cloudflare: gratis. Jika batas harian habis, situs berhenti sampai pukul {time}, saat kuota dimulai lagi.",
+	"今天到目前有 {views} 次瀏覽、{clicks} 次點擊。今天的數字是這個網站自己估的，圖片、機器人和帳號裡的其他專案沒有算進去。": "Hari ini sejauh ini: {views} tayangan dan {clicks} klik. Angka hari ini adalah perkiraan situs ini sendiri: gambar, bot, dan proyek lain di akunmu tidak dihitung.",
+	"幫我查 Cloudflare 帳號今天實際用了多少": "Cek berapa banyak akun Cloudflare saya benar-benar terpakai hari ini"
 }

@@ -918,10 +918,7 @@
 	"每天的瀏覽和點擊次數保留 {months} 個月，更早的月份只留每月總數。": "Lượt xem và lượt nhấp theo ngày được giữ {months} tháng. Các tháng cũ hơn chỉ giữ tổng theo tháng.",
 	"下載成 CSV 檔，Excel 和 Google 試算表都能開。下載不會刪掉任何資料。": "Tệp CSV mở được bằng Excel hoặc Google Trang tính. Tải về không xóa gì cả.",
 	"下載點擊數據": "Tải dữ liệu thống kê",
-	"資料庫已用 {used}，這個方案最多 {limit}。": "Cơ sở dữ liệu đang dùng {used} trên {limit} mà gói này cho phép.",
 	"正在清除 {month} 以前的點擊數據，每次打開後台會清掉一部分。": "Đang xóa dữ liệu thống kê trước {month}. Mỗi lần mở trang quản trị sẽ xóa một phần.",
-	"我換成 Cloudflare 付費方案了，幫我更新 FluxBio 的方案設定": "Mình đã chuyển sang gói trả phí của Cloudflare. Hãy cập nhật cài đặt gói của FluxBio",
-	"我換回 Cloudflare 免費方案了，幫我更新 FluxBio 的方案設定": "Mình đã quay lại gói miễn phí của Cloudflare. Hãy cập nhật cài đặt gói của FluxBio",
 	"清除舊數據": "Xóa dữ liệu cũ",
 	"已下載，舊數據會在接下來幾次打開後台時陸續清除": "Đã tải về. Dữ liệu thống kê cũ sẽ được xóa dần trong vài lần mở trang quản trị tới.",
 	"沒有完成，請再試一次": "Chưa xong. Vui lòng thử lại.",
@@ -934,5 +931,13 @@
 	"對象": "Đối tượng",
 	"次數": "Số lần",
 	"只能清除 {month} 以前的點擊數據，比這更新的還會顯示在數據頁": "Chỉ xóa được dữ liệu thống kê trước {month}. Dữ liệu mới hơn vẫn hiển thị trên trang thống kê.",
-	"清除點擊數據": "Xóa dữ liệu thống kê"
+	"清除點擊數據": "Xóa dữ liệu thống kê",
+	"今天的請求": "Yêu cầu hôm nay",
+	"今天的 KV 讀取": "Lượt đọc KV hôm nay",
+	"今天的資料庫寫入": "Lượt ghi cơ sở dữ liệu hôm nay",
+	"用量": "Mức sử dụng",
+	"Cloudflare 方案：Workers Paid。超過內含的額度會照用量計費，網站不會停。": "Gói Cloudflare: Workers Paid. Phần vượt quá mức đã bao gồm sẽ tính phí theo sử dụng, và trang web vẫn chạy.",
+	"Cloudflare 方案：免費。每天的額度用完，網站會停到 {time} 重新計算。": "Gói Cloudflare: miễn phí. Nếu hết hạn mức trong ngày, trang web sẽ dừng đến {time}, khi hạn mức bắt đầu lại.",
+	"今天到目前有 {views} 次瀏覽、{clicks} 次點擊。今天的數字是這個網站自己估的，圖片、機器人和帳號裡的其他專案沒有算進去。": "Hôm nay đến giờ có {views} lượt xem và {clicks} lượt nhấp. Số liệu hôm nay do chính trang web ước tính: hình ảnh, bot và các dự án khác trong tài khoản của bạn không được tính.",
+	"幫我查 Cloudflare 帳號今天實際用了多少": "Kiểm tra giúp mình hôm nay tài khoản Cloudflare thực sự đã dùng bao nhiêu"
 }

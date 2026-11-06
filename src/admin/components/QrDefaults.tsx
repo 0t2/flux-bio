@@ -1,15 +1,31 @@
 import { useRef, useState } from 'react'
-import type { Settings } from '../../../shared/content'
-import { request } from '../../api'
-import { Icon } from '../../components/Icon'
-import { Section, toast } from '../../components/ui'
-import { t } from '../../i18n'
-import { uploadImage } from '../../lib/image'
-import { useApp } from '../../state/app'
-import { errorText } from './util'
+import type { Settings } from '../../shared/content'
+import { request } from '../api'
+import { t } from '../i18n'
+import { uploadImage } from '../lib/image'
+import { errorText } from '../pages/settings/util'
+import { useApp } from '../state/app'
+import { Icon } from './Icon'
+import { Dialog, toast } from './ui'
+
+/** A button on the short links page that opens the pictures QR codes follow. */
+export function QrDefaultsButton() {
+	const [open, setOpen] = useState(false)
+	return (
+		<>
+			<button type="button" className="btn small" onClick={() => setOpen(true)}>
+				<Icon name="qr" size={16} />
+				{t('QR Code 預設圖片')}
+			</button>
+			<Dialog open={open} title={t('QR Code 預設圖片')} onClose={() => setOpen(false)} wide>
+				<QrDefaults />
+			</Dialog>
+		</>
+	)
+}
 
 /** The pictures QR codes follow: one for the site, and one for each page, which comes first for that page's links. */
-export function QrDefaultsSection() {
+function QrDefaults() {
 	const app = useApp()
 	const input = useRef<HTMLInputElement>(null)
 	const [target, setTarget] = useState<string | null>(null)
@@ -54,17 +70,17 @@ export function QrDefaultsSection() {
 	}
 
 	return (
-		<Section title={t('QR Code 預設圖片')}>
+		<>
 			<p className="hint">{t('沒有另外選圖片的短網址，QR Code 中間會放這裡的圖片，頁面的圖片優先於全站。換圖後，後台看到和下載的都會更新，已經印出來的不會變。')}</p>
-			<ul className="set-qr-defaults" role="list">
+			<ul className="qr-defaults" role="list">
 				{rows.map((row) => (
 					<li key={row.id}>
-						<span className="set-qr-thumb">{row.media ? <img src={`/media/${encodeURIComponent(row.media)}`} alt="" /> : <Icon name="image" size={18} />}</span>
+						<span className="qr-defaults-thumb">{row.media ? <img src={`/media/${encodeURIComponent(row.media)}`} alt="" /> : <Icon name="image" size={18} />}</span>
 						<div>
 							<strong>{row.name}</strong>
 							<p className="hint">{row.hint}</p>
 						</div>
-						<div className="set-qr-actions">
+						<div className="qr-defaults-actions">
 							<button
 								type="button"
 								className="btn small"
@@ -97,6 +113,6 @@ export function QrDefaultsSection() {
 				))}
 			</ul>
 			<input ref={input} type="file" accept="image/*" hidden onChange={(event) => onFile(event.target.files?.[0])} />
-		</Section>
+		</>
 	)
 }

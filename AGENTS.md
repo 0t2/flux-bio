@@ -25,7 +25,7 @@ keep working, nothing is deleted, and switching back on restores every published
 FluxBio is AI-agent first: the owner edits pages in the dashboard, but settings such as the
 domain, time zone, locale, share previews and any look beyond the built-in color sets are left to an AI agent working through the API.
 The dashboard's 設定 page only makes API tokens and gives a prompt to paste into an AI (Claude Code,
-Codex or Cursor), plus the switch for bio pages, the default QR code pictures, the backup download and the wipe button. Where a form used to be, the dashboard shows a
+Codex or Cursor), plus the switch for bio pages, how much of the plan the site uses, the backup and stats downloads and the wipe button. The default QR code pictures are on 短網址. Where a form used to be, the dashboard shows a
 sentence the owner can say to their AI instead (`src/admin/components/AskAi.tsx`): bulk short
 links with UTM tags, and a theme of their own with their colors, fonts and pictures. Restoring a backup, moving to another deployment and
 changing the password (a Cloudflare secret, section 1.8) are also left to the agent; its guide says
@@ -193,7 +193,7 @@ bearer token (its role is `admin`, which may also make tokens), and following `h
 1. **First page, or only short links.** If they only want short links, skip the page: ask where they are for the time zone, then `PUT /api/settings` with `"bio": false`,
    the time zone and the page language (below), and go on to step 2. Otherwise ask the name to show, what they do, and where they are, one at a time, and suggest the last part of the address yourself.
    Pick the kind of page yourself (`starter`: `creator`, `shop`, `event`, `pro`, `org`). Then `POST /api/pages` with `locale` set to the page language below (the first page becomes the home page) and `PUT /api/settings` with
-   the time zone and the page language. Fill in what they told you, and remove what a starter added that doesn't fit them: its text is written for a typical page of that kind.
+   the time zone, the page language and `plan` from `pnpm usage --json` (the site can't see the owner's Cloudflare plan). Fill in what they told you, and remove what a starter added that doesn't fit them: its text is written for a typical page of that kind.
    **Don't publish yet, unless they said to.** Send a preview link that lasts a day (`POST /api/pages/<id>/preview-link` with `{ "minutes": 1440 }`), and publish when they say they're happy. Don't wait for that before step 2: they may close the window after looking.
    The page language (`locale`) is the one the owner's request names (the install prompt in the README
    and on fluxbio.link ends with it, e.g. "Use English (en) as the page language"), else the
@@ -411,7 +411,7 @@ src/admin/              dashboard SPA (React 19, wouter, dnd-kit). Entry is admi
   state/app.tsx         deployment-wide state: settings, pages, the page being edited
   state/page.tsx        one page's draft, autosave and publish (draws the share card first)
   editors/              the editor panel for each item kind, and the profile (name, avatar, bio)
-  pages/settings/       the switch for bio pages, default QR code pictures, API tokens and the prompt for connecting an AI, the backup download, wipe
+  pages/settings/       the switch for bio pages, API tokens and the prompt for connecting an AI, usage, the backup and stats downloads, wipe
   components/VisitorMap.tsx  the visitor map on the stats pages; its land outline (worldMap.ts) is generated
                         by scripts/world-map.mjs from Natural Earth (public domain)
 public/                 static files: the icons and headers
