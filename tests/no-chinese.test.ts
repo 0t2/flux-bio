@@ -103,9 +103,8 @@ describe('the guide for AI agents', () => {
 		it(`${path} has Chinese only where it says what it is for`, async () => {
 			const guide = await (await visit(path)).text()
 			const lines = guide.split('\n').filter((line) => HAN.test(line))
-			expect(lines).toHaveLength(2)
-			expect(lines.find((line) => line.includes('For an owner who writes Traditional Chinese'))).toBeTruthy()
-			expect(lines.find((line) => line.includes('?s=電子報'))).toBeTruthy()
+			expect(lines).toHaveLength(1)
+			expect(lines[0]).toContain('For an owner who writes Traditional Chinese')
 		})
 	}
 
