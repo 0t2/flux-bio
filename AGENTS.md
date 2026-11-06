@@ -240,8 +240,10 @@ without running the Worker, free and unlimited, at the same `/media/<id>`, with 
 uploaded since then is served from KV as before, until the next run, and a picture no page uses any more is left out.
 It needs a full token in `FLUXBIO_TOKEN` or the admin password in `.secrets.env`, and the owner's computer: the dashboard
 can't deploy. So offer it, in plain words, when the owner adds pictures or asks about quota, and after new uploads. A deploy
-without it (`pnpm run deploy`, or GitHub Actions) ships whatever `public/media/` holds, nothing on a fresh checkout, and
-the pictures go back to costing quota without anything breaking. With `--mode staging` it reads and deploys the test site.
+without it (`pnpm run deploy`) ships whatever `public/media/` holds, nothing on a fresh checkout, and the pictures go back
+to costing quota without anything breaking. `.github/workflows/deploy.yml` uses it when the repository has a
+`FLUXBIO_TOKEN` secret (a full token made on the live site) and a `FLUXBIO_SITE` variable, and deploys without the
+pictures if fetching them fails. With `--mode staging` it reads and deploys the test site.
 
 **A test site.** To try a change first, run it on the owner's computer: `pnpm exec cf dev --mode staging` (with
 `ADMIN_PASSWORD` in `.dev.vars`) makes nothing on Cloudflare and uses none of their quota, and only that computer can open it.
