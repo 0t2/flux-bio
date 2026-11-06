@@ -13,6 +13,8 @@ import { charactersBeyondAscii, coversPage, PLEX, plexFiles, type ChineseFont } 
 import landingHeaders from '../landing/public/_headers?raw'
 import landingBuild from '../landing/build.mjs?raw'
 import landingOwner from '../scripts/landing-owner.mjs?raw'
+import copyScript from '../landing/public/copy.js?raw'
+import agentsGuide from '../AGENTS.md?raw'
 import { scripts } from '../package.json'
 import { THEME_IDS } from '../src/shared/content'
 import { previewPage, previewsIn } from '../landing/previews'
@@ -354,5 +356,53 @@ describe("the pages' own fonts", () => {
 		const rule = (pattern: string) => landingHeaders.split(/\n(?=\S)/).find((block) => block.split('\n')[0] === pattern) ?? ''
 		expect(rule('/fonts/*')).toContain('Cache-Control: public, max-age=31536000, immutable')
 		for (const pattern of ['/', '/:language/']) expect(rule(pattern), pattern).toContain("font-src 'self' https://fonts.gstatic.com;")
+	})
+})
+
+// What someone pastes into their AI. A weaker model given only the repository's address opens it with a tool that
+// fetches web pages, and gets a summary of AGENTS.md without its commands. So the prompt has it download the code
+// first, with the command spelled out, and read the file from the folder.
+describe('the prompt to paste', () => {
+	const COMMAND = 'mkdir -p ~/flux-bio && curl -fsSL https://github.com/0t2/flux-bio/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 -C ~/flux-bio'
+	const list = /<ol class="term-lines" id="deploy-lines"[^>]*>([\s\S]*?)<\/ol>/.exec(template)![1]!
+	const lines = [...list.matchAll(/<li([^>]*)><code>([\s\S]*?)<\/code><\/li>/g)].map((match) => ({ gap: /\bdata-gap\b/.test(match[1]!), html: match[2]! }))
+	const said = (html: string) => html.replace(/<span class="prompt"[^>]*>.*?<\/span>/, '').replace(/<[^>]+>/g, '').replaceAll('&amp;', '&').trim()
+	/** What the copy button puts on the clipboard: landing/public/copy.js, in this test's words. */
+	const copied = (locale: string) =>
+		lines
+			.map(({ gap, html }) => {
+				const text = said(html.replace(/\{\{(s\d+)\}\}/g, (_, key: string) => words[`../landing/locales/${locale}.json`]![key]!))
+				return gap ? `\n${text}\n` : text
+			})
+			.join('\n')
+	const printed = (locale: string) => /```text\n([\s\S]*?)\n```/.exec(readmes[locale === 'en' ? '../README.md' : `../docs/README.${locale}.md`]!)![1]!
+
+	it('is the same on the landing page and in the README, in every language', () => {
+		expect(lines).toHaveLength(4)
+		expect(lines.map((line) => line.gap)).toEqual([false, true, false, false])
+		// The script keeps a line with data-gap apart, as `copied` does here.
+		expect(copyScript).toContain("line.hasAttribute('data-gap')")
+		for (const locale of LOCALES) expect(copied(locale), locale).toBe(printed(locale))
+	})
+
+	it('has the AI download the code first, with the command AGENTS.md gives, and read the file from the folder', () => {
+		expect(agentsGuide).toContain(COMMAND)
+		for (const locale of LOCALES) {
+			const [first, , command, , then, language, ...more] = printed(locale).split('\n')
+			expect(more, locale).toEqual([])
+			expect(first, locale).toContain('FluxBio')
+			expect(command, locale).toBe(COMMAND)
+			expect(then, locale).toContain('~/flux-bio/AGENTS.md')
+			// Its section 1 is trying and deploying; the rest of the file is for other work.
+			expect(then, locale).toMatch(/(^|[^\d])1([^\d]|$)/)
+			expect(language!.replace('（', '(').replace('）', ')'), locale).toContain(`(${locale})`)
+			// The one address in it is the archive to download: nothing to open in a browser.
+			expect(printed(locale).match(/https?:\/\/[^\s]+/g), locale).toEqual(['https://github.com/0t2/flux-bio/archive/refs/heads/main.tar.gz'])
+		}
+	})
+
+	it('tells an agent that still reads AGENTS.md on the web to download it, before anything else in the file', () => {
+		expect(agentsGuide.indexOf(COMMAND)).toBeLessThan(agentsGuide.indexOf('## 1.'))
+		expect(agentsGuide.indexOf(COMMAND)).toBeLessThan(1500)
 	})
 })

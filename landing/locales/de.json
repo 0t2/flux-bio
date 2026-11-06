@@ -70,7 +70,7 @@
 	"s082": "UTM-Parameter",
 	"s083": "Ablaufdatum und Zeitplan",
 	"s084": "Passwortschutz",
-	"s085": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Hilf mir, FluxBio auszuprobieren, wie in der AGENTS.md unter https://github.com/<wbr>0t2/flux-bio beschrieben.</span>",
+	"s085": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Hilf mir, FluxBio auszuprobieren. Führe zuerst diesen Befehl aus, um es auf diesen Rechner herunterzuladen:</span>",
 	"s087": "Zum Inhalt springen",
 	"s089": "Dashboard",
 	"s090": "Themes",
@@ -162,5 +162,6 @@
 	"s198": "Drei Kurzlinks anlegen",
 	"s199": "Quelle markieren",
 	"s200": "Klicks lesen",
-	"s201": "Diagramm erstellen"
+	"s201": "Diagramm erstellen",
+	"s202": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Lies danach die ganze Datei <bdi>~/flux-bio/AGENTS.md</bdi> und folge ihrem Abschnitt 1. Lies sie aus diesem Ordner, nicht aus dem Web. Wenn der Download fehlschlägt, halte an und sag mir Bescheid.</span>"
 }

@@ -70,7 +70,7 @@
 	"s082": "Tham số UTM",
 	"s083": "Hết hạn & lên lịch",
 	"s084": "Bảo vệ bằng mật khẩu",
-	"s085": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Làm theo AGENTS.md tại https://github.com/<wbr>0t2/flux-bio để giúp tôi dùng thử FluxBio.</span>",
+	"s085": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Hãy giúp tôi dùng thử FluxBio. Trước tiên hãy chạy lệnh này để tải nó về máy tính này:</span>",
 	"s087": "Chuyển đến nội dung chính",
 	"s089": "Quản trị",
 	"s090": "Chủ đề",
@@ -162,5 +162,6 @@
 	"s198": "Tạo ba liên kết rút gọn",
 	"s199": "Gắn nguồn",
 	"s200": "Đọc lượt nhấp",
-	"s201": "Vẽ biểu đồ"
+	"s201": "Vẽ biểu đồ",
+	"s202": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Sau đó đọc toàn bộ <bdi>~/flux-bio/AGENTS.md</bdi> và làm theo mục 1 của nó. Hãy đọc tệp trong thư mục đó, đừng đọc trên web. Nếu tải về thất bại, hãy dừng lại và báo cho tôi.</span>"
 }

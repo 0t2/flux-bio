@@ -70,7 +70,7 @@
 	"s082": "Parámetros UTM",
 	"s083": "Caducidad y programación",
 	"s084": "Protección con contraseña",
-	"s085": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Sigue el AGENTS.md de https://github.com/<wbr>0t2/flux-bio y ayúdame a probar FluxBio.</span>",
+	"s085": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Ayúdame a probar FluxBio. Primero ejecuta esto para descargarlo en esta computadora:</span>",
 	"s087": "Saltar al contenido principal",
 	"s089": "Panel",
 	"s090": "Temas",
@@ -162,5 +162,6 @@
 	"s198": "Crear tres enlaces cortos",
 	"s199": "Marcar el origen",
 	"s200": "Leer los clics",
-	"s201": "Hacer un gráfico"
+	"s201": "Hacer un gráfico",
+	"s202": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Después lee completo <bdi>~/flux-bio/AGENTS.md</bdi> y sigue su sección 1. Léelo desde esa carpeta, no desde la web. Si la descarga falla, detente y avísame.</span>"
 }

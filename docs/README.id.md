@@ -103,7 +103,11 @@ AI-mu memasang alat yang dibutuhkan. Untuk mencoba, kamu hanya perlu Claude Code
 Tempel ke AI-mu. Kami menyarankan [Claude Code](https://code.claude.com/docs/en/quickstart) di komputermu sendiri, tetapi Codex, OpenCode, Cursor, dan yang lain yang bisa menjalankan perintah dan terhubung ke internet juga bisa:
 
 ```text
-Ikuti AGENTS.md di https://github.com/0t2/flux-bio dan bantu aku mencoba FluxBio.
+Bantu aku mencoba FluxBio. Jalankan ini dulu untuk mengunduhnya ke komputer ini:
+
+mkdir -p ~/flux-bio && curl -fsSL https://github.com/0t2/flux-bio/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 -C ~/flux-bio
+
+Lalu baca seluruh ~/flux-bio/AGENTS.md dan ikuti bagian 1-nya. Baca dari folder itu, bukan dari web. Kalau unduhannya gagal, berhenti dan beri tahu aku.
 Pakai bahasa Indonesia (id) sebagai bahasa halaman.
 ```
 

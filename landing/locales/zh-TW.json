@@ -70,7 +70,7 @@
 	"s082": "UTM 參數",
 	"s083": "到期與排程",
 	"s084": "密碼保護",
-	"s085": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>照 https://github.com/<wbr>0t2/flux-bio 的 AGENTS.md 幫我試用 FluxBio。</span>",
+	"s085": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>幫我試用 FluxBio。先執行這行，把它下載到這台電腦：</span>",
 	"s087": "跳到主要內容",
 	"s089": "後台",
 	"s090": "主題",
@@ -162,5 +162,6 @@
 	"s198": "做好三個短網址",
 	"s199": "標上來源",
 	"s200": "讀取點擊數",
-	"s201": "整理成圖表"
+	"s201": "整理成圖表",
+	"s202": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>然後把 <bdi>~/flux-bio/AGENTS.md</bdi> 整份讀完，照它的第 1 節做。要讀資料夾裡的檔案，不要上網讀。下載失敗就停下來告訴我。</span>"
 }

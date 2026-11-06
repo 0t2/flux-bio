@@ -461,6 +461,11 @@ figcaption{display:flex;flex-direction:column;gap:2px;padding:8px 10px;backgroun
 .copy{min-height:40px;padding:0 14px;font-size:15px}
 .term-lines{display:flex;flex-direction:column;gap:10px;margin:0;padding:12px 24px 24px;list-style:none;font-family:var(--mono);font-size:15px;line-height:1.55;overflow-wrap:anywhere} /* taste-skill-ignore */
 .term-lines code{display:flex;gap:12px;font:inherit}
+/* The command inside the message: it keeps the room of a › so it lines up, and reads left to right in every language. */
+.term-lines li[data-gap] .prompt{visibility:hidden}
+.term-lines li[data-gap]{color:var(--muted)}
+/* A flag stays with its command and a path in one piece, where a line would otherwise break after a hyphen. A path is a bdi: in Arabic its ~/ would be drawn at the far end. */
+.term-lines .nb,.term-lines bdi{white-space:nowrap}
 .prompt{color:var(--muted);-webkit-user-select:none;user-select:none}
 .prompt-notes{display:flex;flex-direction:column;gap:12px;padding:20px 24px 24px;background:var(--active);border-radius:0 0 16px 16px;font-size:15px;line-height:1.55}
 .oss-row{margin-top:clamp(28px,3vw,48px)}
@@ -806,6 +811,8 @@ html.js [data-in].in{opacity:1;transform:none}
 </div>
 <ol class="term-lines" id="deploy-lines" role="list" aria-labelledby="deploy-steps">
 <li><code>{{s085}}</code></li>
+<li data-gap dir="ltr"><code><span class="prompt" aria-hidden="true">›</span><span><span class="nb">mkdir -p</span> ~/flux-bio &amp;&amp; <span class="nb">curl -fsSL</span> https://github.com/<wbr>0t2/flux-bio/<wbr>archive/refs/heads/<wbr>main.tar.gz | <span class="nb">tar -xz</span> <span class="nb">--strip-components=1</span> <span class="nb">-C ~/flux-bio</span></span></code></li>
+<li><code>{{s202}}</code></li>
 <li><code>{{s111}}</code></li>
 </ol>
 <div class="prompt-notes">
