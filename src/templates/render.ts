@@ -798,17 +798,17 @@ export function renderBioPage(source: PageContent, options: RenderOptions): stri
 		.filter(Boolean)
 		.join('\n')
 
-	// Pictures an AI gave the page: stored copies from before they existed have neither.
+	// Pictures an AI gave the page.
 	const { coverImage, bgImage, bgDim, bgTile } = content.appearance
 	const cover = coverImage ? `<figure class="cover"><img src="${esc(options.mediaUrl(coverImage))}" alt=""></figure>` : ''
 	// A pattern repeats at the size the owner chose; anything else is one picture covering the screen. Media ids are
 	// letters, digits, dots and dashes, so the address needs no escaping inside url('…') beyond what esc() does.
-	const tile = Math.trunc(Number(bgTile ?? 0))
+	const tile = Math.trunc(Number(bgTile))
 	const backdrop = !bgImage
 		? ''
 		: tile > 0
-			? `<div class="page-bg tile" style="--dim:${Number(bgDim ?? 0.75)};background-image:url('${esc(options.mediaUrl(bgImage))}');background-size:${tile}px auto" aria-hidden="true"></div>`
-			: `<div class="page-bg" style="--dim:${Number(bgDim ?? 0.75)}" aria-hidden="true"><img src="${esc(options.mediaUrl(bgImage))}" alt=""></div>`
+			? `<div class="page-bg tile" style="--dim:${Number(bgDim)};background-image:url('${esc(options.mediaUrl(bgImage))}');background-size:${tile}px auto" aria-hidden="true"></div>`
+			: `<div class="page-bg" style="--dim:${Number(bgDim)}" aria-hidden="true"><img src="${esc(options.mediaUrl(bgImage))}" alt=""></div>`
 
 	const avatar = content.profile.avatar
 		? `<img src="${esc(options.mediaUrl(content.profile.avatar))}" alt="">`

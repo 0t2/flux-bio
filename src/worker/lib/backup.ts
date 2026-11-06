@@ -1,6 +1,6 @@
 import { BACKUP_VERSION, mediaIdsOf, type Backup } from '../../shared/backup'
 import { isHttpUrl, MEDIA_ID } from '../../shared/content'
-import { pageLanguages } from '../../shared/locale'
+import { otherLanguages } from '../../shared/locale'
 import { normalizeSlug, slugProblem } from '../../shared/slug'
 import { isValidTimeZone } from '../../shared/time'
 import { problemMessage, publishProblems } from '../../shared/validate'
@@ -120,7 +120,7 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 	if (!isValidTimeZone(backup.settings.timezone)) {
 		throw new ApiError(400, 'invalid', { key: msg('備份檔裡的時區「{timezone}」格式不正確'), params: { timezone: backup.settings.timezone } })
 	}
-	const homeUrl = backup.settings.homeUrl?.trim()
+	const homeUrl = backup.settings.homeUrl.trim()
 	if (homeUrl && !isHttpUrl(homeUrl)) throw new ApiError(400, 'invalid', { key: msg('{label}要以 http:// 或 https:// 開頭'), params: { label: { key: msg('首頁轉址') } } })
 	const linkIds = new Set<string>()
 	for (const link of backup.shortLinks) {
@@ -152,7 +152,7 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 		utmSource: link.utm.source,
 		utmMedium: link.utm.medium,
 		utmCampaign: link.utm.campaign,
-		utmContent: link.utm.content ?? null,
+		utmContent: link.utm.content,
 		iosUrl: link.iosUrl,
 		androidUrl: link.androidUrl,
 		lineExternal: link.lineExternal,
@@ -188,7 +188,7 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 				draftUpdatedAt: now,
 				publishedAt: page.published ? (page.publishedAt ?? now) : null,
 				createdAt: page.createdAt,
-				qrLogo: page.qrLogo ?? null,
+				qrLogo: page.qrLogo,
 			}),
 		),
 		...rows.map((row) => upsertLinkStatement(db, row)),
@@ -196,11 +196,12 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 			...settings,
 			home,
 			timezone: backup.settings.timezone,
-			...pageLanguages(backup.settings.locale, backup.settings.languages),
-			hostFonts: backup.settings.hostFonts ?? settings.hostFonts,
-			qrLogo: backup.settings.qrLogo ?? '',
-			bio: backup.settings.bio ?? settings.bio,
-			homeUrl: homeUrl ?? settings.homeUrl,
+			locale: backup.settings.locale,
+			languages: otherLanguages(backup.settings.locale, backup.settings.languages),
+			hostFonts: backup.settings.hostFonts,
+			qrLogo: backup.settings.qrLogo,
+			bio: backup.settings.bio,
+			homeUrl,
 		}),
 		saveThemesStatement(db, backup.themes),
 	])
@@ -210,9 +211,9 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 }
 
 /**
- * Puts the deployment back to a fresh install: every table is dropped (tables
- * from older versions too) and created again by the migrations, and KV is
- * emptied. Only the deployment secret stays, so the owner stays signed in.
+ * Puts the deployment back to a fresh install: every table is dropped and
+ * created again by the migrations, and KV is emptied. Only the deployment
+ * secret stays, so the owner stays signed in.
  */
 export async function clearAllData(env: Env): Promise<{ keys: number }> {
 	const db = env.DB

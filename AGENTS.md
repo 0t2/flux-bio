@@ -520,10 +520,9 @@ tests/                  Vitest tests (run in workerd)
     `lib/analytics.ts` (kind, target, source, country, device, browser, os, referrer host, daily
     visitor hash, region, city, utm_content, language, network, slug, destination URL, utm_source,
     utm_medium, utm_campaign, page) and the doubles are `EVENT_NUMBERS`: the local day (yyyymmdd)
-    and hour, the latitude and longitude rounded to 0.1°, the network's AS number, and `layout`.
+    and hour, the latitude and longitude rounded to 0.1°, and the network's AS number.
     `network` is the AS organization (e.g. "Chunghwa Telecom"). Network queries require an AS number
-    above 0, and campaign queries ignore `utm_content` where `layout` is 0. AE allows 20 blobs and the list is
-    full: put new fields in doubles. Append, never reorder.
+    above 0. AE allows 20 blobs and the list is full: put new fields in doubles. Append, never reorder.
     `lib/analytics.ts` reads them through the Analytics SQL binding (`ANALYTICS_SQL`, no API token);
     its sampling column is `sampleInterval`, not `_sample_interval`.
   - *Never store anything that identifies a person.* That means no IP address, no user-agent string

@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:test'
 import { describe, expect, it } from 'vitest'
 import type { CreateLinkResponse, LinksResponse, PageJson, StateResponse, StatsResponse } from '../src/shared/api'
-import { DEFAULT_SETTINGS, LOCALES, upgradeSettings, type Settings } from '../src/shared/content'
+import { DEFAULT_SETTINGS, LOCALES, type Settings } from '../src/shared/content'
 import { renderSystemPage } from '../src/templates/system'
 import { api, apiJson, call, ORIGIN, visit } from './helpers'
 
@@ -20,14 +20,6 @@ describe('the setting', () => {
 	it('starts with pages on and no redirect', async () => {
 		expect(await settingsNow()).toMatchObject({ bio: true, homeUrl: '' })
 		expect(DEFAULT_SETTINGS).toMatchObject({ bio: true, homeUrl: '' })
-	})
-
-	it('reads as on for settings stored before it existed', () => {
-		const stored = { home: 'main', timezone: 'UTC', locale: 'en', languages: [], domain: '', hostFonts: false }
-		expect(upgradeSettings(stored, 'main')).toEqual({ ...stored, bio: true, homeUrl: '', qrLogo: '', plan: 'free' })
-		expect(upgradeSettings({ handle: 'me', homepage: true, timezone: 'UTC', locale: 'en' }, 'main')).toMatchObject({ bio: true, homeUrl: '' })
-		// What is stored already stays.
-		expect(upgradeSettings({ ...stored, bio: false, homeUrl: 'https://example.com/' }, 'main')).toMatchObject({ bio: false, homeUrl: 'https://example.com/' })
 	})
 
 	it('round-trips through PUT /api/settings and GET /api/state, and keeps its value when left out', async () => {
@@ -134,10 +126,6 @@ describe('with pages off and no pages', () => {
 
 		const bad = { ...backup, settings: { ...backup.settings, homeUrl: 'javascript:alert(1)' } }
 		expect((await api('/import', { method: 'POST', json: bad })).status).toBe(400)
-		// A backup from before this setting leaves it as it is.
-		const { bio: _bio, homeUrl: _homeUrl, ...older } = backup.settings
-		await apiJson('/import', { method: 'POST', json: { ...backup, settings: older } })
-		expect(await settingsNow()).toMatchObject({ bio: false, homeUrl: 'https://example.com/home' })
 		await save({ homeUrl: '' })
 	})
 

@@ -1,5 +1,5 @@
 import { z } from './zod'
-import { MEDIA_ID, PageContentInputSchema, SavedThemeSchema, SettingsSchema } from './content'
+import { MEDIA_ID, PageContentSchema, SavedThemeSchema, SettingsSchema, type PageContent } from './content'
 import { QR_MEDIA_ID } from './qr'
 
 /**
@@ -7,9 +7,8 @@ import { QR_MEDIA_ID } from './qr'
  * so an old deploy can move to a new one. Click stats are not included
  * (export those as CSV from 數據).
  *
- * The file 設定 → 下載備份 makes, like those of the v0.2 dashboard, also carries
- * `mediaFiles` (uploaded images as data URLs); agents upload those again before
- * importing.
+ * The file 設定 → 下載備份 makes also carries `mediaFiles` (uploaded images
+ * as data URLs); agents upload those again before importing.
  */
 export const BACKUP_VERSION = 1
 
@@ -29,7 +28,7 @@ export const ShortLinkBackupSchema = z.object({
 	startsAt: time,
 	expiresAt: time,
 	passwordHash: z.string().max(200).nullable(),
-	utm: z.object({ source: utm, medium: utm, campaign: utm, content: utm.optional() }),
+	utm: z.object({ source: utm, medium: utm, campaign: utm, content: utm }),
 	iosUrl: z.string().max(2048).nullable(),
 	androidUrl: z.string().max(2048).nullable(),
 	lineExternal: z.boolean(),
@@ -43,12 +42,11 @@ export const PageBackupSchema = z.object({
 	id: z.string().regex(/^[\w-]{1,32}$/),
 	handle: z.string().min(1).max(64),
 	position: z.number().int(),
-	draft: PageContentInputSchema,
-	published: PageContentInputSchema.nullable(),
+	draft: PageContentSchema,
+	published: PageContentSchema.nullable(),
 	publishedAt: time,
 	createdAt: z.number().int().nonnegative(),
-	// Older backups have none.
-	qrLogo: z.string().regex(QR_MEDIA_ID).nullable().optional(),
+	qrLogo: z.string().regex(QR_MEDIA_ID).nullable(),
 })
 export type PageBackup = z.infer<typeof PageBackupSchema>
 
@@ -56,16 +54,7 @@ export const BackupSchema = z.object({
 	app: z.literal('fluxbio'),
 	version: z.literal(BACKUP_VERSION),
 	exportedAt: z.string().max(40),
-	settings: SettingsSchema.pick({ home: true, timezone: true }).extend({
-		// Backups from before v0.3 may say "auto" (every language) and have no list of languages.
-		locale: z.union([SettingsSchema.shape.locale, z.literal('auto')]),
-		languages: SettingsSchema.shape.languages.optional(),
-		hostFonts: SettingsSchema.shape.hostFonts.optional(),
-		// Older backups have neither: pages could not be switched off yet.
-		bio: SettingsSchema.shape.bio.optional(),
-		homeUrl: SettingsSchema.shape.homeUrl.optional(),
-		qrLogo: SettingsSchema.shape.qrLogo.optional(),
-	}),
+	settings: SettingsSchema.pick({ home: true, timezone: true, locale: true, languages: true, hostFonts: true, bio: true, homeUrl: true, qrLogo: true }),
 	// A site with only short links has no pages.
 	pages: z.array(PageBackupSchema),
 	shortLinks: z.array(ShortLinkBackupSchema),
@@ -91,15 +80,14 @@ export function backupFileParts(backup: Backup, images: readonly (readonly [stri
 }
 
 /** Every uploaded image a page refers to. */
-export function mediaIdsOf(content: z.infer<typeof PageContentInputSchema>): string[] {
+export function mediaIdsOf(content: PageContent): string[] {
 	const ids = new Set<string>()
 	const add = (value: string | null) => value && ids.add(value)
 	add(content.profile.avatar)
 	add(content.seo.image)
 	add(content.seo.autoImage)
-	// Copies from before they existed have no such fields.
-	add(content.appearance.coverImage ?? null)
-	add(content.appearance.bgImage ?? null)
+	add(content.appearance.coverImage)
+	add(content.appearance.bgImage)
 	for (const item of content.items) {
 		if (item.kind === 'gallery') item.images.forEach((image) => add(image.image))
 		if (item.kind === 'product') item.products.forEach((product) => add(product.image))
