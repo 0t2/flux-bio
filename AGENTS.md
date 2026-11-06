@@ -241,9 +241,9 @@ uploaded since then is served from KV as before, until the next run, and a pictu
 It needs a full token in `FLUXBIO_TOKEN` or the admin password in `.secrets.env`, and the owner's computer: the dashboard
 can't deploy. So offer it, in plain words, when the owner adds pictures or asks about quota, and after new uploads. A deploy
 without it (`pnpm run deploy`) ships whatever `public/media/` holds, nothing on a fresh checkout, and the pictures go back
-to costing quota without anything breaking. `.github/workflows/deploy.yml` uses it when the repository has a
-`FLUXBIO_TOKEN` secret (a full token made on the live site) and a `FLUXBIO_SITE` variable, and deploys without the
-pictures if fetching them fails. With `--mode staging` it reads and deploys the test site.
+to costing quota without anything breaking. `.github/workflows/deploy.yml` deploys a site only when the repository names
+it in a `FLUXBIO_SITE` variable, and uses this when it also has a `FLUXBIO_TOKEN` secret (a full token made on that site);
+it deploys without the pictures if fetching them fails. With `--mode staging` it reads and deploys the test site.
 
 **A test site.** To try a change first, run it on the owner's computer: `pnpm exec cf dev --mode staging` (with
 `ADMIN_PASSWORD` in `.dev.vars`) makes nothing on Cloudflare and uses none of their quota, and only that computer can open it.
@@ -404,8 +404,8 @@ pnpm usage       # today's free KV and D1 quota used and left, and each D1 datab
 
 Run `pnpm typecheck` and `pnpm test` before finishing any change. GitHub Actions
 (`.github/workflows/deploy.yml`) runs both on every pull request and push; in `0t2/flux-bio`, a
-push to `main` then deploys the landing page, and flux-bio if something it uses changed, with the `CLOUDFLARE_API_TOKEN` repository
-secret.
+push to `main` then deploys the landing page with the `CLOUDFLARE_API_TOKEN` repository secret, and a FluxBio site too
+when the repository names one in its `FLUXBIO_SITE` variable and something that site uses changed. It names none now.
 
 ### Layout
 
