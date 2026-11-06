@@ -41,7 +41,7 @@ Say at the start that their tool will keep asking whether it may run things, tha
 
 **Ask first, before anything is installed.** Say something like: "Do you want to see a sample of your page on this computer first? It doesn't need an account, and if you like it, we put it online after that. Or shall I go straight to putting it online?" Suggest the sample. For the sample, do 1.1 and 1.2 and stop there until they say they are happy. To go straight, skip 1.2. Don't ask if their request already says which.
 
-**Requirements:** Node.js 22.23+, 24.22+ or 26.12+ (what the `cf` CLI asks for) and pnpm. Deploying also takes a Cloudflare account, and the free Workers plan is enough.
+**Requirements:** Node.js 22.23+, 24.22+ or 26.12+ (what the `cf` CLI asks for) and pnpm 10.34.5 or newer: the project names its pnpm in `package.json` (`packageManager`), a 12, and whichever pnpm is installed fetches that one and hands over to it. Deploying also takes a Cloudflare account, and the free Workers plan is enough.
 
 **Which tools can do this.** We recommend Claude Code on the owner's own computer, but it isn't required. Deploying takes an agent that can run commands and reach the internet (npm, GitHub, Cloudflare). Running the site afterwards only takes one that can call this deployment's API.
 
@@ -60,11 +60,13 @@ Check `node --version` and `pnpm --version`. If either is missing or too old, in
 
 ```sh
 curl -fsSL https://get.pnpm.io/install.sh | sh -
-export PNPM_HOME="$HOME/Library/pnpm" PATH="$HOME/Library/pnpm:$PATH"
-pnpm env use --global 24
+export PNPM_HOME="$HOME/Library/pnpm" PATH="$HOME/Library/pnpm/bin:$PATH"
+pnpm runtime set node 24 --global
 ```
 
-The installer also adds pnpm to their shell profile. If a later command can't find `pnpm`, run that `export` again in it, because each command may start a new shell.
+The installer also adds pnpm to their shell profile. If a later command can't find `pnpm`, run that `export` again in it, because each command may start a new shell. Since pnpm 11 both `pnpm` and the `node` it installs are in the `bin` folder inside `~/Library/pnpm`, not in that folder itself.
+
+A pnpm older than 10.34.5 can't hand over to the pnpm this project names, and every command stops with "Failed to switch pnpm". Running the installer above replaces it.
 
 Avoid Homebrew here: it asks for a password in the terminal, where nothing shows as they type, and they will think it has frozen.
 
@@ -394,6 +396,7 @@ own FluxBio is deployed from their computer (section 1). Only in the project's o
 
 ```
 cloudflare.config.ts    Worker name, bindings (DB, KV, ASSETS, ANALYTICS…), secrets, test site
+pnpm-workspace.yaml     pnpm's settings: the two packages that may run a script when installed
 src/worker/             Hono app
   index.ts              routes and error handling
   routes/site.ts        public pages, redirects and smart routing, block clicks (/_c), draft preview links (/_draft), system pages, media
@@ -633,6 +636,16 @@ Chinese, Japanese and Korean fonts are megabytes each and would need subsetting 
   read `<command> --help`. Keep search queries free of names, domains and IDs.
 - **Compatibility date.** `cloudflare.config.ts` and `vitest.config.ts` both set it. Keep them in
   sync.
+- **One copy of workerd.** `cf`, `@cloudflare/vite-plugin` and `@cloudflare/vitest-plugin` each bring miniflare, and with it
+  workerd, 40 MB to download. They come out in sets that name the same miniflare, so `package.json` names all three exactly:
+  move them together (`npm view <package>@<version> dependencies.miniflare` says which go together). Apart, an install
+  downloads two runtimes, and `pnpm dev` runs another than `pnpm test`.
+- **pnpm waits a day for a new release.** A version published in the last 24 hours isn't picked (`minimumReleaseAge`, pnpm's
+  default since 11), so `pnpm update --latest` can stop one release short. Run it again the next day; don't turn the rule
+  off, since everyone who installs this project gets what the lockfile names.
+- **pnpm's settings are in `pnpm-workspace.yaml`.** pnpm 11 and later ignore a `pnpm` field in `package.json`, and stop at a
+  setting they don't know. A dependency with an install script has to be named under `allowBuilds` there, or the install
+  stops and says which.
 - **Separate local state.** `cf dev` and `pnpm test` keep their own local D1 and KV state. A page
   you publish in one does not show up in the other.
 - **Analytics Engine locally.** `cf dev` leaves out both Analytics bindings (`cloudflare.config.ts`), so it needs no sign-in and
