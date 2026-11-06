@@ -3,7 +3,8 @@ name: Test and deploy
 # Every pull request and push runs the type check and the tests, and builds the
 # landing page. A push to main in the maintainer's repository then deploys;
 # forks never do. The landing page always goes out, since it uses the product's
-# themes. flux-bio only goes out when something it uses changed.
+# themes. flux-bio only goes out when something it is built from or deployed with changed:
+# not for the landing page, the docs, the tests or the scripts that only help develop it.
 
 on:
   pull_request:
@@ -41,8 +42,10 @@ jobs:
       - if: github.event_name == 'push' && github.repository == '0t2/flux-bio'
         run: |
           changed=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}") || changed=unknown
-          product=$(printf '%s\n' "$changed" | grep -vE '^(landing/|docs/|tests/|README\.md$|AGENTS\.md$|CLAUDE\.md$|SECURITY\.md$|\.claude/)' || true)
-          if [ -n "$product" ]; then
+          product=$(printf '%s\n' "$changed" | grep -vE '^(landing/|docs/|tests/|scripts/|\.claude/|[^/]+\.md$|themes/README\.md$|LICENSE$|\.gitignore$)' || true)
+          # The one script a deploy runs.
+          deployer=$(printf '%s\n' "$changed" | grep -E '^scripts/deploy-images\.mjs$' || true)
+          if [ -n "$product$deployer" ]; then
             if [ -n "$FLUXBIO_TOKEN" ] && [ -n "$FLUXBIO_SITE" ]; then
               pnpm deploy:images --site "$FLUXBIO_SITE" || pnpm exec cf deploy
             else

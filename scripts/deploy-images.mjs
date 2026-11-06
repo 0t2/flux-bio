@@ -54,15 +54,21 @@ mkdirSync(dir, { recursive: true })
 const plan = assets.planMediaAssets(used, readdirSync(dir))
 for (const id of plan.remove) rmSync(join(dir, id), { force: true })
 let failed = 0
-for (const id of plan.download) {
-	// Public, like any visitor's: one Worker request and one KV read each, once per picture ever.
-	const picture = await fetch(`${site}/media/${encodeURIComponent(id)}`)
-	if (!picture.ok) {
-		failed++
-		console.error(`  ${id}: ${picture.status}, left to the Worker`)
-		continue
-	}
-	writeFileSync(join(dir, id), Buffer.from(await picture.arrayBuffer()))
+// Public, like any visitor's: a picture still in KV costs one Worker request and one KV read, and one that already
+// ships as a static file costs nothing. A few at a time, because a deploy from a fresh checkout fetches every one.
+const AT_ONCE = 6
+for (let at = 0; at < plan.download.length; at += AT_ONCE) {
+	await Promise.all(
+		plan.download.slice(at, at + AT_ONCE).map(async (id) => {
+			const picture = await fetch(`${site}/media/${encodeURIComponent(id)}`)
+			if (!picture.ok) {
+				failed++
+				console.error(`  ${id}: ${picture.status}, left to the Worker`)
+				return
+			}
+			writeFileSync(join(dir, id), Buffer.from(await picture.arrayBuffer()))
+		}),
+	)
 }
 const shipped = readdirSync(dir).length
 console.log(
