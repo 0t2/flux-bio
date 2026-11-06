@@ -189,6 +189,9 @@ describe(`a site with ${PAGES} pages and ${LINKS} short links`, () => {
 		expect(cost.kv).toBeLessThanOrEqual(2)
 		expect(cost.rowsRead).toBeLessThan(100)
 		expect((JSON.parse(cost.body) as { copiesLeft?: boolean }).copiesLeft).toBeFalsy()
+		// Back to the zone the numbers were written in: from 23:00 in Taipei it's already tomorrow in Tokyo, and the
+		// tests below that count the last 7 days would lose a day.
+		expect((await measure('/api/settings', { method: 'PUT', json: { timezone: 'Asia/Taipei' } })).status).toBe(200)
 	})
 
 	it('pages through every short link once, live ones first', async () => {

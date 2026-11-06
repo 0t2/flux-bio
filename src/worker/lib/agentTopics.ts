@@ -4,7 +4,7 @@ import { EMBED_PROVIDERS, EMBEDS } from '../../shared/embeds'
 import { ENGLISH } from '../../shared/serverWords'
 import { RESERVED_SLUGS } from '../../shared/slug'
 import { ownLinkLook } from '../../templates/compositions'
-import { AVATAR_RADIUS, ICON_RADIUS, RADIUS, resolveAppearance, THEMES, type ButtonKey } from '../../templates/themes'
+import { AVATAR_RADIUS, COLORFUL, ICON_RADIUS, PALETTE, RADIUS, resolveAppearance, THEMES, type ButtonKey } from '../../templates/themes'
 import type { GuideNames } from './agent'
 import { KV_OPS_AT_ONCE, VERSIONS_KEPT } from './mode'
 import { OPERATIONS } from './openapi'
@@ -71,6 +71,13 @@ const and = (values: readonly string[]) => (values.length < 2 ? values.join('') 
 
 /** Where an AI can see every theme before picking one: the landing page draws each with a sample page. */
 const THEME_PICTURES = 'https://fluxbio.link'
+
+/** Which themes color their buttons by position from a fixed palette, which `accent` and `accent2` don't reach. Read from the themes. */
+function paletteGuide(): string {
+	const names = COLORFUL.map((id) => `${THEMES[id].en} (\`${id}\`)`)
+	const vars = PALETTE.map((_, index) => `\`--c${index + 1}\``)
+	return `**Colors by position.** ${and(names)} paint their link buttons and social icons in turn from a palette of their own, ${vars[0]} to ${vars.at(-1)}, each with \`--on-c1\`… for the text on it. \`accent\` and \`accent2\` don't change those colors; most of these themes use \`accent\` for a featured link. To give the buttons the owner's colors on these themes, set the variables in \`appearance.css\`, e.g. \`:root{--c1:#fedb8a;--on-c1:#000000}\` (text at 4.5:1 at least), or pick a theme that colors buttons from \`accent\`.`
+}
 
 /**
  * What each `button` value does, and what a theme draws on its link buttons itself, which `button` then leaves alone.
@@ -173,7 +180,7 @@ Writing it:
 
 **Match a reference picture.** When the owner sends a picture and says "make it look like this":
 1. Read the picture: the layout (centered or to one side, a card or the whole screen), the header, the buttons (shape, fill, border, shadow), colors, type, the background (flat, a gradient, a pattern, a photo) and the spacing.
-2. Pick the base theme whose layout is closest (see "Themes"), from the pictures of all 24 at ${THEME_PICTURES}/en/#themes, not by switching the draft through them. Then get as near as the fields allow: \`accent\`, \`accent2\`, \`bg\` and \`fg\` from the picture, \`headFont\` and \`bodyFont\` (see "Fonts"), \`button\`, \`coverImage\`, \`bgImage\`, \`bgDim\` and \`bgTile\` (see "Make a theme").
+2. Pick the base theme whose layout is closest (see "Themes"), from the pictures of all 24 at ${THEME_PICTURES}/en/#themes, not by switching the draft through them. They load as the page scrolls to them, so a screenshot taken by a script shows blank cards: scroll that section into view and wait, or open one theme's sample page at ${THEME_PICTURES}/preview/en/<theme id>. Then get as near as the fields allow: \`accent\`, \`accent2\`, \`bg\` and \`fg\` from the picture, \`headFont\` and \`bodyFont\` (see "Fonts"), \`button\`, \`coverImage\`, \`bgImage\`, \`bgDim\` and \`bgTile\` (see "Make a theme").
 3. Write \`appearance.css\` for the rest, against "Page markup", a few rules at a time. Upload any picture it needs first (see "The owner's pictures and links"). A pattern is often a gradient (\`repeating-linear-gradient\`, \`radial-gradient\`), which needs no picture at all.
 4. \`PUT\` the draft, make a preview link (see "Show the owner a draft"), and take screenshots at phone width (\`"viewport":{"width":390,"height":844}\`) and on a wide screen (1280 × 800), with \`"screenshotOptions":{"fullPage":true}\`, by the command in "Share image" or with a browser on this computer such as Playwright. For right to left, add \`?lang=ar\` if Arabic is turned on; otherwise add \`html{direction:rtl}\` with \`addStyleTag\` (in your own browser, set \`dir="rtl"\` on \`<html>\`), which shows whether the layout turns round. Two things in these screenshots aren't the page:
    - A preview link has a bar at the top, \`.draft-note\`, that pushes everything down by its height. Hide it before you compare positions, with \`.draft-note{display:none}\` in \`addStyleTag\`.
@@ -317,6 +324,8 @@ When the owner asks what you can do, answer with what the dashboard leaves to yo
 
 ${buttonGuide()}
 
+${paletteGuide()}
+
 **Make a theme.** When the owner wants a look of their own, or gives you a picture or a logo to build on:
 1. Ask for what they have: a logo, a photograph of the place or the work, colors they already use. Only use pictures they have the right to publish.
 2. Upload each picture with \`POST /api/media\` (2 MB at most: resize first) and keep the \`id\`.
@@ -329,6 +338,7 @@ Each picture adds one Worker request and one KV read per new visitor. Neon, Vist
 1. Ask what it is for and suggest two or three families from \`GET /api/fonts?q=&category=&script=\`. Use the page language's script for body text (\`script=chinese-traditional\` for zh-TW, \`script=arabic\` for ar, \`japanese\`, \`korean\`, \`thai\`…). For headings a Latin family is fine on any page: characters it lacks use \`font\`. Prefer variable families (\`variable: true\`): one file covers every weight.
 2. Tell the owner what it costs (below) and wait for a yes.
 3. Set \`headFont\` and/or \`bodyFont\` in the draft, \`PUT\` it, send a preview link, then publish. To go back, set them to "" and publish.
+Only the weights a role needs are loaded: \`bodyFont\` loads 400 to 700, \`headFont\` only its bold (700, or the nearest it has), so heading text can't be made lighter in CSS; for lighter headings, use the family as \`bodyFont\` and leave \`headFont\` empty. With \`bodyFont\` set and \`headFont\` empty, headings use \`bodyFont\` too, and \`--head-font\` and \`--body-font\` are both that family.
 
 Where fonts load from is the site setting \`hostFonts\` (\`PUT /api/settings\`; on Appearance in the dashboard, with an explanation for the owner):
 - **Off, the default:** public pages load their fonts, built-in and picked, from Google Fonts. It costs this site nothing, but visitors' browsers connect to Google, which then has their IP addresses.
