@@ -69,6 +69,22 @@ function themeParts(locale: Locale): Record<string, string> {
 	}
 }
 
+/**
+ * The web fonts a language's page loads, and no others: the stylesheet blocks the first paint, and Noto Sans TC's alone
+ * is over 100 KB before a single font file. Only the Traditional Chinese page is set in it. Every other page shows
+ * Chinese in the names of the languages alone, which the visitor's own fonts draw, as they draw Japanese, Korean,
+ * Thai and Simplified Chinese on those pages (the stacks in template.html).
+ */
+export function fontsHref(locale: Locale): string {
+	const families = [
+		'IBM+Plex+Sans:wght@400;500;600',
+		...(locale === 'ar' ? ['IBM+Plex+Sans+Arabic:wght@400;500;600'] : []),
+		'IBM+Plex+Mono:wght@400;500',
+		...(locale === 'zh-TW' ? ['Noto+Sans+TC:wght@400;500;600'] : []),
+	]
+	return `https://fonts.googleapis.com/css2?${families.map((family) => `family=${family}`).join('&amp;')}&amp;display=swap`
+}
+
 /** The keys a language file must have: every {{key}} in the template. */
 export function templateKeys(template: string): string[] {
 	return [...new Set([...template.matchAll(/\{\{(s\d+)\}\}/g)].map((match) => match[1]!))].sort()
@@ -89,6 +105,7 @@ export function renderLanding(template: string, words: Record<string, string>, l
 		lang: locale,
 		htmlLang: HTML_LANG[locale] ?? locale,
 		dir: dirAttribute(locale),
+		fonts: fontsHref(locale),
 		logo: logoSvg(30),
 		readme: readmeUrl(locale),
 		languages: languageLinks(locale),
