@@ -363,31 +363,12 @@ Rules worth knowing:
 
 ## 3. The landing page
 
-fluxbio.link is a separate static site in `landing/`, and nothing of it reaches a self-hosted FluxBio: `cf deploy` only uses `src/` and `public/`.
-`pnpm landing` builds it, and `pnpm landing:deploy` deploys it as the Worker `fluxbio-showcase` on fluxbio.link (set in `landing/build.mjs`), which has files only and no script. So a visit uses no
-Worker requests, D1 or KV, and it can't touch the account's quota.
+fluxbio.link is the project's own site, a separate static site in `landing/`. Nothing of it reaches a self-hosted FluxBio: `cf deploy` only
+uses `src/` and `public/`. So an agent deploying or running someone's FluxBio has nothing to do in that folder, and shouldn't run its
+commands, which deploy to fluxbio.link. Working on the site is described in `landing/AGENTS.md`.
 
-- **Pages.** `/` is English, and `language.js` sends a browser that prefers another language to `/<code>/` (`pickLanguage` in `landing/render.ts`, the same rules as
-  `matchLanguageTag`). Without JavaScript it stays English. Each is made from `landing/template.html` and `landing/locales/<code>.json`.
-- **Previews.** `/preview/<code>/<theme>` is the sample page in `landing/fixtures.ts` drawn in that theme, in that language (`landing/sample/<code>.json`), and
-  `/preview/<code>/<theme>-<starter>` is someone else's page in it. They are files made from the real renderer in `src/templates/` at build time, always as if on the same
-  Wednesday at noon, so a new theme is on the site once it is in `THEME_SAMPLES` (`landing/previews.ts`).
-- **Movement** is in `landing/public/motion.js`, and the page works without it. The phones in the hero take turns while they can be seen, until someone chooses one, and never
-  for someone who asked for less motion. On a touch screen a finger moves between the phones and, on a phone, the templates.
-- **Fonts.** The pages' own fonts come from the site itself, so a visit connects to nobody else for them (`landing/fonts.ts`). IBM Plex is IBM's
-  own web font files, unchanged, in `landing/public/fonts/` with their licence: its reserved name is "Plex", so a file cut down here couldn't keep
-  the name. Noto Sans TC, for the Traditional Chinese page, is one file with only the characters that page shows: `pnpm landing:fonts` has Google
-  Fonts cut it and keeps it in `landing/.fonts/`, out of git, and a deploy runs it first, so new copy needs nothing done. Without that file, or
-  once the page shows a character it lacks, the page links the font at Google. The Arabic page links IBM Plex Sans Arabic there too, and the
-  sample pages in the phones load each theme's fonts as any FluxBio page does.
-- **Pictures.** `landing/public/` holds what is copied as it is: `images/`, and the dashboard screenshots in `<code>/dash-*.webp`, showing the made-up shop.
-  `pnpm shots --locale <code>` retakes a language's set, and `pnpm shots --category creator --out <dir>` another kind of page.
-  The screenshots are not in git, because every retake would add megabytes to the repository for good: they are on the maintainer's computer
-  and on the site. `pnpm landing:deploy` first fetches from fluxbio.link the ones a checkout lacks (`pnpm landing:pictures`), which is how a
-  deploy from GitHub Actions keeps them, and stops if one can't be had. New ones reach the site by deploying from the computer that took them.
-  The READMEs show them from fluxbio.link. No real person's page or data belongs on the
-  landing page. The photographs in `images/` were made with an image generator, and the people and places in them are invented; `link-web.webp` comes from `pnpm brand`.
-  Pictures on it are WebP at quality 80, and `pnpm shots` and `pnpm brand` save theirs that way.
+One thing there depends on the product: the site shows screenshots of the dashboard. After a change to how the dashboard looks, they are out of
+date until retaken, which `landing/AGENTS.md` describes ("Retake the dashboard screenshots") and only the maintainer's computer can do.
 
 ## 4. Develop
 
@@ -398,10 +379,7 @@ pnpm test        # Vitest inside the Workers runtime (tests/)
 pnpm typecheck   # generates .cloudflare/types, then type-checks the Worker, dashboard and config
 pnpm build       # builds into .cloudflare/output
 pnpm i18n check  # lists dashboard text that isn't translated yet
-pnpm landing     # builds the landing page (see "The landing page"); pnpm landing:deploy also deploys it
-pnpm landing:fonts  # makes the Traditional Chinese landing page's font from the characters it shows now (a deploy does this itself)
-pnpm landing:pictures  # fetches from fluxbio.link the dashboard screenshots this checkout lacks (pnpm landing:deploy does this itself; --check only lists them)
-pnpm shots       # retakes the landing page's dashboard screenshots from the sample pages, in a throwaway local site
+pnpm landing     # builds the landing page, the project's own site; its other commands are in landing/AGENTS.md
 pnpm brand       # remakes the favicon, app icons and the landing page's logo pictures from LOGO_PATH in src/templates/icons.ts
 pnpm deploy:images --site <url>  # deploy with the site's pictures as static files, which cost no quota (--no-deploy, --mode staging)
 pnpm usage       # today's free KV and D1 quota used and left, and each D1 database's size, on the signed-in Cloudflare account (--date, --days, --json)
