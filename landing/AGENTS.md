@@ -5,7 +5,8 @@ an agent helping someone deploy or run their FluxBio can skip it: the repository
 maintains the site, and its commands deploy to fluxbio.link, which only the maintainer's Cloudflare account can do.
 
 fluxbio.link is a separate static site in `landing/`, and nothing of it reaches a self-hosted FluxBio: `cf deploy` only uses `src/` and `public/`.
-`pnpm landing` builds it, and `pnpm landing:deploy` deploys it as the Worker `fluxbio-showcase` on fluxbio.link (set in `landing/build.mjs`), which has files only and no script. So a visit uses no
+`pnpm landing` builds it, and `pnpm landing:deploy` deploys it as the Worker `fluxbio-showcase` on fluxbio.link (set in `landing/build.mjs`), which has files only and no script, and
+answers at that address alone: its `workers.dev` address is off. So a visit uses no
 Worker requests, D1 or KV, and it can't touch the account's quota.
 
 ```sh

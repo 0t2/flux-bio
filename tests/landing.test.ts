@@ -184,6 +184,9 @@ describe('someone hosting their own FluxBio', () => {
 			expect(landingBuild, name).toContain(name)
 		}
 		expect(landingOwner).toContain('process.exit(1)')
+		// And it is at fluxbio.link only: not a second time at the Worker's workers.dev address, or at preview addresses.
+		expect(landingBuild).toContain('workersDev: false')
+		expect(landingBuild).toContain('previewUrls: false')
 	})
 
 	it('gets none of its files', () => {
