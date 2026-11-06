@@ -135,10 +135,19 @@ export function ensureSchema(db: D1Database): Promise<void> {
 	return ready
 }
 
-/** Brings the database up to date. Exported for tests; the Worker calls ensureSchema(). */
+/**
+ * Brings the database up to date. Exported for tests; the Worker calls ensureSchema().
+ *
+ * Every new copy of the Worker asks once, and nearly always the answer is that nothing is to be done. So the
+ * question is one trip to D1, not two: whoever waits for it, a visitor to a page with opening hours or the
+ * dashboard's first request, waits that much less.
+ */
 export async function migrate(db: D1Database): Promise<void> {
-	await db.prepare('CREATE TABLE IF NOT EXISTS _meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)').run()
-	const row = await db.prepare("SELECT value FROM _meta WHERE key = 'schema_version'").first<{ value: string }>()
+	const [, read] = await db.batch<{ value: string }>([
+		db.prepare('CREATE TABLE IF NOT EXISTS _meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)'),
+		db.prepare("SELECT value FROM _meta WHERE key = 'schema_version'"),
+	])
+	const row = read?.results[0]
 	for (let version = row ? Number(row.value) : 0; version < MIGRATIONS.length; version++) {
 		const statements = (MIGRATIONS[version] ?? []).map((sql) => db.prepare(sql))
 		statements.push(
@@ -516,8 +525,9 @@ let secret: Promise<string> | null = null
  */
 export function deploymentSecret(db: D1Database): Promise<string> {
 	secret ??= (async () => {
-		await ensureSchema(db)
-		const existing = await readMeta(db, 'secret')
+		// Asked for alongside the schema check, not after it. Only a database's very first request finds no table
+		// to ask: that one reads again below, once the table is made.
+		const [existing] = await Promise.all([readMeta(db, 'secret').catch(() => undefined), ensureSchema(db)])
 		if (typeof existing === 'string') return existing
 		await db.prepare("INSERT OR IGNORE INTO _meta (key, value) VALUES ('secret', ?1)").bind(JSON.stringify(randomString(43))).run()
 		const stored = await readMeta(db, 'secret')

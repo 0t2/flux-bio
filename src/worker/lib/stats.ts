@@ -165,29 +165,26 @@ export async function linkStats(
 /**
  * Each page's clicks in the last 7 days. Clicks inside blocks carry their page; a link's page is looked up by id,
  * and only for links clicked in that time, so a site's size matters less than how many of its links people use.
+ * Both happen in one statement, because the dashboard waits for this every time it opens: the clicks are added up
+ * per target first, so each clicked link is looked up once, as it was when the Worker did the second half itself.
  */
 export async function clicksByPage(db: D1Database, timeZone: string): Promise<Map<string, number>> {
 	const since = lastDays(timeZone, 7)[0]
 	const { results } = await db
-		// By the days' range of the primary key. Grouped by target first, SQLite would go through the whole target index, every day ever.
-		.prepare("SELECT page, target, SUM(count) AS n FROM stats NOT INDEXED WHERE kind = 'click' AND dim = 'source' AND day >= ?1 GROUP BY page, target")
+		.prepare(
+			// By the days' range of the primary key. Grouped by target first, SQLite would go through the whole target index, every day ever.
+			`SELECT COALESCE(clicked.page, links.page_id) AS page, SUM(clicked.n) AS n
+			FROM (
+				SELECT page, target, SUM(count) AS n FROM stats NOT INDEXED
+				WHERE kind = 'click' AND dim = 'source' AND day >= ?1 GROUP BY page, target
+			) AS clicked
+			LEFT JOIN links ON clicked.page IS NULL AND links.id = clicked.target AND links.kind = 'bio'
+			WHERE COALESCE(clicked.page, links.page_id) IS NOT NULL
+			GROUP BY 1`,
+		)
 		.bind(since)
-		.all<{ target: string; page: string | null; n: number }>()
-	const totals = new Map<string, number>()
-	const add = (page: string, n: number) => totals.set(page, (totals.get(page) ?? 0) + n)
-	const links = new Map<string, number>()
-	for (const row of results) {
-		if (row.page) add(row.page, row.n)
-		else if (!row.target.includes('.')) links.set(row.target, (links.get(row.target) ?? 0) + row.n)
-	}
-	if (!links.size) return totals
-	const owners = await db.batch<{ id: string; page: string }>(
-		chunks([...links.keys()], 100).map((part) =>
-			db.prepare(`SELECT id, page_id AS page FROM links WHERE kind = 'bio' AND page_id IS NOT NULL AND id IN (${part.map((_, i) => `?${i + 1}`).join(', ')})`).bind(...part),
-		),
-	)
-	for (const { id, page } of owners.flatMap((part) => part.results)) add(page, links.get(id) ?? 0)
-	return totals
+		.all<{ page: string; n: number }>()
+	return new Map(results.map((row) => [row.page, row.n]))
 }
 
 export interface Ranked {
@@ -212,10 +209,11 @@ export interface Overview {
 /**
  * One page's numbers over the last `days` days, plus the period before for comparison: its views, the clicks inside it,
  * which carry the page, and the clicks on `links`, its bio links. All are read through an index, so this costs as many
- * rows as the page has numbers, however big the site.
+ * rows as the page has numbers, however big the site. `at` is the moment the days are counted back from: a caller that
+ * reads the detailed numbers at the same time gives both the same one.
  */
-export async function overview(db: D1Database, timeZone: string, days: number, pageId: string, links: readonly string[]): Promise<Overview> {
-	const range = lastDays(timeZone, days)
+export async function overview(db: D1Database, timeZone: string, days: number, pageId: string, links: readonly string[], at = Date.now()): Promise<Overview> {
+	const range = lastDays(timeZone, days, at)
 	const index = new Map(range.map((day, i) => [day, i]))
 	const since = range[0]!
 	const previousSince = addDays(since, -days)
@@ -296,8 +294,8 @@ export interface TargetOverview {
 }
 
 /** One short link's clicks per day and by source. */
-export async function targetOverview(db: D1Database, timeZone: string, days: number, target: string): Promise<TargetOverview> {
-	const range = lastDays(timeZone, days)
+export async function targetOverview(db: D1Database, timeZone: string, days: number, target: string, at = Date.now()): Promise<TargetOverview> {
+	const range = lastDays(timeZone, days, at)
 	const index = new Map(range.map((day, i) => [day, i]))
 	const since = range[0]!
 	const { results } = await db

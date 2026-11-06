@@ -43,7 +43,7 @@ import { FONT_CATEGORIES, FONT_SCRIPTS, searchFonts } from '../../shared/fonts'
 import { requestedLocale } from '../../shared/locale'
 import { untranslated } from '../../shared/translations'
 import { DEFAULT_QR_STYLE, QR_SIZE_IDS, qrLogoMedia, qrSvg, QrStyleSchema, type QrStyle } from '../../shared/qr'
-import { addDays, dayIn } from '../../shared/time'
+import { addDays, dayIn, lastDays } from '../../shared/time'
 import { fill, msg, type Message, type Params } from '../../templates/msg'
 import { SOCIAL_META } from '../../templates/icons'
 import { renderBioPage } from '../../templates/render'
@@ -380,7 +380,7 @@ api.use('*', async (c, next) => {
 	const bearer = c.req.header('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim()
 	let auth: Auth | null = null
 	if (bearer && TOKEN_PATTERN.test(bearer)) {
-		await ensureSchema(c.env.DB)
+		// sessionKeyOf waits for the schema check too, with the secret read alongside it.
 		const token = await findTokenByHash(c.env.DB, await sha256Hex(bearer), await tokenTag(await sessionKeyOf(c.env)))
 		if (token) {
 			auth = { role: 'token', tokenId: token.id, scope: token.scope, name: token.name }
@@ -433,10 +433,9 @@ const FREE_DAILY: NonNullable<UsageResponse['dailyLimits']> = {
 
 api.get('/usage', async (c) => {
 	const db = c.env.DB
-	const settings = await loadSettings(db)
 	const now = Date.now()
 	const since = `${new Date(now).toISOString().slice(0, 10)}T00:00:00Z`
-	const bytes = await databaseBytes(db)
+	const [settings, bytes] = await Promise.all([loadSettings(db), databaseBytes(db)])
 	const quietly = <T>(read: Promise<T>) =>
 		read.catch((error: unknown) => {
 			console.error('Cloudflare analytics did not answer', error)
@@ -787,10 +786,15 @@ api.get('/links/:id/stats', async (c) => {
 	const days = rangeOf(c.req.query('days'))
 	const [row, settings] = await Promise.all([getLink(db, c.req.param('id')), loadSettings(db)])
 	if (!row) throw new ApiError(404, 'not-found', msg('找不到這個短網址'))
-	const data = await targetOverview(db, settings.timezone, days, row.id)
-	const from = data.days[0]!
-	const details = await insights(c.env, { target: row.id }, { from, to: data.days.at(-1)!, previousFrom: addDays(from, -days) })
-	const page = row.pageId ? await getPage(db, row.pageId) : null
+	// The counts, the detailed numbers and the link's page don't wait for one another. One moment fixes the days for both sets of numbers.
+	const now = Date.now()
+	const range = lastDays(settings.timezone, days, now)
+	const from = range[0]!
+	const [data, details, page] = await Promise.all([
+		targetOverview(db, settings.timezone, days, row.id, now),
+		insights(c.env, { target: row.id }, { from, to: range.at(-1)!, previousFrom: addDays(from, -days) }),
+		row.pageId ? getPage(db, row.pageId) : null,
+	])
 	const title = row.title || row.slug
 	const placeKey = page ? msg('{name} 頁面上的「{title}」') : msg('獨立短網址「{title}」')
 	const placeParams: Params = page ? { name: page.draft.profile.name || page.handle, title } : { title }
@@ -815,14 +819,26 @@ api.get('/links/:id/stats', async (c) => {
 api.get('/stats', async (c) => {
 	const db = c.env.DB
 	const days = rangeOf(c.req.query('days'))
-	const settings = await loadSettings(db)
 	const asked = c.req.query('page')
-	const page = (asked ? await getPage(db, asked) : null) ?? (settings.home ? await getPage(db, settings.home) : null) ?? (await firstPage(db))
-	const rows = page ? await listOwnLinks(db, page.id) : []
+	// A page is read with its links, not before them. The one that is asked for is read alongside the settings,
+	// as the dashboard always asks; a request that names none, or one that is gone, gets the home page, else the first.
+	const withLinks = (id: string) => Promise.all([getPage(db, id), listOwnLinks(db, id)])
+	const [settings, named] = await Promise.all([loadSettings(db), asked ? withLinks(asked) : null])
+	let [page, rows] = named ?? [null, []]
+	if (!page && settings.home) [page, rows] = await withLinks(settings.home)
+	if (!page) {
+		page = await firstPage(db)
+		rows = page ? await listOwnLinks(db, page.id) : []
+	}
 	const byId = new Map(rows.map((row) => [row.id, row]))
-	const data = await overview(db, settings.timezone, days, page?.id ?? '', rows.map((row) => row.id))
-	const from = data.days[0]!
-	const details = page ? await insights(c.env, { page: page.id }, { from, to: data.days.at(-1)!, previousFrom: addDays(from, -days) }) : null
+	// The counts in D1 and the detailed numbers don't wait for each other. One moment fixes the days for both.
+	const now = Date.now()
+	const range = lastDays(settings.timezone, days, now)
+	const from = range[0]!
+	const [data, details] = await Promise.all([
+		overview(db, settings.timezone, days, page?.id ?? '', rows.map((row) => row.id), now),
+		page ? insights(c.env, { page: page.id }, { from, to: range.at(-1)!, previousFrom: addDays(from, -days) }) : null,
+	])
 	const content = page ? (page.published ?? page.draft) : null
 	const label = (target: string): Label => {
 		if (page && target === page.id) return labelOf(msg('bio 頁'))

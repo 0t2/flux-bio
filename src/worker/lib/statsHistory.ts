@@ -42,9 +42,10 @@ interface State {
 	done: number
 }
 
+const stateOf = (raw: Partial<State> | undefined): State => ({ from: raw?.from ?? '', clear: raw?.clear ?? null, day: raw?.day ?? '', done: raw?.done ?? 0 })
+
 async function loadState(db: D1Database): Promise<State> {
-	const raw = (await readMeta(db, KEY)) as Partial<State> | undefined
-	return { from: raw?.from ?? '', clear: raw?.clear ?? null, day: raw?.day ?? '', done: raw?.done ?? 0 }
+	return stateOf((await readMeta(db, KEY)) as Partial<State> | undefined)
 }
 
 const utcDay = (now: number) => new Date(now).toISOString().slice(0, 10)
@@ -132,21 +133,38 @@ export interface StatsHistory {
 }
 
 export async function statsHistory(db: D1Database, settings: Settings, bytes: number, now = Date.now()): Promise<StatsHistory> {
-	const state = await loadState(db)
 	const months = dailyMonths(bytes, settings.plan)
 	// The oldest month still kept by the day; on the first of next month, it is next.
 	const thisMonth = monthOf(settings.timezone, now)
 	const kept = addMonths(thisMonth, -months)
-	const [oldest, firstDaily, keptDays] = await Promise.all([
-		db.prepare('SELECT day FROM stats ORDER BY day LIMIT 1').first<{ day: string }>(),
-		db.prepare('SELECT day FROM stats WHERE day >= ?1 AND length(day) = 10 ORDER BY day LIMIT 1').bind(state.from).first<{ day: string }>(),
-		db.prepare('SELECT 1 AS n FROM stats WHERE day >= ?1 AND day < ?2 LIMIT 1').bind(`${kept}-01`, `${addMonths(kept, 1)}-01`).first<{ n: number }>(),
+	// One trip to D1. The second read starts where the saved state says daily rows may begin, so it takes that from
+	// the state's own row and needn't wait for the Worker to have read it.
+	const [saved, oldest, firstDaily, keptDays] = await db.batch<{ value?: string; day?: string; n?: number }>([
+		db.prepare('SELECT value FROM _meta WHERE key = ?1').bind(KEY),
+		db.prepare('SELECT day FROM stats ORDER BY day LIMIT 1'),
+		db
+			.prepare(
+				`SELECT day FROM stats
+				WHERE day >= COALESCE((SELECT CASE WHEN json_valid(value) THEN json_extract(value, '$.from') END FROM _meta WHERE key = ?1), '')
+					AND length(day) = 10
+				ORDER BY day LIMIT 1`,
+			)
+			.bind(KEY),
+		db.prepare('SELECT 1 AS n FROM stats WHERE day >= ?1 AND day < ?2 LIMIT 1').bind(`${kept}-01`, `${addMonths(kept, 1)}-01`),
 	])
+	let raw: Partial<State> | undefined
+	try {
+		raw = JSON.parse(saved?.results[0]?.value ?? 'null') ?? undefined
+	} catch {
+		raw = undefined
+	}
+	const state = stateOf(raw)
+	const firstDay = firstDaily?.results[0]?.day
 	return {
 		dailyMonths: months,
-		oldestMonth: oldest?.day.slice(0, 7) ?? null,
-		nextMerge: keptDays ? { month: kept, on: `${addMonths(thisMonth, 1)}-01` } : null,
-		merging: Boolean(firstDaily && firstDaily.day < `${kept}-01`),
+		oldestMonth: oldest?.results[0]?.day?.slice(0, 7) ?? null,
+		nextMerge: keptDays?.results.length ? { month: kept, on: `${addMonths(thisMonth, 1)}-01` } : null,
+		merging: Boolean(firstDay && firstDay < `${kept}-01`),
 		clearing: state.clear,
 		clearableBefore: clearableBefore(settings.timezone, now),
 	}

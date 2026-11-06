@@ -519,6 +519,11 @@ tests/                  Vitest tests (run in workerd)
 - **KV writes.** The free plan allows 1,000 KV writes a day, per account (`pnpm usage` shows what is left today). Publishing writes the page, one per changed
   link, and for the home page the `site` record twice (without its copy of the page, then with the new one), and with `hostFonts` on, when the page's characters change, one per font file plus one per
   old file deleted; keep bulk operations within that.
+- **Trips to D1.** A request waits for D1 once for every query it sends after another has answered, and for someone far from
+  the database a trip can be a hundred milliseconds. So what doesn't depend on each other goes together: `Promise.all`, or
+  `db.batch` when it should be one trip. A new copy of the Worker checks the schema in one trip, with the deployment's secret
+  or the time zone asked for alongside it, so a page with opening hours is drawn after one. `tests/round-trips.test.ts` holds
+  that, and the dashboard's reads to two or three.
 - **No limit on pages or short links, so no whole-table reads.** A site can hold any number of both. The free plan still applies: 5 million D1 rows read a day (queries fail past that), 50 queries per request, 100 bound values per query, five terms in a compound SELECT, and 10 ms of CPU. So a lookup goes through an index for the names or ids it needs (`ownersOf`, `getLinksByIds`, `listLinkPage`, `listPageRows`), D1 does the work on a list of pages rather than the Worker parsing every draft, and a change to a whole site drops at most `KV_OPS_AT_ONCE` copies for visits to rebuild, answering `copiesLeft` if some stayed. `tests/scale.test.ts` holds a large site to these numbers; a query that names `stats_target_day` with `INDEXED BY` does so because SQLite otherwise scans the day's rows. Only backups read everything, a slice at a time.
 - **No extra Cloudflare products.** The app uses Workers, D1, KV and Analytics Engine, none of which
   need manual setup. Do not add R2, Durable Objects or Queues without a strong reason; each one
