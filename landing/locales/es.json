@@ -150,8 +150,7 @@
 	"s182": "Eventos de estadísticas",
 	"s183": "Workers Paid, por mes",
 	"s184": "Unos {cost}",
-	"s185": "US$5 al mes, y lo que pase de lo incluido se cobra por uso. Los eventos de estadísticas (Analytics Engine) no se cobran por ahora y el tiempo de CPU incluye 30 millones de milisegundos al mes; ninguno se cuenta aquí. Tampoco las escrituras en KV al publicar páginas y crear enlaces cortos, que no dependen del tráfico. Lo que usa cada visita y clic se midió en FluxBio; los precios son los que Cloudflare publicó en noviembre de 2026.",
-	"s186": "{used}, {included} incluidas",
+	"s185": "Es una estimación aproximada. Para saber cuánto usará tu página, pregúntale a tu IA.",
 	"s187": "Gratuito",
 	"s188": "Plan"
 }

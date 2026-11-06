@@ -150,8 +150,7 @@
 	"s182": "Peristiwa statistik",
 	"s183": "Workers Paid, per bulan",
 	"s184": "Sekitar {cost}",
-	"s185": "US$5 per bulan, dan pemakaian di atas jatah yang termasuk ditagih sesuai pemakaian. Peristiwa statistik (Analytics Engine) belum ditagih untuk saat ini, dan waktu CPU sudah termasuk 30 juta milidetik per bulan; keduanya tidak dihitung di sini. Begitu juga penulisan KV saat menerbitkan halaman dan membuat tautan pendek, yang tidak bertambah seiring trafik. Pemakaian tiap tayangan dan klik diukur langsung di FluxBio; harga sesuai yang diumumkan Cloudflare pada November 2026.",
-	"s186": "{used}, termasuk {included}",
+	"s185": "Ini perkiraan kasar. Untuk tahu pemakaian halamanmu yang sebenarnya, tanyakan ke AI-mu.",
 	"s187": "Gratis",
 	"s188": "Paket"
 }

@@ -150,8 +150,7 @@
 	"s182": "Statistik-Ereignisse",
 	"s183": "Workers Paid, pro Monat",
 	"s184": "Etwa {cost}",
-	"s185": "5 US$ im Monat, und was über das Inklusivvolumen hinausgeht, wird nach Verbrauch berechnet. Statistik-Ereignisse (Analytics Engine) kosten derzeit nichts, und CPU-Zeit ist mit 30 Millionen Millisekunden im Monat enthalten; beides ist hier nicht eingerechnet. Ebenso wenig die KV-Schreibvorgänge beim Veröffentlichen von Seiten und Anlegen von Kurzlinks, die nicht mit dem Traffic wachsen. Was jeder Aufruf und Klick verbraucht, wurde an FluxBio gemessen; die Preise sind die von Cloudflare im November 2026 veröffentlichten.",
-	"s186": "{used}, davon {included} inklusive",
+	"s185": "Eine grobe Schätzung. Was deine Seite wirklich verbraucht, kann dir deine KI sagen.",
 	"s187": "Kostenlos",
 	"s188": "Tarif"
 }

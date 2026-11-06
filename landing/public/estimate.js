@@ -20,6 +20,8 @@ const panel = result?.closest('.est-panel')
 if (form && result && panel) {
 	const lang = document.documentElement.lang || 'en'
 	const number = new Intl.NumberFormat(lang, { maximumFractionDigits: 0 })
+	// A month's numbers run to tens of millions: "10.95M", "1095萬".
+	const short = new Intl.NumberFormat(lang, { notation: 'compact', maximumFractionDigits: 2 })
 	const money = new Intl.NumberFormat(lang, { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 })
 	const fill = (text, values) => text.replace(/\{(\w+)\}/g, (whole, key) => (key in values ? values[key] : whole))
 
@@ -31,7 +33,6 @@ if (form && result && panel) {
 	const verdict = document.getElementById('est-verdict')
 	const max = document.getElementById('est-max')
 	const cost = document.getElementById('est-cost')
-	const lines = result.querySelector('.est-lines')
 
 	// The slider runs from 100 to 1,000,000 a day on a log scale, so small and large sites both get room.
 	const fromSlider = (position) => {
@@ -61,29 +62,28 @@ if (form && result && panel) {
 		const day = costs(daily)
 		const shares = Object.fromEntries(Object.keys(FREE_PER_DAY).map((key) => [key, day[key] / FREE_PER_DAY[key]]))
 		const [first] = Object.entries(shares).sort((a, b) => b[1] - a[1])
-		const firstLabel = result.querySelector(`.est-bars li[data-key="${first[0]}"] > span`).textContent
+		const firstLabel = result.querySelector(`#est-day li[data-key="${first[0]}"] > span`).textContent
 		verdict.textContent = fill(verdict.dataset[first[1] <= 1 ? 'ok' : 'over'], { percent: number.format(Math.round(first[1] * 100)), item: firstLabel })
 		// Every cost grows with the traffic, so the most the free plan takes is where the first of them runs out.
 		const one = costs(1)
 		const most = Math.min(...Object.keys(FREE_PER_DAY).map((key) => FREE_PER_DAY[key] / one[key]))
 		max.textContent = fill(max.dataset.text, { n: number.format(Math.floor(most / 100) * 100) })
 
-		for (const row of result.querySelectorAll('.est-bars li')) {
-			const key = row.dataset.key
-			row.querySelector('em').textContent = `${number.format(Math.round(day[key]))} / ${number.format(FREE_PER_DAY[key])}`
-			row.querySelector('.est-bar span').style.inlineSize = `${Math.min(100, shares[key] * 100)}%`
-			row.classList.toggle('over', shares[key] > 1)
+		// A bar per limit: used against what the plan allows, dark once past it.
+		const bar = (row, used, limit, format = number, extra = '') => {
+			row.querySelector('em').textContent = `${format.format(Math.round(used))} / ${format.format(limit)}${extra}`
+			row.querySelector('.est-bar span').style.inlineSize = `${Math.min(100, (used / limit) * 100)}%`
+			row.classList.toggle('over', used > limit)
 		}
+		for (const row of document.querySelectorAll('#est-day li')) bar(row, day[row.dataset.key], FREE_PER_DAY[row.dataset.key])
 
 		let total = PAID.base
-		for (const row of lines.querySelectorAll('li')) {
+		for (const row of document.querySelectorAll('#est-month li')) {
 			const key = row.dataset.key
 			const month = day[key] * DAYS_A_MONTH
-			const extra = Math.max(0, month - PAID.included[key])
-			const price = (extra / 1_000_000) * PAID.perMillion[key]
+			const price = (Math.max(0, month - PAID.included[key]) / 1_000_000) * PAID.perMillion[key]
 			total += price
-			row.querySelector('em').textContent = fill(lines.dataset.text, { used: number.format(Math.round(month)), included: number.format(PAID.included[key]) })
-			row.querySelector('b').textContent = `+${money.format(price)}`
+			bar(row, month, PAID.included[key], short, price > 0 ? ` +${money.format(price)}` : '')
 		}
 		cost.textContent = fill(cost.dataset.text, { cost: money.format(total) })
 	}
