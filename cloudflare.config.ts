@@ -82,6 +82,10 @@ export default defineConfig(({ mode }) => {
 		worker: {
 			name,
 			compatibilityDate: '2026-10-15',
+			// fetch() to this Worker's own custom domain goes in at the front door, as anyone's would. Without it a request to a
+			// hostname on the Worker's own zone goes to the zone's origin, which a custom domain doesn't have, and the custom
+			// domain check (lib/domain.ts) got 522 for every domain it was meant to confirm.
+			compatibilityFlags: ['global_fetch_strictly_public'],
 			entrypoint: 'src/worker/index.ts',
 			workersDev: true,
 			// One URL per instance is enough; per-version preview URLs would expose the dashboard twice.

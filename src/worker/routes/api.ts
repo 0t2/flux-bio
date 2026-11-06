@@ -608,7 +608,7 @@ api.put('/settings', async (c) => {
 	const domain = input.domain === undefined ? current.domain : normalizeDomain(input.domain)
 	if (domain !== current.domain) {
 		if (domain) {
-			const check = await verifyDomain(c.env, domain)
+			const check = await verifyDomain(c.env, domain, new URL(c.req.url).hostname)
 			if (!check.ok) throw new ApiError(400, 'domain', { key: check.key, params: check.params })
 		}
 	}
@@ -621,7 +621,7 @@ api.post('/settings/verify-domain', async (c) => {
 	const { domain } = await readBody(c, DomainInput)
 	const host = normalizeDomain(domain)
 	if (!host) throw new ApiError(400, 'invalid', msg('請輸入網域'))
-	return c.json({ domain: host, ...(await verifyDomain(c.env, host)) })
+	return c.json({ domain: host, ...(await verifyDomain(c.env, host, new URL(c.req.url).hostname)) })
 })
 
 // ---------------------------------------------------------------- media

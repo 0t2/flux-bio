@@ -833,8 +833,9 @@ Chinese, Japanese and Korean fonts are megabytes each and would need subsetting 
 
 - **`cf` is in beta.** Find commands with `pnpm exec cf cli search "<what you want to do>"`, then
   read `<command> --help`. Keep search queries free of names, domains and IDs.
-- **Compatibility date.** `cloudflare.config.ts` and `vitest.config.ts` both set it. Keep them in
-  sync.
+- **Compatibility date and flags.** `cloudflare.config.ts` and `vitest.config.ts` both set them. Keep them in
+  sync. `global_fetch_strictly_public` is what lets the custom domain check reach the Worker's own domain: without it, a
+  request to a hostname on the Worker's zone goes to the zone's origin and a custom domain answers 522.
 - **One copy of workerd.** `cf`, `@cloudflare/vite-plugin` and `@cloudflare/vitest-plugin` each bring miniflare, and with it
   workerd, 40 MB to download. They come out in sets that name the same miniflare, so `package.json` names all three exactly:
   move them together (`npm view <package>@<version> dependencies.miniflare` says which go together). Apart, an install
