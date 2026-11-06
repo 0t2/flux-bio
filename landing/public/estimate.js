@@ -1,11 +1,10 @@
 // The traffic estimator on fluxbio.link: what a day of visits takes of Cloudflare's free plan, and what a month of
-// it costs on Workers Paid, for an account with FluxBio alone on it. The page works without this script: the panel
+// it costs on Workers Paid, for a page of links on an account with FluxBio alone on it. The page works without this script: the panel
 // then gives the usual answer in a sentence, and the form stays hidden.
 //
 // What each visit costs was measured on FluxBio itself (tests/kv-cost.test.ts, tests/scale.test.ts): a page view is
 // one Worker request, two KV reads and one D1 row written, and each picture on the page one more request and KV read
-// for a visitor who hasn't got it yet. A tap on a link, and a short link opened, is one request, one KV read and one
-// row. Each view and click is one Analytics Engine event. Prices are Cloudflare's, as published in November 2026.
+// for a visitor who hasn't got it yet. A tap on a link is one request, one KV read and one row. Each view and click is one Analytics Engine event. Prices are Cloudflare's, as published in November 2026.
 const FREE_PER_DAY = { requests: 100_000, kvReads: 100_000, rowsWritten: 100_000, events: 100_000 }
 const PAID = {
 	base: 5,
@@ -29,7 +28,6 @@ if (form && result && panel) {
 	const rate = document.getElementById('est-rate')
 	const rateOut = document.getElementById('est-rate-out')
 	const images = document.getElementById('est-images')
-	const viewsLabel = document.getElementById('est-views-label')
 	const verdict = document.getElementById('est-verdict')
 	const max = document.getElementById('est-max')
 	const cost = document.getElementById('est-cost')
@@ -48,26 +46,18 @@ if (form && result && panel) {
 	}
 
 	function update() {
-		const use = form.elements['est-use'].value
-		const bio = use === 'bio'
-		for (const field of form.querySelectorAll('[data-only="bio"]')) field.hidden = !bio
-		viewsLabel.textContent = viewsLabel.dataset[bio ? 'bio' : 'short']
-
 		const daily = whole(views, 0)
-		const clickShare = bio ? Number(rate.value) / 100 : 0
-		const pictures = bio ? Math.min(whole(images, 0), 20) : 0
+		const clickShare = Number(rate.value) / 100
+		const pictures = Math.min(whole(images, 0), 50)
 		rateOut.textContent = `${rate.value}%`
 
-		// A day of it. On a page of links, `daily` is page views; with short links only, it is clicks.
-		const costs = (amount) =>
-			bio
-				? {
-						requests: amount * (1 + pictures + clickShare),
-						kvReads: amount * (2 + pictures + clickShare),
-						rowsWritten: amount * (1 + clickShare),
-						events: amount * (1 + clickShare),
-					}
-				: { requests: amount, kvReads: amount, rowsWritten: amount, events: amount }
+		// What `amount` page views a day take.
+		const costs = (amount) => ({
+			requests: amount * (1 + pictures + clickShare),
+			kvReads: amount * (2 + pictures + clickShare),
+			rowsWritten: amount * (1 + clickShare),
+			events: amount * (1 + clickShare),
+		})
 		const day = costs(daily)
 		const shares = Object.fromEntries(Object.keys(FREE_PER_DAY).map((key) => [key, day[key] / FREE_PER_DAY[key]]))
 		const [first] = Object.entries(shares).sort((a, b) => b[1] - a[1])
@@ -76,7 +66,7 @@ if (form && result && panel) {
 		// Every cost grows with the traffic, so the most the free plan takes is where the first of them runs out.
 		const one = costs(1)
 		const most = Math.min(...Object.keys(FREE_PER_DAY).map((key) => FREE_PER_DAY[key] / one[key]))
-		max.textContent = fill(max.dataset[bio ? 'bio' : 'short'], { n: number.format(Math.floor(most / 100) * 100) })
+		max.textContent = fill(max.dataset.text, { n: number.format(Math.floor(most / 100) * 100) })
 
 		for (const row of result.querySelectorAll('.est-bars li')) {
 			const key = row.dataset.key
@@ -111,6 +101,16 @@ if (form && result && panel) {
 		if (event.target !== views && event.target !== range) update()
 	})
 	form.addEventListener('submit', (event) => event.preventDefault())
+
+	// The panel shows one plan at a time: the free plan's day first, a month on Workers Paid on request.
+	const switches = result.querySelectorAll('.est-switch button')
+	for (const button of switches) {
+		button.addEventListener('click', () => {
+			for (const other of switches) other.setAttribute('aria-pressed', String(other === button))
+			document.getElementById('est-free').hidden = button.dataset.plan !== 'free'
+			document.getElementById('est-paid').hidden = button.dataset.plan !== 'paid'
+		})
+	}
 
 	range.value = String(Math.round(toSlider(whole(views, 5000))))
 	form.hidden = false
