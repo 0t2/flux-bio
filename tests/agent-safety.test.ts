@@ -166,11 +166,11 @@ describe('going back to a published version', () => {
 		expect(list.slice(1).every((version) => !version.current)).toBe(true)
 	})
 
-	it('saves what was live before versions were kept, once', async () => {
+	it('saves what was live when a page has no versions, once', async () => {
 		const page = await makePage()
 		await apiJson(`/pages/${page.id}/draft`, { method: 'PUT', json: named('From before') })
 		await publish(page.id)
-		// As a site that upgraded, or restored a backup, finds itself.
+		// As a site that restored a backup finds itself.
 		await env.DB.prepare('DELETE FROM page_versions WHERE page_id = ?1').bind(page.id).run()
 		await apiJson(`/pages/${page.id}/draft`, { method: 'PUT', json: named('After') })
 		await publish(page.id)

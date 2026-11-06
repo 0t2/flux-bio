@@ -6,7 +6,6 @@ import {
 	SavedThemeSchema,
 	SettingsSchema,
 	storedContent,
-	upgradeSettings,
 	type PageContent,
 	type SavedTheme,
 	type Settings,
@@ -17,7 +16,8 @@ import { perSite, siteOfDb } from './sites'
 
 /**
  * The schema is created by the Worker on first use, so a fresh deploy needs
- * no migration step. Append new migrations to the end; never edit old ones.
+ * no migration step. Each entry runs once per database, in order: change the
+ * schema by appending one, and never edit one a deployed database may have run.
  */
 const MIGRATIONS: string[][] = [
 	[
@@ -27,8 +27,15 @@ const MIGRATIONS: string[][] = [
 			published TEXT,
 			draft_updated_at INTEGER NOT NULL,
 			published_at INTEGER,
-			created_at INTEGER NOT NULL
+			created_at INTEGER NOT NULL,
+			handle TEXT,
+			position INTEGER NOT NULL DEFAULT 0,
+			fonts TEXT,
+			qr_logo TEXT
 		)`,
+		'CREATE UNIQUE INDEX IF NOT EXISTS pages_handle ON pages (handle)',
+		'CREATE INDEX IF NOT EXISTS pages_by_position ON pages (position, created_at)',
+		'CREATE INDEX IF NOT EXISTS pages_handle_nocase ON pages (handle COLLATE NOCASE)',
 		`CREATE TABLE IF NOT EXISTS links (
 			id TEXT PRIMARY KEY,
 			slug TEXT NOT NULL UNIQUE,
@@ -43,8 +50,19 @@ const MIGRATIONS: string[][] = [
 			utm_medium TEXT,
 			utm_campaign TEXT,
 			created_at INTEGER NOT NULL,
-			updated_at INTEGER NOT NULL
+			updated_at INTEGER NOT NULL,
+			page_id TEXT,
+			ios_url TEXT,
+			android_url TEXT,
+			line_external INTEGER NOT NULL DEFAULT 0,
+			inapp_prompt INTEGER NOT NULL DEFAULT 0,
+			qr TEXT,
+			utm_content TEXT
 		)`,
+		'CREATE INDEX IF NOT EXISTS links_by_page ON links (page_id)',
+		'CREATE INDEX IF NOT EXISTS links_listing ON links (status, created_at DESC, id DESC)',
+		// A click inside a block, on a social icon or on the LINE button keeps the page it was on in `page`, so the page's
+		// numbers stay right when the block is deleted, and no list of pages has to be read to tell whose it was.
 		`CREATE TABLE IF NOT EXISTS stats (
 			day TEXT NOT NULL,
 			target TEXT NOT NULL,
@@ -52,29 +70,12 @@ const MIGRATIONS: string[][] = [
 			dim TEXT NOT NULL,
 			value TEXT NOT NULL,
 			count INTEGER NOT NULL DEFAULT 0,
+			page TEXT,
 			PRIMARY KEY (day, target, kind, dim, value)
 		) WITHOUT ROWID`,
 		'CREATE INDEX IF NOT EXISTS stats_target_day ON stats (target, day)',
-	],
-	// v0.1.1: countries and devices moved to Analytics Engine; D1 keeps sources only.
-	["DELETE FROM stats WHERE dim != 'source'"],
-	// v0.2: several pages, content blocks, smarter short links and API tokens.
-	[
-		'ALTER TABLE pages ADD COLUMN handle TEXT',
-		'ALTER TABLE pages ADD COLUMN position INTEGER NOT NULL DEFAULT 0',
-		// v0.1 kept the one page's handle in the settings.
-		`UPDATE pages SET handle = COALESCE((SELECT json_extract(value, '$.handle') FROM _meta WHERE key = 'settings'), 'me')
-			WHERE handle IS NULL`,
-		'CREATE UNIQUE INDEX IF NOT EXISTS pages_handle ON pages (handle)',
-		'ALTER TABLE links ADD COLUMN page_id TEXT',
-		"UPDATE links SET page_id = 'main' WHERE kind = 'bio'",
-		'ALTER TABLE links ADD COLUMN ios_url TEXT',
-		'ALTER TABLE links ADD COLUMN android_url TEXT',
-		'ALTER TABLE links ADD COLUMN line_external INTEGER NOT NULL DEFAULT 0',
-		'ALTER TABLE links ADD COLUMN inapp_prompt INTEGER NOT NULL DEFAULT 0',
-		'ALTER TABLE links ADD COLUMN qr TEXT',
-		// Page views were counted under "page"; now each page counts under its own id.
-		"UPDATE stats SET target = 'main' WHERE target = 'page'",
+		'CREATE INDEX IF NOT EXISTS stats_page_day ON stats (page, day) WHERE page IS NOT NULL',
+		// Changing ADMIN_PASSWORD revokes every API token: password_tag holds tokenTag() (auth.ts).
 		`CREATE TABLE IF NOT EXISTS api_tokens (
 			id TEXT PRIMARY KEY,
 			name TEXT NOT NULL,
@@ -82,21 +83,10 @@ const MIGRATIONS: string[][] = [
 			hash TEXT NOT NULL UNIQUE,
 			hint TEXT NOT NULL,
 			created_at INTEGER NOT NULL,
-			last_used_at INTEGER
+			last_used_at INTEGER,
+			password_tag TEXT NOT NULL DEFAULT ''
 		)`,
-	],
-	[
-		// Changing ADMIN_PASSWORD revokes every API token (see tokenTag in auth.ts).
-		"ALTER TABLE api_tokens ADD COLUMN password_tag TEXT NOT NULL DEFAULT ''",
-	],
-	// v0.3: the fourth UTM tag, which tells apart places on one platform (bio, story, post).
-	['ALTER TABLE links ADD COLUMN utm_content TEXT'],
-	// v0.3: the fonts each published page loads from this Worker (src/worker/lib/fonts.ts).
-	['ALTER TABLE pages ADD COLUMN fonts TEXT'],
-	// The picture in the QR codes of a page's links that follow the default (shared/qr.ts).
-	['ALTER TABLE pages ADD COLUMN qr_logo TEXT'],
-	// What each page looked like when published, so a publish can be undone.
-	[
+		// What each page looked like when published, so a publish can be undone.
 		`CREATE TABLE IF NOT EXISTS page_versions (
 			id TEXT PRIMARY KEY,
 			page_id TEXT NOT NULL,
@@ -105,21 +95,6 @@ const MIGRATIONS: string[][] = [
 			published_by TEXT
 		)`,
 		'CREATE INDEX IF NOT EXISTS page_versions_by_page ON page_versions (page_id, published_at)',
-	],
-	// A site can hold any number of pages and short links, so nothing reads a whole table to find one.
-	[
-		// Queries name this one, and a database from before v0.2 may not have it.
-		'CREATE INDEX IF NOT EXISTS stats_target_day ON stats (target, day)',
-		'CREATE INDEX IF NOT EXISTS links_by_page ON links (page_id)',
-		'CREATE INDEX IF NOT EXISTS links_listing ON links (status, created_at DESC, id DESC)',
-		'CREATE INDEX IF NOT EXISTS pages_by_position ON pages (position, created_at)',
-		'CREATE INDEX IF NOT EXISTS pages_handle_nocase ON pages (handle COLLATE NOCASE)',
-	],
-	// A click inside a block, on a social icon or on the LINE button keeps the page it was on, so the page's numbers
-	// stay right when the block is deleted, and no list of pages has to be read to tell whose it was.
-	[
-		'ALTER TABLE stats ADD COLUMN page TEXT',
-		'CREATE INDEX IF NOT EXISTS stats_page_day ON stats (page, day) WHERE page IS NOT NULL',
 	],
 ]
 
@@ -168,9 +143,6 @@ export async function migrate(db: D1Database): Promise<void> {
 	}
 }
 
-/** The id v0.1 gave its single page. */
-export const LEGACY_PAGE_ID = 'main'
-
 // ---------------------------------------------------------------- pages
 
 export interface PageRow {
@@ -197,9 +169,8 @@ type PageRecordRow = {
 	draft_updated_at: number
 	published_at: number | null
 	created_at: number
-	/** Missing until the v0.3 migration has run. */
-	fonts?: string | null
-	qr_logo?: string | null
+	fonts: string | null
+	qr_logo: string | null
 }
 
 export function parseContent(json: string | null): PageContent | null {
@@ -224,8 +195,8 @@ function toPageRow(row: PageRecordRow): PageRow | null {
 		draftUpdatedAt: row.draft_updated_at,
 		publishedAt: row.published_at,
 		createdAt: row.created_at,
-		fonts: parseHostedFonts(row.fonts ?? null),
-		qrLogo: row.qr_logo ?? null,
+		fonts: parseHostedFonts(row.fonts),
+		qrLogo: row.qr_logo,
 	}
 }
 
@@ -296,16 +267,15 @@ export interface PageListRow {
 	handle: string
 	position: number
 	qrLogo: string | null
-	name: string | null
+	name: string
 	avatar: string | null
-	theme: string | null
+	theme: string
 	customKind: string | null
 	hasPublished: boolean
 	sameAsPublished: boolean
 	draftUpdatedAt: number
 	publishedAt: number | null
-	/** Null when the draft isn't in the current shape; such a page needs reading in full. */
-	items: number | null
+	items: number
 	links: number
 }
 
@@ -445,7 +415,7 @@ export async function saveDraft(db: D1Database, id: string, draft: PageContent, 
 export interface PageVersionRow {
 	id: string
 	publishedAt: number
-	/** "owner", "token:<its name>", or null for a version from before these were recorded. */
+	/** "owner", "token:<its name>", or null for what was live before a page's first recorded publish (after an import, say). */
 	publishedBy: string | null
 }
 
@@ -474,7 +444,7 @@ export async function getPageVersion(db: D1Database, pageId: string, id: string)
 /** Records a publish. Run before the page itself changes, because the first one also saves what is live now. */
 export function pageVersionStatements(db: D1Database, pageId: string, content: PageContent, publishedAt: number, by: string | null, keep: number): D1PreparedStatement[] {
 	return [
-		// A page published before versions were kept, or restored from a backup, can still go back one.
+		// A page restored from a backup can still go back to what it had.
 		db
 			.prepare(
 				`INSERT INTO page_versions (id, page_id, content, published_at, published_by)
@@ -510,7 +480,7 @@ export function writeMetaStatement(db: D1Database, key: string, value: unknown):
 }
 
 export async function loadSettings(db: D1Database): Promise<Settings> {
-	const parsed = SettingsSchema.safeParse(upgradeSettings(await readMeta(db, 'settings'), LEGACY_PAGE_ID))
+	const parsed = SettingsSchema.safeParse(await readMeta(db, 'settings'))
 	return parsed.success ? parsed.data : { ...DEFAULT_SETTINGS }
 }
 

@@ -5,7 +5,6 @@ import {
 	appearanceFromPreset,
 	defaultAppearance,
 	defaultContent,
-	PageContentSchema,
 	presetFromAppearance,
 	samePreset,
 	THEME_IDS,
@@ -70,9 +69,6 @@ describe('background and text colors', () => {
 	it('leave every theme as it is without colors of its own', () => {
 		for (const id of THEME_IDS) {
 			expect(ofTheme(id, {}).theme).toBe(THEMES[id])
-			// Pages stored before v0.3 have no bg or fg at all.
-			const { bg: _bg, fg: _fg, ...legacy } = defaultAppearance()
-			expect(resolveAppearance({ ...legacy, theme: id }).theme).toBe(THEMES[id])
 		}
 	})
 
@@ -132,14 +128,6 @@ describe('background and text colors', () => {
 		expect(samePreset(preset, appearance)).toBe(true)
 		expect(samePreset(preset, { ...appearance, bg: '' })).toBe(false)
 		expect(appearanceFromPreset({ ...preset, bg: undefined }, appearance).bg).toBe('')
-	})
-
-	it('default to the theme colors in drafts saved before v0.3', () => {
-		const content = defaultContent()
-		const { bg: _bg, fg: _fg, ...legacy } = content.appearance
-		const parsed = PageContentSchema.parse({ ...content, appearance: legacy })
-		expect(parsed.appearance.bg).toBe('')
-		expect(parsed.appearance.fg).toBe('')
 	})
 })
 
@@ -224,14 +212,6 @@ describe('compositions', () => {
 		// The cover is the page's own: a look without one leaves it, and takes its own background away.
 		const bare = presetFromAppearance('Bare', defaultAppearance())
 		expect(appearanceFromPreset(bare, appearance)).toMatchObject({ coverImage: 'a1.webp', bgImage: null })
-	})
-
-	it('read stored appearances from before pictures existed', () => {
-		const { coverImage: _c, bgImage: _b, bgDim: _d, ...old } = defaultAppearance()
-		const stored = { ...defaultContent(), appearance: old }
-		expect(PageContentSchema.parse(stored).appearance).toMatchObject({ coverImage: null, bgImage: null, bgDim: 0.75 })
-		// KV copies aren't parsed.
-		expect(renderBioPage(stored as PageContent, { mode: 'live', mediaUrl: (id) => id })).not.toContain('class="cover"')
 	})
 })
 

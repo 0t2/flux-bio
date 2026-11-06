@@ -68,14 +68,9 @@ describe('draft preview links', () => {
 		const after = (expiresAt: number) => expiresAt - Date.now()
 		expect(Math.abs(after((await makeLink({ json: { minutes: 30 } })).expiresAt) - 30 * 60 * 1000)).toBeLessThan(5000)
 		expect(Math.abs(after((await makeLink({ json: { minutes: 10080 } })).expiresAt) - 7 * 24 * 3600 * 1000)).toBeLessThan(5000)
-		for (const json of [{ minutes: 0 }, { minutes: 10081 }, { minutes: 1.5 }, { hours: 999 }]) {
+		for (const json of [{ minutes: 0 }, { minutes: 10081 }, { minutes: 1.5 }]) {
 			expect((await api(`/pages/${pageId}/preview-link`, { method: 'POST', json })).status, JSON.stringify(json)).toBe(400)
 		}
-	})
-
-	it('still takes hours from tools written before minutes existed', async () => {
-		const { expiresAt } = await makeLink({ json: { hours: 2 } })
-		expect(Math.abs(expiresAt - Date.now() - 2 * 3600 * 1000)).toBeLessThan(5000)
 	})
 
 	it('lasts ten minutes when nothing says otherwise', async () => {
