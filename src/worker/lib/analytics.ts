@@ -346,6 +346,46 @@ function recentEvent(row: Record<string, unknown>): RecentEvent {
 	}
 }
 
+/** What the whole Cloudflare account used of KV and D1 since a moment, and the size of its D1 databases. */
+export interface AccountUse {
+	kv: { read: number; write: number; delete: number; list: number }
+	d1: { rowsRead: number; rowsWritten: number }
+	databases: { count: number; bytes: number }
+}
+
+/**
+ * The account's own numbers, from Cloudflare's analytics through the SQL binding, which is scoped to the account and
+ * needs no API token: every Worker and database on it, not only this one. They run a few minutes late, and come from
+ * sampled data. Null without the binding, as in local development.
+ */
+export async function accountUse(env: Env, since: string): Promise<AccountUse | null> {
+	const sql = (env as { ANALYTICS_SQL?: SqlBinding }).ANALYTICS_SQL
+	if (!sql) return null
+	// Database sizes are sampled now and then; the last two days hold each one's latest.
+	const recent = new Date(Date.parse(since) - 86_400_000).toISOString()
+	const [kv, d1, storage] = await Promise.all([
+		sql.query<{ actionType: string; ops: number }>({
+			query: 'SELECT actionType, SUM(sampleInterval) AS ops FROM events.kvRequests WHERE timestamp >= $since GROUP BY actionType',
+			params: { since },
+		}),
+		sql.query<{ readRows: number; writtenRows: number }>({
+			query: 'SELECT SUM(rowsRead * sampleInterval) AS readRows, SUM(rowsWritten * sampleInterval) AS writtenRows FROM events.d1BackendRequest WHERE timestamp >= $since',
+			params: { since },
+		}),
+		sql.query<{ databaseId: string; bytes: number }>({
+			query: 'SELECT databaseId, MAX(databaseSizeBytes) AS bytes FROM states.d1Storage WHERE timestamp >= $recent GROUP BY databaseId',
+			params: { recent },
+		}),
+	])
+	const ops = (action: string) => Math.round(Number(kv.data.find((row) => row.actionType === action)?.ops ?? 0))
+	const rows = d1.data[0]
+	return {
+		kv: { read: ops('read'), write: ops('write'), delete: ops('delete'), list: ops('list') },
+		d1: { rowsRead: Math.round(Number(rows?.readRows ?? 0)), rowsWritten: Math.round(Number(rows?.writtenRows ?? 0)) },
+		databases: { count: storage.data.length, bytes: storage.data.reduce((total, row) => total + (Number(row.bytes) || 0), 0) },
+	}
+}
+
 /** Views and clicks counted since a moment (an ISO time), for how much of today's quota the site has used. Null without Analytics Engine. */
 export async function countsSince(env: Env, since: string): Promise<{ views: number; clicks: number } | null> {
 	const source = sqlOf(env)

@@ -73,12 +73,26 @@ export interface UsageResponse {
 		from: 'analytics' | 'stats'
 	}
 	/**
-	 * What those cost, by the measured cost of each: a request each, two KV reads a view and one a click, a row written
-	 * each. Pictures, bots and other Workers on the account aren't in it, so the real use is higher.
+	 * Worker requests today, estimated from this site's views and clicks: Cloudflare's analytics have no count of Worker
+	 * requests to read. Pictures, bots and other Workers on the account aren't in it, so the real number is higher.
 	 */
-	estimate: { requests: number; kvReads: number; rowsWritten: number }
-	/** The free plan's daily limits for the same; null on the paid plan, which bills past them instead. */
-	dailyLimits: { requests: number; kvReads: number; rowsWritten: number } | null
+	estimate: { requests: number }
+	/**
+	 * What the whole Cloudflare account used today, every project on it included, from Cloudflare's own analytics (a few
+	 * minutes late, sampled). Null where they can't be read, as in local development.
+	 */
+	account: {
+		kv: { read: number; write: number; delete: number; list: number }
+		d1: { rowsRead: number; rowsWritten: number }
+		databases: { count: number; bytes: number }
+	} | null
+	/** The free plan's daily limits, per account; null on the paid plan, which bills past what it includes instead. */
+	dailyLimits: {
+		requests: number
+		kv: { read: number; write: number; delete: number; list: number }
+		d1: { rowsRead: number; rowsWritten: number }
+		databases: { count: number; bytes: number }
+	} | null
 	stats: {
 		/** Months of daily numbers kept; older months are kept as one number a month. */
 		dailyMonths: number
