@@ -94,6 +94,7 @@ Build bio pages in your own style: pick a theme and its colors, or have your AI 
 - **13 languages:** the dashboard and public pages are available in Traditional Chinese, Simplified Chinese, English, Japanese, Korean, Spanish, Portuguese, French, German, Indonesian, Thai, Vietnamese and Arabic. Public pages use one language you pick, and you can turn on more for visitors whose browser uses them. Your AI can translate your own text into them too.
 - **Almost no JavaScript on public pages:** plain HTML served straight from Cloudflare's edge, so pages load fast. One tiny script counts which link was tapped, and the page works without it. Videos and maps load only when a visitor taps them.
 - **Self-hosted:** uses only Cloudflare Workers, D1, KV and Analytics Engine, none of which need manual setup, with no other service to sign up for (fonts load from Google Fonts by default, and you can turn that off). Ask your AI to export everything in one package and import it elsewhere to back up your site or move it to another deployment.
+- **Several sites in one install:** two domains can be two separate sites in the same FluxBio, for example your pages at one and a link shortener at the other. Each has its own pages, short links and stats, and you switch between them from the menu at the top left of the dashboard. Adding a site is done by your AI: it can't be added by hand in the dashboard.
 
 ## Host your own
 

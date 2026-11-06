@@ -93,6 +93,7 @@ Tạo vài trang bio đúng phong cách của bạn: chọn chủ đề và bộ
 - **13 ngôn ngữ**: trang quản trị và trang công khai đều có 繁體中文, 简体中文, English, 日本語, 한국어, Español, Português, Français, Deutsch, Bahasa Indonesia, ไทย, Tiếng Việt và العربية. Trang công khai dùng một ngôn ngữ bạn chọn, và bạn có thể bật thêm ngôn ngữ khác cho khách có trình duyệt dùng ngôn ngữ đó. AI của bạn cũng có thể dịch nội dung bạn tự viết sang các ngôn ngữ đó.
 - **Trang công khai gần như không có JavaScript**: HTML thuần, xuất thẳng từ mạng biên của Cloudflare nên rất nhanh. Chỉ có một đoạn mã nhỏ để đếm lượt nhấp, và trang vẫn chạy được khi không có nó. Video và bản đồ chỉ tải khi khách bấm vào.
 - **Tự triển khai**: chỉ dùng Workers, D1, KV và Analytics Engine của Cloudflare, tất cả đều không cần thiết lập thủ công, không cần đăng ký dịch vụ nào khác (phông chữ mặc định tải từ Google Fonts, có thể tắt). Nhờ AI xuất và nhập trọn gói toàn bộ nội dung là sao lưu được, hoặc chuyển sang bản triển khai khác.
+- **Nhiều trang web trong một lần cài đặt**: hai tên miền có thể là hai trang web riêng biệt trong cùng một FluxBio, ví dụ một tên miền cho trang của bạn và một tên miền chuyên rút gọn liên kết. Mỗi trang web có trang, liên kết rút gọn và số liệu riêng, và bạn chuyển qua lại bằng menu ở góc trên bên trái trang quản trị. Việc thêm trang web do AI của bạn thực hiện: không thể thêm thủ công trong trang quản trị.
 
 ## Tự triển khai
 

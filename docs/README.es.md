@@ -93,6 +93,7 @@ Crea páginas bio con tu estilo: elige un tema y sus colores, o pídele a tu IA 
 - **13 idiomas**: el panel y las páginas públicas están en chino tradicional, chino simplificado, inglés, japonés, coreano, español, portugués, francés, alemán, indonesio, tailandés, vietnamita y árabe. Las páginas públicas usan el idioma que elijas, y puedes activar más para quien tenga el navegador en ellos. Tu IA también puede traducir tus propios textos a esos idiomas.
 - **Casi nada de JavaScript en las páginas públicas**: HTML puro servido directamente desde el edge de Cloudflare, así que cargan rápido. Solo hay un script mínimo que cuenta los clics, y la página funciona sin él. Los videos y mapas solo se cargan cuando el visitante los toca.
 - **Autoalojado**: solo usa Workers, D1, KV y Analytics Engine de Cloudflare, nada requiere configuración manual y no hay que contratar ningún otro servicio (las fuentes se cargan de Google Fonts por defecto, y se puede desactivar). Pídele a tu IA que exporte o importe todo tu contenido para hacer una copia de seguridad o pasarlo a otra instalación.
+- **Varios sitios en una sola instalación**: dos dominios pueden ser dos sitios independientes dentro del mismo FluxBio, por ejemplo tus páginas en uno y un acortador de enlaces en el otro. Cada uno tiene sus propias páginas, enlaces cortos y estadísticas, y cambias de uno a otro desde el menú de arriba a la izquierda del panel. Añadir un sitio es tarea de tu IA: no se puede añadir a mano desde el panel.
 
 ## Instala el tuyo
 

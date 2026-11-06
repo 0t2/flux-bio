@@ -93,6 +93,7 @@ Buat beberapa halaman bio sesuai gayamu: pilih tema dan warnanya, atau minta AI-
 - **13 bahasa**: dasbor dan halaman publik tersedia dalam 繁體中文, 简体中文, English, 日本語, 한국어, Español, Português, Français, Deutsch, Bahasa Indonesia, ไทย, Tiếng Việt, dan العربية. Halaman publik memakai satu bahasa pilihanmu, dan kamu bisa mengaktifkan bahasa lain untuk pengunjung yang browsernya memakai bahasa itu. AI-mu juga bisa menerjemahkan teks buatanmu ke bahasa-bahasa itu.
 - **Hampir tanpa JavaScript di halaman publik**: HTML murni yang langsung dikirim dari edge Cloudflare, jadi cepat. Hanya ada satu skrip kecil untuk menghitung klik, dan halaman tetap berfungsi tanpanya. Video dan peta baru dimuat setelah pengunjung mengetuknya.
 - **Pasang sendiri**: hanya memakai Workers, D1, KV, dan Analytics Engine dari Cloudflare, semuanya tanpa pengaturan manual, tanpa perlu mendaftar ke layanan lain (font dimuat dari Google Fonts secara bawaan, dan bisa dimatikan). Minta AI mengekspor dan mengimpor seluruh konten sekaligus untuk mencadangkan atau pindah ke instalasi lain.
+- **Beberapa situs dalam satu instalasi**: dua domain bisa menjadi dua situs terpisah di FluxBio yang sama, misalnya halamanmu di satu domain dan pemendek tautan di domain lain. Masing-masing punya halaman, tautan pendek, dan statistik sendiri, dan kamu berpindah di antaranya lewat menu di kiri atas dasbor. Menambah situs dikerjakan oleh AI-mu: tidak bisa ditambahkan secara manual dari dasbor.
 
 ## Pasang sendiri
 

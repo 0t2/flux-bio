@@ -93,6 +93,7 @@ Bau dir Bio-Seiten in deinem Stil: Wähle ein Theme und seine Farben oder lass d
 - **13 Sprachen**: Dashboard und öffentliche Seiten gibt es auf 繁體中文, 简体中文, English, 日本語, 한국어, Español, Português, Français, Deutsch, Bahasa Indonesia, ไทย, Tiếng Việt und العربية. Öffentliche Seiten nutzen die Sprache, die du wählst; weitere kannst du für Besucher mit dieser Browsersprache einschalten. Deine KI kann auch deine eigenen Texte in diese Sprachen übersetzen.
 - **Kaum JavaScript auf öffentlichen Seiten**: reines HTML, direkt vom Cloudflare-Edge ausgeliefert und entsprechend schnell. Nur ein winziges Skript zählt die Klicks, und die Seite funktioniert auch ohne es. Videos und Karten laden erst, wenn Besucher darauf tippen.
 - **Selbst gehostet**: nur Workers, D1, KV und Analytics Engine von Cloudflare, alles ohne manuelle Einrichtung und ohne weiteren Dienst, bei dem du dich anmelden müsstest (Schriften kommen standardmäßig von Google Fonts, das lässt sich abschalten). Lass deine KI alle Inhalte exportieren und wieder importieren, um ein Backup zu machen oder auf eine andere Installation umzuziehen.
+- **Mehrere Websites in einer Installation**: Zwei Domains können zwei eigenständige Websites im selben FluxBio sein, zum Beispiel deine Seiten unter der einen und ein Kurzlink-Dienst unter der anderen. Jede hat ihre eigenen Seiten, Kurzlinks und Statistiken, und du wechselst über das Menü oben links im Dashboard zwischen ihnen. Eine Website hinzuzufügen übernimmt deine KI: Von Hand im Dashboard geht das nicht.
 
 ## Selbst hosten
 
