@@ -18,7 +18,7 @@ import {
 	type ProductItem,
 	type VideoItem,
 } from '../shared/content'
-import { CHINESE_FONT_CHARACTERS, FONT_FAMILY, FONT_FILE, fontFileUrl, textOf, type HostedFont } from '../shared/fonts'
+import { CHINESE_FONT_CHARACTERS, findFont, FONT_FAMILY, FONT_FILE, fontFileUrl, GOOGLE_TEXT_LIMIT, isSlicedFont, textOf, type HostedFont } from '../shared/fonts'
 import { hoursWords, localTime, openStatus, statusText, weekRows } from '../shared/hours'
 import { dirAttribute } from '../shared/locale'
 import { localizedContent } from '../shared/translations'
@@ -460,23 +460,48 @@ export function headHtml(look: ResolvedAppearance, title: string, hosted?: reado
 <meta name="theme-color" content="${look.theme.bg}">${fontsHtml(look, hosted, shown)}`
 }
 
-/** Past this many different Chinese characters a page in another language just loads the whole font, as a Chinese page does. */
-const FALLBACK_CHARACTERS = 400
+/** Everything a keyboard types, which a page's markup is made of too. */
+const ASCII = Array.from({ length: 0x7f - 0x20 }, (_, index) => String.fromCharCode(0x20 + index))
 
 /**
- * The stylesheets a page links at Google. A Chinese font's is over a hundred rules, about 35 KB that hold up the first
- * paint, because the font comes cut into a hundred files. A page in English has no use for that list: the Chinese
- * font there only draws the Chinese in the owner's own text (look.fallbackFonts). So given `shown`, what the page
- * shows this visitor, such a font is asked for with exactly the Chinese characters in it, which is one small rule and
- * one small file, and not asked for at all when there are none. The other families are linked as ever, and so is
- * everything when `shown` is left out: a preview's text changes with every key.
+ * The stylesheets a page links at Google. A Chinese, Japanese or Korean font comes cut into a hundred files or so,
+ * and its stylesheet is the list of them: about 35 KB that hold up the first paint, before the dozens of files a page
+ * of Chinese then pulls from it. Given `shown`, what the page shows this visitor, such a font is asked for with
+ * exactly the characters it has to draw there (`&text=`), which is one small rule and one file:
+ *
+ * - where it is the page's own font (a page in Traditional Chinese, or a font of that kind the owner picked), every
+ *   character shown;
+ * - where it only draws what the fonts before it can't (look.fallbackFonts: the built-in Chinese font on a page in
+ *   English, say), the Chinese characters shown, and nothing at all when there are none.
+ *
+ * Google cuts a font to GOOGLE_TEXT_LIMIT characters at most, so a page that shows more links the whole font. Other
+ * families are linked whole, as ever: their stylesheets are small and their files are kept for a year, where a cut
+ * one is kept for a day. So is everything when `shown` is left out: a preview's text changes with every key.
  */
 function fontLinks(look: ResolvedAppearance, shown?: string): string[] {
-	const fallback = shown === undefined ? [] : look.webFonts.filter((font) => look.fallbackFonts.includes(font.family))
-	const characters = fallback.length ? [...new Set(shown?.match(CHINESE_FONT_CHARACTERS) ?? [])].sort() : []
-	if (!fallback.length || characters.length > FALLBACK_CHARACTERS) return look.fontsHref ? [look.fontsHref] : []
-	const others = googleFontsHref(look.webFonts.filter((font) => !fallback.includes(font)))
-	return [others, characters.length ? `${googleFontsHref(fallback)}&text=${encodeURIComponent(characters.join(''))}` : ''].filter(Boolean)
+	if (shown === undefined) return look.fontsHref ? [look.fontsHref] : []
+	const fallback = look.webFonts.filter((font) => look.fallbackFonts.includes(font.family))
+	const own = look.webFonts.filter((font) => !fallback.includes(font) && isSliced(font.family))
+	if (!fallback.length && !own.length) return look.fontsHref ? [look.fontsHref] : []
+	const cut = (fonts: typeof look.webFonts, characters: string[]) => {
+		if (!fonts.length || !characters.length) return ''
+		const whole = googleFontsHref(fonts)
+		return characters.length > GOOGLE_TEXT_LIMIT ? whole : `${whole}&text=${inAddress(characters.sort().join(''))}`
+	}
+	const beyond = [...new Set(shown)].filter((character) => character > '~')
+	return [
+		googleFontsHref(look.webFonts.filter((font) => !fallback.includes(font) && !own.includes(font))),
+		cut(fallback, [...new Set(shown.match(CHINESE_FONT_CHARACTERS) ?? [])]),
+		cut(own, [...ASCII, ...beyond]),
+	].filter(Boolean)
+}
+
+/** Text as part of an address, with nothing left in it that HTML would write another way: encodeURIComponent keeps ' ( ) * ! as they are. */
+const inAddress = (text: string): string => encodeURIComponent(text).replace(/[!'()*]/g, (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`)
+
+const isSliced = (family: string): boolean => {
+	const font = findFont(family)
+	return Boolean(font && isSlicedFont(font))
 }
 
 const FACE_WEIGHT = /^\d{3}(?: \d{3})?$/
