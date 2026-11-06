@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import type { FontsResponse, PageJson, StateResponse } from '../src/shared/api'
 import { emptyContent, newItem, PageContentSchema, storedContent, type PageContent } from '../src/shared/content'
-import { findFont, fontAxis, headingWeight, searchFonts, FEATURED_FONTS, googleFonts } from '../src/shared/fonts'
-import { pageCharacters, pageWebFonts, parseFaces } from '../src/worker/lib/fonts'
+import { findFont, fontAxis, GOOGLE_TEXT_LIMIT, headingWeight, searchFonts, FEATURED_FONTS, googleFonts } from '../src/shared/fonts'
+import { charactersFor, pageCharacters, pageWebFonts, parseFaces } from '../src/worker/lib/fonts'
 import { resolveAppearance } from '../src/templates/themes'
 import { api, apiJson, visit } from './helpers'
 
@@ -93,6 +93,19 @@ describe('characters a page can show', () => {
 		const css = `@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400 700; src: url(https://fonts.gstatic.com/l/font?kit=abc&v=1) format('woff2'); }
 @font-face { font-family: 'X'; font-weight: 400; src: url(https://evil.example/x.woff2) format('woff2'); }`
 		expect(parseFaces(css)).toEqual([{ weight: '400 700', src: 'https://fonts.gstatic.com/l/font?kit=abc&v=1' }])
+	})
+})
+
+describe('characters a font is asked for', () => {
+	it('are never more than Google cuts a font to: one more, and it would send all hundred files of a Chinese font to copy', () => {
+		const content = emptyContent('Mei')
+		content.profile.bio = Array.from({ length: 1000 }, (_, i) => String.fromCodePoint(0x4e00 + i)).join('')
+		const chars = pageCharacters(content, ['zh-TW'])
+		expect(chars.length).toBeGreaterThan(1000)
+		const asked = [...charactersFor(findFont('Noto Sans TC')!, chars)]
+		expect(asked).toHaveLength(GOOGLE_TEXT_LIMIT)
+		// What a keyboard types comes first, so it is the rarest characters that are left to the visitor's own fonts.
+		expect(asked.slice(0, 95).join('')).toBe(Array.from({ length: 95 }, (_, i) => String.fromCharCode(0x20 + i)).join(''))
 	})
 })
 

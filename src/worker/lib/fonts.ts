@@ -1,5 +1,5 @@
 import type { Locale, PageContent, Settings } from '../../shared/content'
-import { findFont, fontAxis, textOf, type GoogleFont, type HostedFont } from '../../shared/fonts'
+import { findFont, fontAxis, GOOGLE_TEXT_LIMIT, isSlicedFont, textOf, type GoogleFont, type HostedFont } from '../../shared/fonts'
 import { pageLanguages } from '../../shared/locale'
 import { builtInWords } from '../../templates/render'
 import { resolveAppearance, type WebFont } from '../../templates/themes'
@@ -22,8 +22,12 @@ import { resolveAppearance, type WebFont } from '../../templates/themes'
 const CSS_URL = 'https://fonts.googleapis.com/css2'
 /** Google picks the file format by browser; this one gets woff2. */
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
-/** More characters than a page shows in practice; the request URL grows by up to 9 bytes each. */
-const MAX_CHARACTERS = 1500
+/**
+ * More characters than a page shows in practice, and as many as Google cuts a font to: past that it sends the whole
+ * font, which for a Chinese one would be a hundred files to copy. The rarest of a page with more are left to the
+ * visitor's own fonts.
+ */
+const MAX_CHARACTERS = GOOGLE_TEXT_LIMIT
 const MAX_FILE_BYTES = 4 * 1024 * 1024
 const TIMEOUT_MS = 8000
 
@@ -61,8 +65,8 @@ const CJK = /[⺀-鿿가-힯豈-﫿︰-﹏＀-￯\u{20000}-\u{3ffff}]/u
 const THAI = /[฀-๿]/
 
 /** The characters worth asking a family for: Google leaves out what it can't draw, but they would make the request longer. */
-function charactersFor(font: GoogleFont, chars: readonly string[]): string {
-	const cjk = font.scripts.some((script) => script.startsWith('chinese') || script === 'japanese' || script === 'korean')
+export function charactersFor(font: GoogleFont, chars: readonly string[]): string {
+	const cjk = isSlicedFont(font)
 	const thai = font.scripts.includes('thai')
 	return chars
 		.filter((char) => (CJK.test(char) ? cjk : THAI.test(char) ? thai : true))

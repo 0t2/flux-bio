@@ -213,6 +213,15 @@ export const FONT_FILE = /^[A-Za-z0-9-]{8,80}$/
  */
 export const CHINESE_FONT_CHARACTERS = /[\u2E80-\u9FFF\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFFEF\u{20000}-\u{3FFFF}]/gu
 
+/**
+ * How many different characters Google Fonts cuts a font down to (`&text=`). Asked for one more, it says nothing and
+ * sends the whole font, a hundred files for a Chinese one.
+ */
+export const GOOGLE_TEXT_LIMIT = 800
+
+/** A family Google serves cut into a hundred files or so: Chinese, Japanese and Korean ones. Its stylesheet alone is tens of kilobytes. */
+export const isSlicedFont = (font: GoogleFont): boolean => font.scripts.some((script) => script.startsWith('chinese') || script === 'japanese' || script === 'korean')
+
 /** Every string in a value, functions included as their source text (which holds the words of a template). */
 export function textOf(value: unknown): string {
 	if (typeof value === 'string') return value
