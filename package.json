@@ -17,7 +17,7 @@
     "typecheck": "cf workers types && tsc -p tsconfig.worker.json && tsc -p tsconfig.app.json && tsc -p tsconfig.node.json",
     "i18n": "node scripts/i18n.mjs",
     "landing": "node landing/build.mjs",
-    "landing:deploy": "node scripts/landing-pictures.mjs && node landing/build.mjs && cd landing && cf deploy --prebuilt",
+    "landing:deploy": "node scripts/landing-owner.mjs && node scripts/landing-pictures.mjs && node landing/build.mjs && cd landing && cf deploy --prebuilt",
     "landing:pictures": "node scripts/landing-pictures.mjs",
     "landing:fonts": "node scripts/landing-fonts.mjs",
     "shots": "node scripts/shots.mjs",
