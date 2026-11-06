@@ -797,10 +797,10 @@ export function renderBioPage(source: PageContent, options: RenderOptions): stri
 		.filter(Boolean)
 		.join('\n')
 
-	// Pictures an AI gave the page: stored copies from before they existed have neither.
+	// Pictures an AI gave the page.
 	const { coverImage, bgImage, bgDim } = content.appearance
 	const cover = coverImage ? `<figure class="cover"><img src="${esc(options.mediaUrl(coverImage))}" alt=""></figure>` : ''
-	const backdrop = bgImage ? `<div class="page-bg" style="--dim:${Number(bgDim ?? 0.75)}" aria-hidden="true"><img src="${esc(options.mediaUrl(bgImage))}" alt=""></div>` : ''
+	const backdrop = bgImage ? `<div class="page-bg" style="--dim:${Number(bgDim)}" aria-hidden="true"><img src="${esc(options.mediaUrl(bgImage))}" alt=""></div>` : ''
 
 	const avatar = content.profile.avatar
 		? `<img src="${esc(options.mediaUrl(content.profile.avatar))}" alt="">`

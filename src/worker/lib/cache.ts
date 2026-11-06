@@ -1,5 +1,5 @@
 import type { UtmTags } from '../../shared/api'
-import type { Appearance, Locale, LocaleSetting, PageContent } from '../../shared/content'
+import type { Appearance, Locale, PageContent } from '../../shared/content'
 import type { HostedFont } from '../../shared/fonts'
 import type { LinkRow } from './db'
 
@@ -19,10 +19,10 @@ export interface Snapshot {
 	handle: string
 	content: PageContent
 	publishedAt: number
-	/** The page language, resolved per visitor against `languages` ("auto" in copies from before v0.3). */
-	locale: LocaleSetting
-	/** More languages visitors may get (settings.languages); missing in copies from before v0.3. */
-	languages?: Locale[]
+	/** The page language, resolved per visitor against `languages`. */
+	locale: Locale
+	/** More languages visitors may get (settings.languages). */
+	languages: Locale[]
 	/** This page is also served at "/". */
 	home: boolean
 	/** Fonts served by this Worker; missing, the page loads them from Google. */
@@ -36,15 +36,15 @@ export interface SiteRecord {
 	v: 3
 	/** Handle of the page served at "/", or "". */
 	home: string
-	locale: LocaleSetting
-	languages?: Locale[]
+	locale: Locale
+	languages: Locale[]
 	/** The home page's look, used for 404 and other system pages. */
 	look: Appearance | null
 	/** Handles of published pages, offered at "/" when no page is home. */
 	published: string[]
-	/** false: pages are switched off, and "/" goes to `homeUrl` or says this address is for short links. Missing in older copies, which means on. */
-	bio?: boolean
-	homeUrl?: string
+	/** false: pages are switched off, and "/" goes to `homeUrl` or says this address is for short links. */
+	bio: boolean
+	homeUrl: string
 	/**
 	 * The time zone stats count days in and pages show times in. Pages and short links don't carry it, so changing
 	 * it rewrites none of them: a visit to "/" has it from here, and any other asks siteTimeZone.

@@ -61,10 +61,6 @@ describe('admin API auth', () => {
 		expect(state.role).toBe('admin')
 	})
 
-	it('still accepts the v0.1 login body', async () => {
-		expect((await call('/api/auth/login', { method: 'POST', body: JSON.stringify({ token: PASSWORD }) })).status).toBe(200)
-	})
-
 	it('reports setup problems before sign-in and refuses an empty password', async () => {
 		expect(await (await call('/api/auth/info')).json()).toEqual({ setup: null })
 		expect((await call('/api/auth/login', { method: 'POST', body: JSON.stringify({ password: '' }) })).status).toBe(401)
