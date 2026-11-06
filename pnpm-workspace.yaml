@@ -1,0 +1,7 @@
+# pnpm's settings for this project. Since pnpm 11 they live here, not in package.json.
+
+# The packages that may run a script when they are installed: both fetch the program they wrap for this computer.
+# pnpm runs no other package's install script, and stops if one asks to.
+allowBuilds:
+  esbuild: true
+  workerd: true
