@@ -58,7 +58,9 @@ export const OPERATIONS: Operation[] = [
 		id: 'readGuide',
 		tag: 'Account',
 		summary: 'Read a part of the guide',
-		description: 'Plain text, no token needed. Topics: first-conversation, trying-it, faq, custom-page, share-image, look, customize, links, translate, test-site, quota, move, domain, short-links-only, update, remove. /llms.txt says when to read each.',
+		// Written out, because agentTopics.ts imports this file. tests/agent.test.ts checks that it names every topic.
+		description:
+			'Plain text, no token needed. Topics: first-conversation, trying-it, content, stats, look, customize, translate, links, share-image, custom-page, quota, test-site, move, domain, short-links-only, password, faq, update, remove, endpoints. /llms.txt says when to read each.',
 		open: true,
 		produces: 'text',
 	},

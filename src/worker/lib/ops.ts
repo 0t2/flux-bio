@@ -9,7 +9,7 @@ import {
 	type Locale,
 } from '../../shared/content'
 import type { PublishResponse } from '../../shared/api'
-import { otherLanguages, pageLanguages } from '../../shared/locale'
+import { otherLanguages } from '../../shared/locale'
 import { normalizeSlug, SLUG_PROBLEM_TEXT, slugFromText, slugFromUrl, slugProblem, uniqueSlug } from '../../shared/slug'
 import { duplicateContent, starterContent, starterWords, type StarterId } from '../../shared/starters'
 import { isValidTimeZone } from '../../shared/time'
@@ -514,7 +514,7 @@ export async function createPage(env: Env, input: NewPage): Promise<PageRow> {
 		qrLogo = source.qrLogo
 		if (name) draft.profile.name = name
 	} else {
-		draft = input.starter ? starterContent(input.starter, name, starterWords(input.locale ?? pageLanguages((await loadSettings(db)).locale).locale)) : emptyContent(name)
+		draft = input.starter ? starterContent(input.starter, name, starterWords(input.locale ?? (await loadSettings(db)).locale)) : emptyContent(name)
 	}
 	if (input.theme) draft.appearance = { ...draft.appearance, theme: input.theme, accent: '', bg: '', fg: '', font: 'auto', headFont: '', bodyFont: '', button: 'auto' }
 
@@ -532,7 +532,7 @@ export async function createPage(env: Env, input: NewPage): Promise<PageRow> {
 		qrLogo,
 	}
 	const statements = [insertPageStatement(db, page)]
-	// The first page is also the home page, as in v0.1.
+	// The first page is also the home page.
 	const settings = await loadSettings(db)
 	const first = last === null
 	if (first) statements.push(saveSettingsStatement(db, { ...settings, home: page.id }))

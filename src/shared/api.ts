@@ -172,7 +172,7 @@ export interface PublishResponse {
 export interface PageVersionJson {
 	id: string
 	publishedAt: number
-	/** Who published it. Null for a version from before these were recorded. */
+	/** Who published it. Null for what was live before the page's first recorded publish, e.g. after an import. */
 	by: 'owner' | 'token' | null
 	/** The token's name when `by` is "token", as it was then. */
 	tokenName: string | null

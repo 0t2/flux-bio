@@ -3,9 +3,9 @@ import { CommunityListSchema } from '../src/shared/community'
 import { STARTER_IDS } from '../src/shared/starters'
 import {
 	appearanceFromPreset,
+	AppearanceSchema,
 	defaultAppearance,
 	defaultContent,
-	PageContentSchema,
 	presetFromAppearance,
 	samePreset,
 	THEME_IDS,
@@ -70,9 +70,6 @@ describe('background and text colors', () => {
 	it('leave every theme as it is without colors of its own', () => {
 		for (const id of THEME_IDS) {
 			expect(ofTheme(id, {}).theme).toBe(THEMES[id])
-			// Pages stored before v0.3 have no bg or fg at all.
-			const { bg: _bg, fg: _fg, ...legacy } = defaultAppearance()
-			expect(resolveAppearance({ ...legacy, theme: id }).theme).toBe(THEMES[id])
 		}
 	})
 
@@ -132,14 +129,6 @@ describe('background and text colors', () => {
 		expect(samePreset(preset, appearance)).toBe(true)
 		expect(samePreset(preset, { ...appearance, bg: '' })).toBe(false)
 		expect(appearanceFromPreset({ ...preset, bg: undefined }, appearance).bg).toBe('')
-	})
-
-	it('default to the theme colors in drafts saved before v0.3', () => {
-		const content = defaultContent()
-		const { bg: _bg, fg: _fg, ...legacy } = content.appearance
-		const parsed = PageContentSchema.parse({ ...content, appearance: legacy })
-		expect(parsed.appearance.bg).toBe('')
-		expect(parsed.appearance.fg).toBe('')
 	})
 })
 
@@ -214,6 +203,26 @@ describe('compositions', () => {
 		expect(html).toContain('<div class="page-bg" style="--dim:0.6" aria-hidden="true"><img src="/media/b2.webp" alt=""></div>')
 	})
 
+	it('repeat a background at the width set in bgTile, and cover the screen at 0', () => {
+		const tiled = page({ bgImage: 'b2.png', bgDim: 0.4, bgTile: 553 })
+		expect(tiled).toContain(`<div class="page-bg tile" style="--dim:0.4;background-image:url('/media/b2.png');background-size:553px auto" aria-hidden="true"></div>`)
+		expect(tiled).toContain('.page-bg.tile{background-position:center;background-repeat:repeat}')
+		expect(page({ bgImage: 'b2.png', bgTile: 0 })).toContain('<img src="/media/b2.png" alt="">')
+		// Left out, it covers: an AI that only sets a picture gets what it had before.
+		expect(AppearanceSchema.parse({ ...defaultAppearance(), bgTile: undefined }).bgTile).toBe(0)
+		for (const bgTile of [-1, 1.5, 2001]) expect(AppearanceSchema.safeParse({ ...defaultAppearance(), bgTile }).success, String(bgTile)).toBe(false)
+	})
+
+	it('keep how a background repeats with a saved look', () => {
+		const appearance = { ...defaultAppearance(), bgImage: 'b2.png', bgDim: 0.4, bgTile: 553 }
+		const preset = presetFromAppearance('Pattern', appearance)
+		expect(preset).toMatchObject({ bgImage: 'b2.png', bgTile: 553 })
+		expect(samePreset(preset, appearance)).toBe(true)
+		expect(samePreset(preset, { ...appearance, bgTile: 0 })).toBe(false)
+		expect(appearanceFromPreset(preset, defaultAppearance())).toMatchObject({ bgImage: 'b2.png', bgTile: 553 })
+		expect(presetFromAppearance('Cover', { ...appearance, bgTile: 0 })).not.toHaveProperty('bgTile')
+	})
+
 	it('keep pictures with a saved look, and leave the cover to one that has none', () => {
 		const appearance = { ...defaultAppearance(), theme: 'jelly' as const, coverImage: 'a1.webp', bgImage: 'b2.webp', bgDim: 0.6 }
 		const preset = presetFromAppearance('Mine', appearance)
@@ -224,14 +233,6 @@ describe('compositions', () => {
 		// The cover is the page's own: a look without one leaves it, and takes its own background away.
 		const bare = presetFromAppearance('Bare', defaultAppearance())
 		expect(appearanceFromPreset(bare, appearance)).toMatchObject({ coverImage: 'a1.webp', bgImage: null })
-	})
-
-	it('read stored appearances from before pictures existed', () => {
-		const { coverImage: _c, bgImage: _b, bgDim: _d, ...old } = defaultAppearance()
-		const stored = { ...defaultContent(), appearance: old }
-		expect(PageContentSchema.parse(stored).appearance).toMatchObject({ coverImage: null, bgImage: null, bgDim: 0.75 })
-		// KV copies aren't parsed.
-		expect(renderBioPage(stored as PageContent, { mode: 'live', mediaUrl: (id) => id })).not.toContain('class="cover"')
 	})
 })
 

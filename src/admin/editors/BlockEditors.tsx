@@ -5,12 +5,15 @@ import {
 	newProduct,
 	PRODUCT_LIMIT,
 	videoEmbed,
+	type EmbedItem,
 	type GalleryItem,
 	type HeadingItem,
 	type Product,
 	type ProductItem,
 	type VideoItem,
 } from '../../shared/content'
+import { EMBED_ACTIONS, EMBED_PROVIDERS, EMBEDS, type EmbedProvider } from '../../shared/embeds'
+import { ACTION_META } from './kinds'
 import { Icon } from '../components/Icon'
 import { toast } from '../components/ui'
 import { t } from '../i18n'
@@ -78,6 +81,80 @@ export function VideoEditor({ item, set, invalid }: EditorProps<VideoItem>) {
 			<div className="field">
 				<label htmlFor={fieldId(item, 'title')}>{t('影片標題（選填）')}</label>
 				<input id={fieldId(item, 'title')} className="input" maxLength={80} value={item.title} onChange={(event) => set({ title: event.target.value })} placeholder={t('顯示在影片下方')} />
+			</div>
+		</>
+	)
+}
+
+/** A pasted address, or the service's embed code, becomes the account itself; anything else stays as typed. */
+export function embedInput(provider: EmbedProvider, value: string): string {
+	const service = EMBEDS[provider]
+	return value.toLowerCase().includes(service.site) ? (service.account(value) ?? value) : value
+}
+
+/** The field for an embed's account: what to paste, and where a tap will go once it reads. */
+export function EmbedAccountField({ provider, value, onChange, invalid, id }: { provider: EmbedProvider; value: string; onChange: (account: string) => void; invalid?: true; id: string }) {
+	const service = EMBEDS[provider]
+	const { name } = service
+	const account = service.account(value)
+	const wrong = Boolean(value.trim()) && !account
+	return (
+		<>
+			<input
+				id={id}
+				className="input mono"
+				maxLength={2048}
+				autoCapitalize="none"
+				autoCorrect="off"
+				spellCheck={false}
+				value={value}
+				aria-label={t('{name} 帳號', { name })}
+				aria-invalid={invalid ?? (wrong || undefined)}
+				onChange={(event) => onChange(embedInput(provider, event.target.value))}
+				placeholder={t('{site}/你的帳號', { site: service.site })}
+			/>
+			<span className="hint">
+				{wrong
+					? t('找不到 {name} 帳號，請貼上你的 {name} 網址。', { name })
+					: account
+						? t('訪客按下按鈕，會在你的頁面上打開 {page}。', { page: service.page(account).replace(/^https:\/\//, '') })
+						: t('貼上你的 {name} 網址也可以。訪客按下按鈕，才會載入 {name}。', { name })}
+			</span>
+		</>
+	)
+}
+
+export function EmbedEditor({ item, set, invalid }: EditorProps<EmbedItem>) {
+	const service = EMBEDS[item.provider]
+	const defaultTitle = t(EMBED_ACTIONS[service.action].title)
+	function pick(provider: EmbedProvider) {
+		// A title still as it came follows the service.
+		const title = item.title === defaultTitle ? t(EMBED_ACTIONS[EMBEDS[provider].action].title) : item.title
+		set({ provider, title })
+	}
+	return (
+		<>
+			<div className="field">
+				<label htmlFor={fieldId(item, 'provider')}>{t('服務')}</label>
+				<select id={fieldId(item, 'provider')} className="select" value={item.provider} onChange={(event) => pick(event.target.value as EmbedProvider)}>
+					{EMBED_PROVIDERS.map((provider) => (
+						<option key={provider} value={provider}>
+							{EMBEDS[provider].name}
+						</option>
+					))}
+				</select>
+			</div>
+			<div className="field">
+				<label htmlFor={fieldId(item, 'account')}>{t('{name} 帳號', { name: service.name })}</label>
+				<EmbedAccountField id={fieldId(item, 'account')} provider={item.provider} value={item.account} invalid={invalid('account')} onChange={(account) => set({ account })} />
+			</div>
+			<div className="field">
+				<label htmlFor={fieldId(item, 'title')}>{t('標題')}</label>
+				<input id={fieldId(item, 'title')} className="input" maxLength={80} value={item.title} onChange={(event) => set({ title: event.target.value })} placeholder={defaultTitle} />
+			</div>
+			<div className="field">
+				<label htmlFor={fieldId(item, 'note')}>{t('備註（選填）')}</label>
+				<input id={fieldId(item, 'note')} className="input" maxLength={120} value={item.note} onChange={(event) => set({ note: event.target.value })} placeholder={t(ACTION_META[service.action].note)} />
 			</div>
 		</>
 	)

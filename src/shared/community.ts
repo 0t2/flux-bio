@@ -10,7 +10,7 @@ import { STARTER_IDS } from './starters'
  * itself has it. Pictures belong to one deployment, so a shared look has none, and a color set is colors: CSS is a
  * look an AI made for one page.
  */
-export const CommunityThemeSchema = ThemePresetSchema.omit({ coverImage: true, bgImage: true, bgDim: true, css: true }).extend({
+export const CommunityThemeSchema = ThemePresetSchema.omit({ coverImage: true, bgImage: true, bgDim: true, bgTile: true, css: true }).extend({
 	id: z.string().regex(/^[a-z0-9-]{2,40}$/),
 	uses: z.array(z.enum(STARTER_IDS)).max(STARTER_IDS.length).optional().catch(undefined),
 })

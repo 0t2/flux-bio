@@ -147,7 +147,7 @@ describe('a link that needs its short link', () => {
 		expect((await visit(`/shop-${n}`)).status).toBe(401)
 	})
 
-	it('is safe in a copy of the page written before this existed: it gets rebuilt', async () => {
+	it('is safe in a copy of the page in a shape this version does not write: it gets rebuilt', async () => {
 		const { handle, n } = await makePage((i) => ({ items: [linkItem(i)] }))
 		await apiJson(`/links/link-${n}`, { method: 'PATCH', json: { password: 'open-sesame' } })
 		const { page: copy } = (await env.KV.get(`name:${handle}`, 'json')) as { page: Record<string, unknown> }

@@ -5,6 +5,7 @@ import { api as apiApp } from '../src/worker/routes/api'
 import type { CreateTokenResponse, PageJson } from '../src/shared/api'
 import { api, apiJson, call, ORIGIN } from './helpers'
 import { GUIDE_TOPICS } from '../src/worker/lib/agentTopics'
+import { THEME_IDS } from '../src/shared/content'
 
 // FluxBio is run by AI agents: /api/openapi.json, /llms.txt and /skill.md
 // must describe every route the API has, and need no sign-in to read.
@@ -61,14 +62,21 @@ describe('the OpenAPI document', () => {
 })
 
 describe('the agent guide', () => {
-	it('is public, names this deployment and lists every operation', async () => {
+	it('is public, names this deployment, and has every operation a request away', async () => {
 		const response = await call('/llms.txt')
 		expect(response.status).toBe(200)
 		expect(response.headers.get('content-type')).toContain('text/plain')
 		const guide = await response.text()
 		expect(guide).toContain(`${ORIGIN}/api/openapi.json`)
 		expect(guide).toContain(`FluxBio ${VERSION}`)
-		for (const op of OPERATIONS) expect(guide).toContain(`\`${op.path}\``)
+		const endpoints = await (await call('/api/guide/endpoints')).text()
+		for (const op of OPERATIONS) expect(endpoints).toContain(`\`${op.path}\``)
+	})
+
+	it('names every topic in the OpenAPI document, for tools that only read that', () => {
+		const description = OPERATIONS.find((op) => op.path === '/api/guide/{topic}')!.description!
+		const named = description.match(/Topics: ([^.]+)\./)![1]!.split(', ')
+		expect(named.sort()).toEqual(GUIDE_TOPICS.map((topic) => topic.id).sort())
 	})
 
 	it('tells the agent when to warn the owner', async () => {
@@ -86,8 +94,14 @@ describe('the agent guide', () => {
 		}
 	})
 
+	it('describes every theme', async () => {
+		// The topic describes each theme by hand, so a new one has to be added there too.
+		const look = await (await call('/api/guide/look')).text()
+		for (const id of THEME_IDS) expect(look).toContain(`\`${id}\``)
+	})
+
 	it('names the Worker in the password command', async () => {
-		expect(await (await call('/llms.txt')).text()).toContain('--worker flux-bio-test')
+		expect(await (await call('/api/guide/password')).text()).toContain('--worker flux-bio-test')
 	})
 
 	it('gives a screenshot recipe that waits for the page and hides what a preview adds', async () => {
@@ -99,8 +113,9 @@ describe('the agent guide', () => {
 
 	it('keeps the main part short, with the rest a request away', async () => {
 		const guide = await (await call('/llms.txt')).text()
-		// 30,000 until the customize topic and the list of pictures each took a row; splitting the guide further brings it down.
-		expect(guide.length).toBeLessThan(30_250)
+		// Every conversation loads all of it, as a skill's SKILL.md. About 19,500 characters now: detail about one feature
+		// goes in a topic, not here, rather than raising this.
+		expect(guide.length).toBeLessThan(22_000)
 		for (const topic of GUIDE_TOPICS) {
 			expect(guide).toContain(`| \`${topic.id}\` |`)
 			const response = await call(`/api/guide/${topic.id}`)
@@ -135,12 +150,24 @@ describe('the agent guide', () => {
 		for (const part of ['leaves them alone', 'archive/refs/heads/main.tar.gz', 'pnpm run deploy', '/skill.md']) expect(update).toContain(part)
 	})
 
-	it('is also an Agent Skill', async () => {
+	it('is also an Agent Skill, whose description says when to use it', async () => {
 		const response = await call('/skill.md')
 		expect(response.status).toBe(200)
 		expect(response.headers.get('content-type')).toContain('text/markdown')
 		const skill = await response.text()
-		expect(skill).toMatch(/^---\nname: fluxbio\ndescription: ".+bio\.example.+"\n---\n\n# FluxBio at bio\.example/)
+		const [, frontmatter, body] = skill.match(/^---\n([\s\S]+?)\n---\n\n([\s\S]*)$/)!
+		expect(body).toBe(await (await call('/llms.txt')).text())
+		// The fields and limits the Agent Skills format allows. Values other than the name are JSON strings, which YAML reads as they are.
+		const lines = frontmatter!.split('\n')
+		expect(lines.map((line) => line.split(': ')[0])).toEqual(['name', 'description', 'compatibility'])
+		const value = (key: string) => lines.find((line) => line.startsWith(`${key}: `))!.slice(key.length + 2)
+		expect(value('name')).toBe('fluxbio')
+		const description = JSON.parse(value('description')) as string
+		expect(description).toContain('bio.example')
+		expect(description).toContain('Use it whenever')
+		expect(description.length).toBeLessThanOrEqual(1024)
+		expect(description).not.toMatch(/[<>]/)
+		expect((JSON.parse(value('compatibility')) as string).length).toBeLessThanOrEqual(500)
 	})
 })
 

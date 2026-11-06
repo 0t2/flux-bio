@@ -309,10 +309,12 @@ try.
 
 Every deployment describes itself, without sign-in:
 
-- `/llms.txt`: a guide for agents working for the owner: how to connect, recipes, when to warn
-  the owner (publishing, broken short links, deleting pages, quotas) and
-  which suggestions to offer. `/skill.md` is the same guide as an Agent Skill. Its longer parts are at `/api/guide/<topic>`, read when
-  needed, so that loading the guide stays cheap.
+- `/llms.txt`: the guide for agents working for the owner, holding what every conversation needs: how to connect, backing
+  up first, changing a page without losing anyone's work, when to warn the owner (publishing, broken short links, deleting
+  pages, quotas), which suggestions to offer, and an index of topics that says when to read each. `/skill.md` is the same
+  guide as an Agent Skill. Everything about one feature is in a topic at `/api/guide/<topic>`, read when needed: page
+  content and every kind of item, stats and sources, themes and fonts, translations, short links in bulk and QR codes,
+  the domain and more sites, the test site, quota, the admin password, every route and more.
 - `/api/openapi.json`: the OpenAPI 3.1 document of what an API token can do (owner-only routes are left
   out), e.g. for ChatGPT actions or n8n.
 
@@ -326,7 +328,7 @@ links (`POST /api/links` and `/api/links/bulk`), a `full` token may do everythin
 tokens and wipe data. Everything speaks JSON. Request and response types are in
 `src/shared/api.ts`; the page content schema is `PageContentSchema` in `src/shared/content.ts`.
 
-Every route, with its parameters, is in `/api/openapi.json` and, as a list, at the end of `/llms.txt`. Both are built from `OPERATIONS` in `src/worker/lib/openapi.ts`, and
+Every route, with its parameters, is in `/api/openapi.json` and, as a list, at `/api/guide/endpoints`. Both are built from `OPERATIONS` in `src/worker/lib/openapi.ts`, and
 `tests/agent.test.ts` fails on a route that isn't there, so read that file when no deployment is running.
 
 Example: add a link to a page and publish it.
@@ -351,8 +353,8 @@ Rules worth knowing:
 - **Going back.** Every publish leaves a row in `page_versions`, the last 20 per page, with who published it (`owner`, or `token:<name>`). `POST /api/pages/:id/versions/:versionId/restore` puts one in
   the draft; going live is an ordinary publish, so links come back through the same code. Versions aren't in backups, and an import clears them. The first publish on a page without any also saves what was live.
 - **Items.** `draft.items` is the page, top to bottom. Each item has a `kind`: `link`, `heading`,
-  `video` (YouTube or Vimeo URL), `gallery` (up to 10 images), `product` (up to 8 cards)
-  or `hours` (opening hours Monday first, address, phone, map).
+  `video` (YouTube or Vimeo URL), `gallery` (up to 10 images), `product` (up to 8 cards),
+  `hours` (opening hours Monday first, address, phone, map) or `embed` (a card that opens another service's panel over the page: `provider`, `account`, title, note).
   `newItem(kind)` in `src/shared/content.ts` shows the shape of each. Ids are 4–32 characters of
   `A-Za-z0-9_-` and must be unique within a page.
 - **Translations.** `draft.translations` holds the owner's text in other languages:
@@ -365,9 +367,17 @@ Rules worth knowing:
   `_`. Some words are reserved, such as `admin`, `api`, `media` and `assets`.
 - **Scheduling.** A link's `startsAt`/`endsAt` (epoch ms) hide it from the page outside that window,
   and its short link shows "not open yet" or "expired" (with a button back to the page).
-- **Buttons show the real address.** In a public page's HTML, link buttons, products, gallery images and the map button are `<a href="<the address>" ping="/_c/<handle>/<id>/<part>">`, so a visitor can see where one goes. `TAP_SCRIPT` in `src/templates/render.ts` takes the attribute off and POSTs to that address on a tap, with `fetch` and `keepalive`, because Firefox ignores `ping` by default and ad blockers stop it; without JavaScript the attribute does the job, and the page works either way. That counts the tap under the same id as a click on the link's short link, and costs what a redirect costs (one Worker request, one KV read). Someone who blocks both goes uncounted. Every link still gets a short link when published, for sharing elsewhere.
+- **Buttons show the real address.** In a public page's HTML, link buttons, products, gallery images, the map button and embed buttons are `<a href="<the address>" ping="/_c/<handle>/<id>/<part>">`, so a visitor can see where one goes. `TAP_SCRIPT` in `src/templates/render.ts` takes the attribute off and POSTs to that address on a tap, with `fetch` and `keepalive`, because Firefox ignores `ping` by default and ad blockers stop it; without JavaScript the attribute does the job, and the page works either way. That counts the tap under the same id as a click on the link's short link, and costs what a redirect costs (one Worker request, one KV read). Someone who blocks both goes uncounted. Every link still gets a short link when published, for sharing elsewhere.
 - **Hiding the address.** `hideUrl` on a link makes its button `/<slug>` instead: that suits affiliate links, and every click counts. A link with a password, UTM tags, device addresses, `lineExternal` or `inAppPrompt` does the same whatever `hideUrl` says (`linkNeedsWorker` in `lib/ops.ts`, kept in the page's snapshot as `viaShortLink`), because a button that skipped the redirect would skip those. Changing one of them rewrites the page's snapshot.
 - **The LINE button.** `lineButton` in a page's content floats a LINE button at the bottom right, and a tap on it counts under `<page id>.line`.
+- **Other services' panels.** An `embed` card's button and the floating `embedButton` (`{ provider, account }`, above the LINE button
+  when both are on) link to the account's page on a service from `EMBEDS` in `src/shared/embeds.ts`: Ko-fi's tip panel (`kofi`) or
+  Calendly's booking calendar (`calendly`). They count under `<item id>.<provider>` and `<page id>.<provider>`, so a count keeps its
+  service's name when a card changes service. On a live page a tap opens the service's own panel in a `<dialog>` over the page instead
+  (`SHEET_SCRIPT`), in a frame sandboxed by `SHEET_SANDBOX` that has no address until then: nothing on the page loads from the service
+  before a tap, its own widget script never runs on it, and the page's CSP may frame only the services on that page. Each service's
+  `account()` reads the account out of whatever the owner pasted: the account, its address, or the service's embed code. Adding a
+  service is one entry there: see "Add a block".
 - **Social icons.** They're never counted unless `countSocials` is on in a page's content; then they report a tap the way buttons do. Email icons aren't counted. Video players still go through a `/_c` redirect, because they open inside their frame.
 - **Short links only.** With `bio` off, a page's address, `/_draft` and `/_c` answer not found with no
   suggestions, `/robots.txt` and `/sitemap.xml` list no pages, and a short link's own system pages don't point
@@ -483,8 +493,12 @@ tests/                  Vitest tests (run in workerd)
 - **The API is the product.** Anything the owner can do, an agent must be able to do with a
   `full` token, except managing tokens and wiping. When you add or change a route,
   describe it in `OPERATIONS` in `src/worker/lib/openapi.ts` (`tests/agent.test.ts` fails on an
-  undocumented route). If it changes something the owner would want to be warned about, or gives
-  them something worth suggesting, add it to the guide in `src/worker/lib/agent.ts`, or to a topic in `agentTopics.ts` if only some conversations need it. Turning zod
+  undocumented route). Then tell agents about it in the guide. The main guide (`src/worker/lib/agent.ts`) is loaded
+  whole in every conversation, like a skill's SKILL.md, so it holds only what every conversation needs, and
+  `tests/agent.test.ts` caps its length: put how a feature works in a topic in `agentTopics.ts`, and make sure the
+  topic's `when`, the main guide's index, says when to read it. Something the owner would want to be warned about gets a
+  short row in the main guide's warnings that points to its topic; something worth suggesting, a line under its
+  suggestions. A new topic also goes in the `/api/guide/{topic}` description in `openapi.ts`. Turning zod
   schemas into JSON Schema costs too much CPU for a request, so `vite.openapi.ts` does it at
   build time.
 - **D1 is the source of truth.** It holds `pages`, `page_versions`, `links`, `stats` and
@@ -514,7 +528,7 @@ tests/                  Vitest tests (run in workerd)
     `stats(day, target, kind, dim, value, count, page)`. Targets: a page view counts under the page id,
     a short link click under the link id, a tap on a link's button under the link id too, a click inside a block under `<item id>.<part>`
     (`play`, `map`, `more`, or a product or image id), a social icon on a page with `countSocials` on under `<social id>.social`, and
-    the LINE button under `<page id>.line`. Those with a `.` also keep their page in `page`, so a page's numbers survive
+    the LINE button under `<page id>.line`, and an embed's under `<item id>.<provider>`, the floating one's under `<page id>.<provider>`. Those with a `.` also keep their page in `page`, so a page's numbers survive
     deleting a block and no list of pages is read to tell whose a click was; a link's page is in `links`. Days are in the time zone from settings.
     Days are kept for 13 whole months (6 once the database passes 70% of the plan's size), then each month becomes one row whose
     `day` is `YYYY-MM`, which sorts before that month's days and so is never in a range of days (`lib/statsHistory.ts`).
@@ -526,10 +540,9 @@ tests/                  Vitest tests (run in workerd)
     `lib/analytics.ts` (kind, target, source, country, device, browser, os, referrer host, daily
     visitor hash, region, city, utm_content, language, network, slug, destination URL, utm_source,
     utm_medium, utm_campaign, page) and the doubles are `EVENT_NUMBERS`: the local day (yyyymmdd)
-    and hour, the latitude and longitude rounded to 0.1°, the network's AS number, and `layout`.
+    and hour, the latitude and longitude rounded to 0.1°, and the network's AS number.
     `network` is the AS organization (e.g. "Chunghwa Telecom"). Network queries require an AS number
-    above 0, and campaign queries ignore `utm_content` where `layout` is 0. AE allows 20 blobs and the list is
-    full: put new fields in doubles. Append, never reorder.
+    above 0. AE allows 20 blobs and the list is full: put new fields in doubles. Append, never reorder.
     `lib/analytics.ts` reads them through the Analytics SQL binding (`ANALYTICS_SQL`, no API token);
     its sampling column is `sampleInterval`, not `_sample_interval`.
   - *Never store anything that identifies a person.* That means no IP address, no user-agent string
@@ -546,8 +559,9 @@ tests/                  Vitest tests (run in workerd)
 - **A page can be something other than links.** `custom` in its content makes it the owner's own HTML or a redirect (`CustomPageSchema`). Everything else about a page still applies: the draft, publishing, versions, backups, stats, being the home page. Its HTML is sent with a CSP `sandbox` and no `allow-same-origin` (`CUSTOM_CSP`), because it shares an address with the dashboard: without that, a script in it could use the owner's session. Keep that header on every route that serves it.
 - **Public pages are plain HTML.** Apart from custom pages, `renderBioPage()` builds them with no JavaScript but `TAP_SCRIPT`, which the CSP allows by its hash and a page with nothing to report leaves out, and the
   dashboard preview renders the same function in an iframe sandboxed without scripts, and updates it in place (`lib/morph.ts`) so an edit doesn't reload it. Videos and maps sit in
-  frames that show a picture and load the real player or map only when tapped. The only other script on
-  a public page is the copy button of the in-app browser notice, allowed by a per-response nonce. A page's own CSS
+  frames that show a picture and load the real player or map only when tapped, and an embed's panel in a frame that is empty until then.
+  The only other scripts on a public page are `SHEET_SCRIPT`, which opens that panel and is allowed by its hash too, on a page with
+  an embed, and the copy button of the in-app browser notice, allowed by a per-response nonce. A page's own CSS
   (`appearance.css`) goes in a `<style>` of its own after the theme's: it was checked when it came in (`src/shared/css.ts`),
   and the page's CSP holds the same line in the browser, with `img-src 'self'`, plus `https://i.ytimg.com` only on a page
   with a YouTube video, whose thumbnail its srcdoc frame loads under the page's policy (`pageImages` in `routes/site.ts`).
@@ -643,9 +657,9 @@ composition in a shadow root, and the landing page's lists come from the themes,
   locale files, and at least one color set. Every color in a composition must be a variable from `pageVars()` or a mix
   of them, so it keeps working in colors an AI picks. Then `pnpm test`.
 - **What an AI can set** through the API, and the dashboard can't: `accent`, `accent2`, `bg`, `fg`, `font`, `headFont`,
-  `bodyFont`, `button`, `bgImage`, `bgDim` and `css` (CSS of the page's own, see "A page's own CSS") in `appearance`. A page
-  with any of these shows on 外觀 as a look made by AI, and picking a color set clears them, after asking when there is CSS.
-  Saved looks keep `css`; color sets in `themes/community.json` never have it. `coverImage` is the page's own picture: the owner uploads it in the profile,
+  `bodyFont`, `button`, `bgImage`, `bgDim`, `bgTile` and `css` (CSS of the page's own, see "A page's own CSS") in `appearance`.
+  A page with any of these shows on 外觀 as a look made by AI, and picking a color set clears them, after asking when there is
+  CSS. Saved looks keep `bgTile` and `css`; color sets in `themes/community.json` have neither. `coverImage` is the page's own picture: the owner uploads it in the profile,
   and picking a color set keeps it.
 - **Fonts.** `headFont` and `bodyFont` take any family on the list in `src/shared/googleFonts.ts`
   (refresh it with `scripts/google-fonts.mjs`). A family missing from a newer list is dropped from
@@ -656,11 +670,114 @@ composition in a shadow root, and the landing page's lists come from the themes,
 - **Stored ids stay.** Theme ids are in every saved page, so a theme's look and name can change but its id can't. That
   is why `liquid` is Neon and `brutal` is Tiles.
 
+### Add a block
+
+Requests for new blocks come in as issues from the block request form (`.github/ISSUE_TEMPLATE/block-request.yml`, label
+`block-request`). An agent takes each one down this ladder, stops at the first step that answers it, and says on the issue
+which step that was and why.
+
+1. **It is already possible.** Say how, and build nothing. That covers:
+   - a link, with an icon from `LINK_ICONS`
+   - the `video`, `gallery`, `product`, `hours` and `embed` blocks
+   - social icons and the LINE button
+   - a page of the owner's own HTML or a redirect (`custom`)
+   - a look the owner's AI makes: colors, fonts and pictures, and CSS of the page's own (`appearance.css`)
+2. **It fits a mechanism that exists.** Add to it, not a new kind:
+   - a service whose panel opens over the page: an entry in `EMBEDS` (`src/shared/embeds.ts`)
+   - a player shown in place: a host in `videoEmbed()` (`src/shared/content.ts`)
+   - an icon under the name: a platform in `SOCIAL_PLATFORMS`
+3. **A new kind**, only when the data has a shape no kind holds.
+
+**Gates.** A block that can't pass all of these isn't built, whichever step it reached. Say which gate it fails, and the
+nearest thing that works.
+
+- Nothing loads from another site before a visitor taps: no script, picture, font or frame address. A page's CSP names
+  only the services on that page.
+- A view and a tap each cost one KV read and write nothing (`tests/kv-cost.test.ts`), and stay within 10 ms of CPU: no
+  image processing, no rendering framework, no request to another site while drawing a page.
+- No Cloudflare product beyond Workers, D1, KV and Analytics Engine.
+- It works in all 24 themes, with colors only from `pageVars()` or mixes of them; right to left, in logical properties
+  (`tests/rtl.test.ts`); and in all 13 languages.
+- Taps are counted through `counted()` and `/_c`, and have a readable label in the stats.
+- Its class names are part of the markup an AI's CSS is written against: add them to "Page markup" in the guide topic
+  `customize`, and to the list in `tests/custom-css.test.ts`, which fails until both have them.
+- The API can do everything the dashboard can: the block is in `PageContentSchema`, a new route in `OPERATIONS`, and the
+  guide says what it is in one line.
+- Nothing stored identifies a visitor.
+- Another service's panel runs in `SHEET_SANDBOX` and never gets this site's origin, and its account is read with a strict
+  pattern, so the frame only ever gets an address on that service's origins.
+
+**A new service in `EMBEDS`** is a few lines. The `embed` kind is the reference implementation:
+- `src/shared/embeds.ts`;
+- `embedHtml`, `SHEET_SCRIPT` and `pageEmbeds` in `src/templates/render.ts`;
+- `bioCsp` in `src/worker/routes/site.ts`;
+- `tests/embeds.test.ts`.
+
+1. Check it first. Frame its panel address, from another origin, in an iframe with `SHEET_SANDBOX` at 390 px wide in
+   WebKit, and look at a screenshot. Read its `X-Frame-Options` and CSP `frame-ancestors`, and use the step through it a
+   visitor would, such as picking a time.
+2. Add the id to `EMBED_PROVIDERS` and the entry to `EMBEDS`, following the conditions in the comment above them. Draw its
+   icon in `ICONS` (`src/templates/icons.ts`) if none fits: our own drawing, never the service's mark.
+3. If its `action` is new, add it to `EmbedAction` and `EMBED_ACTIONS`:
+   - a new card's title, as `msg()`
+   - its button words in all 13 languages
+
+   Then add its dashboard words to `ACTION_META` in `src/admin/editors/kinds.ts`. An existing action needs no new words.
+4. Add tests to `tests/embeds.test.ts`:
+   - reading the account out of its address and embed code
+   - refusing the service's own paths
+   - its panel address
+   - its CSP `frame-src`
+
+   The registry tests cover the rest by themselves.
+
+Rendering, `/_c`, the stats label, the dashboard's block list and editor, the OpenAPI document and the guide all read the
+registry, so nothing else changes.
+
+**A new kind** touches these, in order:
+
+1. **Schema.** `<Kind>ItemSchema` in `src/shared/content.ts`, `ITEM_KINDS` and `ItemSchema`. Give `.describe()` to anything
+   an AI could get wrong.
+2. **`makeItem()`.** The guide's example and the dashboard's new item both come from it. Its titles are `msg()` keys.
+3. **Publish checks.** In `publishProblems` (`src/shared/validate.ts`).
+4. **Render.** `visibleItems` and `itemHtml` in `src/templates/render.ts`. Its links go through `counted()`, its CSS uses
+   `pageVars()` colors and logical properties, and its built-in words go in `STRINGS`.
+5. **`/_c`.** `blockTarget` in `src/worker/routes/site.ts`, so a tap is counted and goes where it should.
+6. **Stats label.** `targetLabel` in `src/worker/routes/api.ts`.
+7. **Dashboard.**
+   - `KIND_META` and `itemTitle` in `src/admin/editors/kinds.ts`
+   - an editor in `src/admin/editors/`, wired in `ItemEditor` (`src/admin/pages/LinksPage.tsx`)
+   - the 新增區塊 list reads `BLOCK_CHOICES`
+8. **Translations.**
+   - The owner's text: `mapItem` in `src/shared/translations.ts`, plus the "Translated" list of the `translate` guide topic
+     (`src/worker/lib/agentTopics.ts`).
+   - Dashboard keys: every locale file, then `pnpm i18n server`.
+9. **API.** `PageContentSchema` carries it into `/api/openapi.json`. A new route also goes in `OPERATIONS`
+   (`src/worker/lib/openapi.ts`).
+10. **Guide.** One line under "What each kind takes" in the `content` topic (`src/worker/lib/agentTopics.ts`); the item
+    example there is generated. The main guide (`src/worker/lib/agent.ts`) only gets a line if every conversation needs it.
+11. **AGENTS.md.** The kinds under "Rules worth knowing", and any new stats target.
+12. **Tests.** A `tests/<kind>.test.ts` like `tests/embeds.test.ts`, and these, which have to pass:
+    - `tests/kv-cost.test.ts`, with its tap added
+    - `tests/rtl.test.ts`
+    - `tests/no-chinese.test.ts`
+    - `tests/i18n.test.ts`
+    - `tests/agent.test.ts`
+
+Then:
+1. Run `pnpm typecheck`, `pnpm test` and `pnpm i18n check`.
+2. Show it to the owner on `pnpm dev` or their local demo sites, in WebKit at phone width:
+   - a light theme and a dark theme
+   - right to left
+   - any panel open
+3. Open a pull request. The owner merges it.
+4. If the dashboard changed, its screenshots on fluxbio.link need retaking (section 3).
+
 ### Fonts and the free plan
 
 Every theme comes with its fonts and the dashboard has no font control; it shows a sentence the
-owner can say to their AI (and a prompt to copy in the font help on 外觀), and the guide in
-`src/worker/lib/agent.ts` tells that AI how to pick a Google Fonts family (`GET /api/fonts`,
+owner can say to their AI (and a prompt to copy in the font help on 外觀), and the guide's `look` topic in
+`src/worker/lib/agentTopics.ts` tells that AI how to pick a Google Fonts family (`GET /api/fonts`,
 `appearance.headFont`, `bodyFont`) and what to say about cost.
 
 Loaded from Google (`hostFonts` off, the default), fonts cost the site nothing. With `hostFonts` on,

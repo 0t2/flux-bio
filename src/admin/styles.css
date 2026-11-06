@@ -950,6 +950,22 @@ button:disabled {
 	}
 }
 
+/* The floating embed button's service and account. */
+.embed-row {
+	display: grid;
+	grid-template-columns: minmax(120px, 160px) minmax(0, 1fr);
+	gap: 8px;
+	align-items: center;
+}
+.embed-row .hint {
+	grid-column: 1 / -1;
+}
+@media (max-width: 520px) {
+	.embed-row {
+		grid-template-columns: 1fr;
+	}
+}
+
 .avatar-row {
 	display: flex;
 	align-items: center;
@@ -1471,7 +1487,7 @@ button.table-row[aria-pressed='true'] {
 	}
 }
 
-/* ---------- v0.2 shared pieces ---------- */
+/* ---------- Shared pieces ---------- */
 
 .loading.inline {
 	min-height: 40vh;
@@ -1903,7 +1919,7 @@ a.switcher-item {
 	color: var(--text);
 }
 
-/* ---------- Links editor (v0.2) ---------- */
+/* ---------- Links editor ---------- */
 
 .item-card {
 	border-radius: var(--r-card);
@@ -2313,23 +2329,6 @@ a.switcher-item {
 	text-align: start;
 }
 
-.shorten-card {
-	gap: 16px;
-}
-.shorten-card h1 {
-	margin: 0;
-	font-size: 22px;
-}
-.shorten-result {
-	margin: 0;
-	padding: 14px;
-	border-radius: var(--r-card);
-	background: var(--accent-soft);
-	color: var(--accent);
-	font-size: 16px;
-	font-weight: 700;
-	overflow-wrap: anywhere;
-}
 .field-stack {
 	display: flex;
 	flex-direction: column;

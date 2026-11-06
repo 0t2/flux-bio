@@ -6,7 +6,7 @@ import { STARTER_IDS } from '../../shared/starters'
 // Request bodies of the JSON API. routes/api.ts validates with them and
 // lib/agent.ts describes them in the OpenAPI document, so the two can't drift.
 
-export const LoginInput = z.object({ password: z.string().max(512).optional(), token: z.string().max(512).optional() })
+export const LoginInput = z.object({ password: z.string().max(512) })
 
 export const NewPageInput = z.object({
 	handle: z.string().max(64).describe('The page address, the first path segment. Case-insensitive; letters (Chinese too), digits, - and _'),
@@ -20,7 +20,6 @@ export const NewPageInput = z.object({
 /** POST /api/pages/:id/preview-link */
 export const PreviewLinkInput = z.object({
 	minutes: z.number().int().min(1).max(10080).optional().describe('How long the link works, 1 to 10080 minutes (7 days). Default 10'),
-	hours: z.number().int().min(1).max(168).optional().describe('The same in hours, for tools written before minutes existed. minutes wins'),
 })
 
 /** PUT /api/settings: every field of the settings; leaving out `languages`, `hostFonts`, `bio` or `homeUrl` keeps the current value. */

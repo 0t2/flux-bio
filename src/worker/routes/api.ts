@@ -27,8 +27,8 @@ import type {
 	SiteJson,
 } from '../../shared/api'
 import { BackupSchema } from '../../shared/backup'
+import { EMBEDS, isEmbedProvider } from '../../shared/embeds'
 import {
-	linkItems,
 	MEDIA_ID,
 	newId,
 	PageContentInputSchema,
@@ -36,7 +36,6 @@ import {
 	SOCIAL_PART,
 	randomString,
 	ThemePresetInputSchema,
-	THEME_IDS,
 	type PageContent,
 	type Settings,
 	type ThemeId,
@@ -86,7 +85,6 @@ import {
 	listLinkPage,
 	listOwnLinks,
 	listPageRows,
-	type PageListRow,
 	listTokens,
 	loadSettings,
 	loadThemes,
@@ -224,58 +222,30 @@ function pageJson(page: PageRow): PageJson {
 }
 
 /** Which click targets belong to a page: its short links, and the parts of its blocks ("<item id>.<part>"). */
-/** The pages' lines in a list. D1 works them out, so the Worker only reads a page in full if its draft is in an older shape, or to count what's untranslated. */
+/** The pages' lines in a list. D1 works them out, so the Worker only reads a page in full to count what's untranslated. */
 async function pageSummaries(db: D1Database, settings: Settings): Promise<PageSummary[]> {
 	const [rows, clicks] = await Promise.all([listPageRows(db), clicksByPage(db, settings.timezone)])
-	const current = (row: PageListRow) => row.items !== null && THEME_IDS.includes(row.theme as ThemeId) && row.name !== null
-	const needed = settings.languages.length ? rows : rows.filter((row) => !current(row))
-	const full = new Map((await getPagesByIds(db, needed.map((row) => row.id))).map((page) => [page.id, page]))
-	return rows.flatMap((row) => {
+	const full = settings.languages.length ? new Map((await getPagesByIds(db, rows.map((row) => row.id))).map((page) => [page.id, page])) : new Map<string, never>()
+	return rows.map((row) => {
 		const page = full.get(row.id)
-		const clicks7d = clicks.get(row.id) ?? 0
 		const untranslatedCount = page ? Object.values(untranslated(page.draft, settings.languages)).reduce((sum, texts) => sum + texts.length, 0) : 0
-		if (current(row)) {
-			return [
-				{
-					id: row.id,
-					handle: row.handle,
-					qrLogo: row.qrLogo,
-					name: row.name ?? '',
-					avatar: row.avatar ?? '',
-					theme: row.theme as ThemeId,
-					kind: (row.customKind as PageSummary['kind'] | null) ?? 'links',
-					home: settings.home === row.id,
-					publishedAt: row.publishedAt,
-					draftUpdatedAt: row.draftUpdatedAt,
-					dirty: !row.hasPublished || !row.sameAsPublished,
-					items: row.items ?? 0,
-					links: row.links,
-					clicks7d,
-					untranslated: untranslatedCount,
-				} satisfies PageSummary,
-			]
-		}
-		if (!page) return []
-		const content = page.published ?? page.draft
-		return [
-			{
-				id: page.id,
-				handle: page.handle,
-				qrLogo: page.qrLogo,
-				name: page.draft.profile.name,
-				avatar: page.draft.profile.avatar,
-				theme: content.appearance.theme,
-				kind: page.draft.custom?.kind ?? 'links',
-				home: settings.home === page.id,
-				publishedAt: page.publishedAt,
-				draftUpdatedAt: page.draftUpdatedAt,
-				dirty: !page.published || JSON.stringify(page.published) !== JSON.stringify(page.draft),
-				items: page.draft.items.length,
-				links: linkItems(page.draft).filter((link) => link.url.trim()).length,
-				clicks7d,
-				untranslated: untranslatedCount,
-			} satisfies PageSummary,
-		]
+		return {
+			id: row.id,
+			handle: row.handle,
+			qrLogo: row.qrLogo,
+			name: row.name,
+			avatar: row.avatar ?? '',
+			theme: row.theme as ThemeId,
+			kind: (row.customKind as PageSummary['kind'] | null) ?? 'links',
+			home: settings.home === row.id,
+			publishedAt: row.publishedAt,
+			draftUpdatedAt: row.draftUpdatedAt,
+			dirty: !row.hasPublished || !row.sameAsPublished,
+			items: row.items,
+			links: row.links,
+			clicks7d: clicks.get(row.id) ?? 0,
+			untranslated: untranslatedCount,
+		} satisfies PageSummary
 	})
 }
 
@@ -287,7 +257,7 @@ function labelOf(key: string, params?: Params): Label {
 }
 
 /** A readable name for a click target: a short link's title, or the block part that was tapped. */
-function targetLabel(target: string, rows: Map<string, LinkRow>, content: PageContent | null): Label & { slug: string; kind: 'link' | 'block' } {
+function targetLabel(target: string, rows: Map<string, LinkRow>, content: PageContent | null, pageId = ''): Label & { slug: string; kind: 'link' | 'block' } {
 	const row = rows.get(target)
 	if (row) return { label: row.title || row.slug, slug: row.slug.startsWith('~') ? '' : row.slug, kind: 'link' }
 	const [itemId, part = ''] = target.split('.')
@@ -299,7 +269,11 @@ function targetLabel(target: string, rows: Map<string, LinkRow>, content: PageCo
 	// Fallbacks for an untitled block are translated; the owner's own titles are not.
 	const named = (text: string, fallback: string): string | Message => text || { key: fallback }
 	const deleted = block(labelOf(msg('（已刪除的項目）')))
-	if (!item) return part === LINE_PART ? block(labelOf(msg('LINE 按鈕'))) : deleted
+	if (!item) {
+		if (part === LINE_PART) return block(labelOf(msg('LINE 按鈕')))
+		// An embed card that was deleted counts under its own id, the floating button under the page's.
+		return itemId === pageId && isEmbedProvider(part) ? block(labelOf(msg('{name} 按鈕'), { name: EMBEDS[part].name })) : deleted
+	}
 	switch (item.kind) {
 		case 'video':
 			return block(labelOf(msg('影片：{title}'), { title: named(item.title, msg('未命名')) }))
@@ -314,6 +288,9 @@ function targetLabel(target: string, rows: Map<string, LinkRow>, content: PageCo
 		}
 		case 'hours':
 			return block(labelOf(msg('地圖導航')))
+		case 'embed':
+			// The service the tap was for, which the card may since have changed.
+			return block(labelOf(msg('{name}：{title}'), { name: EMBEDS[isEmbedProvider(part) ? part : item.provider].name, title: named(item.title, msg('未命名')) }))
 		default:
 			return deleted
 	}
@@ -361,10 +338,8 @@ api.post('/auth/login', async (c) => {
 	const secret = adminPassword(c.env)
 	const problem = adminPasswordProblem(secret)
 	if (problem) throw new ApiError(503, 'setup', problem)
-	// v0.1 sent { token }; v0.2 sends { password }.
-	const body = await readBody(c, LoginInput)
-	const given = body.password ?? body.token ?? ''
-	if (!(await secretsMatch(given, secret))) {
+	const { password } = await readBody(c, LoginInput)
+	if (!(await secretsMatch(password, secret))) {
 		// Slows down guessing without spending CPU time.
 		await scheduler.wait(800)
 		throw new ApiError(401, 'wrong-password', msg('密碼不正確'))
@@ -619,8 +594,8 @@ api.post('/pages/:id/preview-link', async (c) => {
 	if (!settings.bio) throw new ApiError(409, 'bio-off', msg('頁面功能關閉時，預覽連結打不開，請先把它打開'))
 	// A bare POST is fine: the length has a default.
 	const raw = await c.req.raw.clone().text()
-	const { minutes, hours } = raw.trim() ? await readBody(c, PreviewLinkInput) : {}
-	const expiresAt = Math.floor(Date.now() / 1000 + (minutes ?? (hours ? hours * 60 : 10)) * 60) * 1000
+	const { minutes } = raw.trim() ? await readBody(c, PreviewLinkInput) : {}
+	const expiresAt = Math.floor(Date.now() / 1000 + (minutes ?? 10) * 60) * 1000
 	const token = await createPreviewToken(await sessionKeyOf(c.env), page.id, expiresAt)
 	const body: PreviewLinkResponse = { url: `${publicOrigin(c, settings)}/_draft/${token}`, expiresAt }
 	return c.json(body)
@@ -877,10 +852,10 @@ api.get('/stats', async (c) => {
 	const label = (target: string): Label => {
 		if (page && target === page.id) return labelOf(msg('bio 頁'))
 		// Only the label: an event has a kind of its own.
-		const { label: text, labelKey, labelParams } = targetLabel(target, byId, content)
+		const { label: text, labelKey, labelParams } = targetLabel(target, byId, content, page?.id)
 		return { label: text, labelKey, labelParams }
 	}
-	const topLinks: TopTargetJson[] = data.clicksByTarget.slice(0, 20).map((entry) => ({ target: entry.target, count: entry.count, ...targetLabel(entry.target, byId, content) }))
+	const topLinks: TopTargetJson[] = data.clicksByTarget.slice(0, 20).map((entry) => ({ target: entry.target, count: entry.count, ...targetLabel(entry.target, byId, content, page?.id) }))
 	const body: StatsResponse = {
 		page: page ? { id: page.id, handle: page.handle } : null,
 		timezone: settings.timezone,

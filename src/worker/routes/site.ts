@@ -17,12 +17,13 @@ import {
 	type PageContent,
 	type Settings,
 } from '../../shared/content'
+import { embedAccount, EMBEDS } from '../../shared/embeds'
 import { FONT_FILE } from '../../shared/fonts'
-import { pageLanguages, requestedLocale, resolveLocale } from '../../shared/locale'
+import { requestedLocale, resolveLocale } from '../../shared/locale'
 import { normalizeSlug, slugProblem } from '../../shared/slug'
 import { detectOs, detectSource, sourceFromUserAgent } from '../../shared/source'
 import { translatedLocales } from '../../shared/translations'
-import { renderBioPage, TAP_SCRIPT_HASH, visibleItems } from '../../templates/render'
+import { pageEmbeds, renderBioPage, SHEET_SCRIPT_HASH, TAP_SCRIPT_HASH, visibleItems } from '../../templates/render'
 import { renderSystemPage, type SystemPageKind, type SystemPageOptions } from '../../templates/system'
 import { agentGuide, agentSkill, guideSite, workerNameOf } from '../lib/agent'
 import { getLinkRecord, getNamed, getSnapshot, mediaKey, type LinkRecord, type SiteRecord, type Snapshot } from '../lib/cache'
@@ -42,27 +43,38 @@ type SiteContext = Context<AppEnv>
 
 /** Videos and maps load in frames only after a tap; everything else on public pages is plain HTML. */
 const FRAMES = "'self' https://www.youtube-nocookie.com https://player.vimeo.com https://maps.google.com https://www.google.com"
-const csp = (ancestors: string, script = "'none'", images = "'self'") =>
-	`default-src 'none'; script-src ${script}; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src ${images}; frame-src ${FRAMES}; form-action 'self'; base-uri 'none'; frame-ancestors ${ancestors}`
+const csp = (ancestors: string, script = "'none'", frames = FRAMES, images = "'self'") =>
+	`default-src 'none'; script-src ${script}; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src ${images}; frame-src ${frames}; form-action 'self'; base-uri 'none'; frame-ancestors ${ancestors}`
 const PAGE_CSP = csp("'none'")
 
 /**
- * Where a page of links may load pictures from: its own uploads, and for a YouTube video the thumbnail its frame shows,
- * because a srcdoc frame loads under the policy of the page around it. Nothing else on a page is a picture from
- * elsewhere, so nothing else is allowed. That covers the page's own CSS (appearance.css) too: it was checked for this
- * when it came in (src/shared/css.ts), and this has the browser hold the same line. System pages show no pictures from
- * elsewhere at all.
+ * Where a page of links may load pictures from: its own uploads (a tiled background and its own CSS's pictures among
+ * them), and for a YouTube video the thumbnail its frame shows, because a srcdoc frame loads under the policy of the page
+ * around it. Nothing else on a page is a picture from elsewhere, so nothing else is allowed. That covers the page's own
+ * CSS (appearance.css) too: it was checked for this when it came in (src/shared/css.ts), and this has the browser hold
+ * the same line. An embed's panel is a frame of the service's own, under its own policy. System pages show no pictures
+ * from elsewhere at all.
  */
 function pageImages(content: PageContent): string {
 	const youtube = content.items.some((item) => item.kind === 'video' && !item.hidden && videoEmbed(item.url)?.provider === 'youtube')
 	return youtube ? "'self' https://i.ytimg.com" : "'self'"
 }
 
-/** A page of links: the one script that reports a tap, by its hash, and somewhere for it and the ping attribute to report to. */
-const bioCsp = (content: PageContent) => `${csp("'none'", `'${TAP_SCRIPT_HASH}'`, pageImages(content))}; connect-src 'self'`
+/**
+ * A page of links: the script that reports a tap, by its hash, and somewhere for it and the ping attribute to report to.
+ * A page with an embed also runs the one that opens its panel, and may frame that service, and only that one: its
+ * panel loads only after a tap.
+ */
+function bioCsp(content: PageContent): string {
+	const embeds = pageEmbeds(content)
+	const images = pageImages(content)
+	if (!embeds.length) return `${csp("'none'", `'${TAP_SCRIPT_HASH}'`, FRAMES, images)}; connect-src 'self'`
+	const frames = new Set(embeds.flatMap((provider) => EMBEDS[provider].origins))
+	return `${csp("'none'", `'${TAP_SCRIPT_HASH}' '${SHEET_SCRIPT_HASH}'`, [FRAMES, ...frames].join(' '), images)}; connect-src 'self'`
+}
 
 /** The dashboard's preview tab; it may be framed by the dashboard. */
-export const previewCsp = (content: PageContent) => csp("'self'", "'none'", pageImages(content))
+export const previewCsp = (content: PageContent) => csp("'self'", "'none'", FRAMES, pageImages(content))
 /**
  * Someone's own HTML, scripts and all. Without allow-same-origin it runs as if from nowhere: no cookies, no storage and
  * no way into the dashboard or the API, which share this address.
@@ -124,7 +136,7 @@ site.get('/skill.md', (c) =>
 
 // For search engines. Neither can be a page or a short link: slugs can't contain dots.
 site.get('/robots.txt', async (c) => {
-	const pages = ((await systemSite(c.env)) ?? (await findSite(c.env))).bio !== false
+	const pages = ((await systemSite(c.env)) ?? (await findSite(c.env))).bio
 	return c.text(robotsTxt(new URL(c.req.url).origin, pages, isTestSite(c.env)), 200, { 'cache-control': 'public, max-age=3600' })
 })
 site.get('/sitemap.xml', async (c) => {
@@ -165,7 +177,7 @@ async function sitemapPages(env: Env): Promise<SitemapPage[]> {
 
 site.get('/', async (c) => {
 	const record = await findSite(c.env)
-	if (record.bio === false) return record.homeUrl ? redirect(record.homeUrl, 302) : systemPage(c, 'short-links', 200, { site: record })
+	if (!record.bio) return record.homeUrl ? redirect(record.homeUrl, 302) : systemPage(c, 'short-links', 200, { site: record })
 	// The home page comes with the record, so this is the only read.
 	if (record.page) return serveBio(c, record.page)
 	if (record.home) {
@@ -202,7 +214,7 @@ site.get('/_draft/:token', async (c) => {
 		timeZone: settings.timezone,
 		draft: { nonce, versionUrl: `/_draft/${encodeURIComponent(token)}/version`, version: page.draftUpdatedAt },
 	})
-	return c.html(html, 200, { ...draftHeaders, 'content-security-policy': `${csp("'none'", `'nonce-${nonce}'`, pageImages(page.draft))}; connect-src 'self'` })
+	return c.html(html, 200, { ...draftHeaders, 'content-security-policy': `${csp("'none'", `'nonce-${nonce}'`, FRAMES, pageImages(page.draft))}; connect-src 'self'` })
 })
 
 // The open preview asks this while it is on screen, and reloads when the answer changes.
@@ -296,7 +308,7 @@ async function serveBio(c: SiteContext, snapshot: Snapshot): Promise<Response> {
 	// Counting the view can wait for the time zone after the page has left. Only opening hours are drawn in it,
 	// so only a page with them waits, and only in a copy of the Worker that doesn't know it yet.
 	const zone = siteTimeZone(c.env)
-	const languages = pageLanguages(snapshot.locale, snapshot.languages)
+	const languages = { locale: snapshot.locale, languages: snapshot.languages }
 	const source = sourceOf(c)
 	if (snapshot.content.custom) {
 		recordHit(c.env, c.executionCtx, c.req.raw, { kind: 'view', target: snapshot.pageId, source, timeZone: zone, slug: snapshot.handle, url: '', page: snapshot.pageId })
@@ -359,6 +371,10 @@ function tapOn({ content, handle, pageId }: Snapshot, id: string, part: string):
 		const url = content.lineButton?.trim() ? socialHref('line', content.lineButton) : null
 		return url ? { target: `${pageId}.${LINE_PART}`, url, slug: handle } : null
 	}
+	// "page" is a possible item id too: only a page with the button takes it for the button.
+	const button = content.embedButton
+	const account = id === 'page' && button?.provider === part ? embedAccount(button) : null
+	if (button && account) return { target: `${pageId}.${part}`, url: EMBEDS[button.provider].page(account), slug: handle }
 	if (part === SOCIAL_PART && content.countSocials) {
 		const social = content.socials.find((entry) => entry.id === id)
 		const url = social ? socialHref(social.platform, social.url) : null
@@ -387,6 +403,10 @@ function blockTarget(item: Item, part: string): string | null {
 			return part === 'more' ? typed(item.moreUrl) : typed(item.products.find((product) => product.id === part)?.url ?? '')
 		case 'hours':
 			return part === 'map' && item.address.trim() ? mapsUrl(item.address) : null
+		case 'embed': {
+			const account = part === item.provider ? embedAccount(item) : null
+			return account ? EMBEDS[item.provider].page(account) : null
+		}
 		default:
 			return null
 	}
@@ -434,7 +454,7 @@ async function linkPage(c: SiteContext, record: LinkRecord): Promise<Pick<System
 	if (!record.page) return {}
 	const site = (await systemSite(c.env)) ?? (await findSite(c.env))
 	// With pages off there is nothing to point back to.
-	if (site.bio === false) return { site }
+	if (!site.bio) return { site }
 	const page = await getPage(c.env.DB, record.page)
 	const content = page?.published
 	if (!page || !content) return { site }
@@ -460,8 +480,7 @@ function destination(record: LinkRecord, ua: string): string {
 			['utm_source', record.utm.source],
 			['utm_medium', record.utm.medium],
 			['utm_campaign', record.utm.campaign],
-			// KV records written before v0.3 have no content.
-			['utm_content', record.utm.content ?? null],
+			['utm_content', record.utm.content],
 		] as const
 		if (pairs.some(([, value]) => value)) {
 			try {
@@ -563,7 +582,7 @@ export async function systemPage(
 	// The site record holds the language setting, and the look when the page has none of its own.
 	const record = known ?? (await systemSite(c.env))
 	const look: Appearance | undefined = options.appearance ?? record?.look ?? undefined
-	const languages = pageLanguages(record?.locale ?? DEFAULT_SETTINGS.locale, record?.languages)
+	const languages = { locale: record?.locale ?? DEFAULT_SETTINGS.locale, languages: record?.languages ?? [] }
 	const html = renderSystemPage({
 		kind,
 		host: new URL(c.req.url).host,

@@ -73,7 +73,7 @@ export async function unusedMedia(env: Env, now = Date.now()): Promise<{ ids: st
 		for (const key of page.keys) {
 			const id = key.name.slice(MEDIA_PREFIX.length)
 			if (!isShippableMediaId(id) || used.has(id)) continue
-			// Pictures from before uploads were dated have no date, and are old enough.
+			// Every upload is dated (PUT /api/media).
 			if ((key.metadata?.at ?? 0) > now - UNUSED_AFTER) continue
 			ids.push(id)
 		}

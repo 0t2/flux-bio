@@ -10,6 +10,7 @@ import {
 	telHref,
 	videoEmbed,
 	type GalleryItem,
+	type EmbedItem,
 	type HoursItem,
 	type Item,
 	type LinkItem,
@@ -18,6 +19,7 @@ import {
 	type ProductItem,
 	type VideoItem,
 } from '../shared/content'
+import { EMBED_ACTIONS, embedAccount, EMBEDS, embedWords, type EmbedProvider } from '../shared/embeds'
 import { CHINESE_FONT_CHARACTER, findFont, FONT_FAMILY, FONT_FILE, fontFileUrl, GOOGLE_TEXT_LIMIT, isSlicedFont, textOf, type HostedFont } from '../shared/fonts'
 import { hoursWords, localTime, openStatus, statusText, weekRows } from '../shared/hours'
 import { dirAttribute } from '../shared/locale'
@@ -79,6 +81,8 @@ interface BioStrings {
 	call: string
 	map: string
 	loadMap: string
+	/** Closes the panel an embed card or button opens. */
+	close: string
 	/** Joins a label to what it names, e.g. "Play video: <title>". */
 	colon: string
 }
@@ -102,6 +106,7 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: '打電話',
 		map: '地圖',
 		loadMap: '點一下載入地圖',
+		close: '關閉',
 		colon: '：',
 	},
 	en: {
@@ -122,6 +127,7 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Call',
 		map: 'Map',
 		loadMap: 'Tap to load the map',
+		close: 'Close',
 		colon: ': ',
 	},
 	'zh-CN': {
@@ -142,6 +148,7 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: '打电话',
 		map: '地图',
 		loadMap: '点击加载地图',
+		close: '关闭',
 		colon: '：',
 	},
 	ja: {
@@ -162,6 +169,7 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: '電話する',
 		map: '地図',
 		loadMap: 'タップして地図を表示',
+		close: '閉じる',
 		colon: '：',
 	},
 	ko: {
@@ -182,6 +190,7 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: '전화하기',
 		map: '지도',
 		loadMap: '탭해서 지도 불러오기',
+		close: '닫기',
 		colon: ': ',
 	},
 	es: {
@@ -202,6 +211,7 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Llamar',
 		map: 'Mapa',
 		loadMap: 'Toca para cargar el mapa',
+		close: 'Cerrar',
 		colon: ': ',
 	},
 	'pt-BR': {
@@ -222,6 +232,7 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Ligar',
 		map: 'Mapa',
 		loadMap: 'Toque para carregar o mapa',
+		close: 'Fechar',
 		colon: ': ',
 	},
 	fr: {
@@ -242,6 +253,7 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Appeler',
 		map: 'Carte',
 		loadMap: 'Touchez pour charger la carte',
+		close: 'Fermer',
 		colon: '\u00a0: ',
 	},
 	de: {
@@ -262,6 +274,7 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Anrufen',
 		map: 'Karte',
 		loadMap: 'Tippen, um die Karte zu laden',
+		close: 'Schließen',
 		colon: ': ',
 	},
 	id: {
@@ -282,6 +295,7 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Telepon',
 		map: 'Peta',
 		loadMap: 'Ketuk untuk memuat peta',
+		close: 'Tutup',
 		colon: ': ',
 	},
 	th: {
@@ -302,6 +316,7 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'โทร',
 		map: 'แผนที่',
 		loadMap: 'แตะเพื่อโหลดแผนที่',
+		close: 'ปิด',
 		colon: ': ',
 	},
 	vi: {
@@ -322,6 +337,7 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'Gọi điện',
 		map: 'Bản đồ',
 		loadMap: 'Chạm để tải bản đồ',
+		close: 'Đóng',
 		colon: ': ',
 	},
 	ar: {
@@ -342,6 +358,7 @@ const STRINGS: Record<Locale, BioStrings> = {
 		call: 'اتصال',
 		map: 'الخريطة',
 		loadMap: 'اضغط لتحميل الخريطة',
+		close: 'إغلاق',
 		colon: ': ',
 	},
 }
@@ -371,6 +388,7 @@ a{color:inherit}
 a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--fg);outline-offset:3px}
 .page-bg{position:fixed;inset:0;pointer-events:none}
 .page-bg img{width:100%;height:100%;object-fit:cover;display:block}
+.page-bg.tile{background-position:center;background-repeat:repeat}
 .page-bg::after{content:"";position:absolute;inset:0;background:var(--bg);opacity:var(--dim)}
 .head{width:100%;display:flex;flex-direction:column;align-items:center}
 .head h1,.head .bio{max-width:none;text-align:center}
@@ -547,7 +565,7 @@ function fontsHtml(look: ResolvedAppearance, hosted?: readonly HostedFont[], sho
 
 /** Every built-in word a page can show in a language, for copying the fonts it needs. */
 export function builtInWords(locale: Locale): string {
-	return textOf(STRINGS[locale]) + hoursWords(locale)
+	return textOf(STRINGS[locale]) + textOf(Object.values(EMBED_ACTIONS).map((action) => action.words[locale])) + hoursWords(locale)
 }
 
 function absoluteUrl(path: string, base?: string): string | null {
@@ -560,10 +578,35 @@ function absoluteUrl(path: string, base?: string): string | null {
 }
 
 /** The items a visitor sees right now: not hidden, inside their schedule, and filled in enough to show. */
-const TODO_CSS = '.link.todo{opacity:.62;border-style:dashed;border-width:1.5px}'
+const TODO_CSS = '.link.todo,.act.todo{opacity:.62;border-style:dashed;border-width:1.5px}'
 
 const LINE_BUTTON_CSS = `.has-line main{padding-bottom:88px}
 .line-button{position:fixed;inset-inline-end:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:6;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;background:#06C755;box-shadow:0 4px 14px rgba(0,0,0,.28);text-decoration:none}`
+
+/** An embed card, and the floating embed button, which sits above the LINE button when there is one. */
+const EMBED_CSS = `.embed-head{display:flex;align-items:center;gap:14px}
+.embed-icon{flex:0 0 auto;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:min(var(--radius),14px);color:var(--accent-text);background:color-mix(in srgb,var(--accent) 16%,transparent)}
+.embed-text{min-width:0;display:flex;flex-direction:column;gap:2px}
+.has-embed main{padding-bottom:84px}
+.has-embed.has-line main{padding-bottom:148px}
+.embed-button{position:fixed;inset-inline-end:16px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:6;min-height:48px;padding-inline:14px 18px;display:flex;align-items:center;gap:8px;border-radius:999px;color:var(--ink);background:var(--accent);font:700 15px/1.2 var(--body-font);text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.28)}
+.has-line .embed-button{bottom:calc(84px + env(safe-area-inset-bottom))}`
+
+/**
+ * The sheet a tap on an embed opens over a live page: a bottom sheet on phones, centred on wider screens. It holds the
+ * service's own panel, which keeps its own colors whatever the theme, so the sheet takes the panel's (`--paper`).
+ */
+const SHEET_CSS = `.sheet{width:100%;max-width:440px;max-height:100%;margin:auto auto 0;padding:0 0 env(safe-area-inset-bottom);border:0;border-radius:20px 20px 0 0;color:#131416;background:var(--paper,#fff);box-shadow:0 -8px 40px rgba(0,0,0,.3);overflow:hidden}
+.sheet::backdrop{background:rgba(0,0,0,.5)}
+.sheet-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:6px 0;padding-inline:20px 6px}
+.sheet-bar b{font:700 15px/1.3 var(--body-font)}
+.sheet-bar form{margin:0}
+.sheet:focus{outline:0}
+.sheet-close{width:40px;height:40px;margin:2px;display:flex;align-items:center;justify-content:center;border:0;border-radius:50%;color:inherit;background:rgba(0,0,0,.06);cursor:pointer}
+.sheet-close:focus-visible{outline:2px solid currentColor;outline-offset:-4px}
+.sheet iframe{display:block;width:100%;height:min(712px,calc(100dvh - 110px));border:0}
+body:has(.sheet[open]){overflow:hidden}
+@media (min-width:600px){.sheet{margin:auto;border-radius:20px;padding:0}}`
 
 const DRAFT_CSS = '.draft-note{position:sticky;top:0;z-index:5;margin:0;padding:6px 12px;background:#131416;color:#fff;font:500 13px/1.4 system-ui,sans-serif;text-align:center}'
 
@@ -594,6 +637,8 @@ export function visibleItems(content: PageContent, now = Date.now(), { unfinishe
 				return item.products.some((product) => product.name.trim())
 			case 'hours':
 				return item.week.some((day) => day.length > 0) || Boolean(item.address.trim())
+			case 'embed':
+				return Boolean(embedAccount(item)) || (unfinished && Boolean(item.title.trim()))
 			// A kind this version doesn't know, e.g. in a page published by another version, isn't shown.
 			default:
 				return false
@@ -610,6 +655,14 @@ interface Context {
 	now: number
 	timeZone: string
 	locale: Locale
+	/** The panels a live page's embeds open, filled in as they are drawn: one sheet per address. */
+	sheets: Sheet[]
+}
+
+interface Sheet {
+	id: string
+	provider: EmbedProvider
+	url: string
 }
 
 /** A document for an iframe: shows a picture and loads the real thing only when tapped. */
@@ -626,6 +679,47 @@ function facade(ctx: Context, link: { href: string; label: string }, inner: stri
 export const TAP_SCRIPT = `document.querySelectorAll('a[ping]').forEach(function(a){var u=a.getAttribute('ping');a.removeAttribute('ping');function t(){fetch(u,{method:'POST',keepalive:true,credentials:'omit'}).catch(function(){})}a.addEventListener('click',t);a.addEventListener('auxclick',function(e){e.button===1&&t()})})`
 /** The CSP allows exactly that text; tests/link-buttons.test.ts fails if the two part ways. */
 export const TAP_SCRIPT_HASH = 'sha256-ll32O/+80PlnpGmojgn8eAezy4q1giUtfmTb5/iYkwU='
+
+/**
+ * The other script, on a page with an embed: a tap on a link with `data-sheet` opens that sheet over the page instead of
+ * leaving it, and gives its frame the panel's address (`data-src`) the first time. Until then the frame has none, so
+ * nothing loads from the service before a tap. TAP_SCRIPT still counts the tap. Without JavaScript, in a browser without
+ * <dialog>, or for a tap meant for a new tab, the link goes to the account's page as any link would. The close button
+ * needs no script: it is a dialog form.
+ */
+export const SHEET_SCRIPT = `(function(){document.querySelectorAll('a[data-sheet]').forEach(function(a){var d=document.getElementById(a.getAttribute('data-sheet')),f=d&&d.querySelector('iframe');if(!f||!d.showModal)return;a.addEventListener('click',function(e){if(e.button||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;e.preventDefault();if(!f.getAttribute('src'))f.setAttribute('src',f.getAttribute('data-src'));d.showModal()})});document.querySelectorAll('dialog.sheet').forEach(function(d){d.addEventListener('click',function(e){if(e.target===d)d.close()})})})()`
+/** Allowed by the CSP like TAP_SCRIPT, on pages with an embed; tests/embeds.test.ts fails if the two part ways. */
+export const SHEET_SCRIPT_HASH = 'sha256-M2g4mFphpgGNn8+aEuyEKed58F0ekQKPZvgEDoMrUeo='
+
+/**
+ * What a panel may do in its frame, whichever service it is: run, keep its own origin (the service's, never this site's:
+ * the frame only ever gets an address the service's entry in EMBEDS built from a checked account), send its forms, and
+ * open PayPal or a card form in a window of their own. Never navigate this page. A service that needs more isn't one.
+ */
+export const SHEET_SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox'
+
+function sheetHtml(text: BioStrings, sheet: Sheet): string {
+	const service = EMBEDS[sheet.provider]
+	const name = esc(service.name)
+	// autofocus: opening it focuses the sheet itself, not its close button, which a tap would then show ringed.
+	return `<dialog class="sheet" id="${sheet.id}" aria-label="${name}" style="--paper:${service.paper}" autofocus><div class="sheet-bar"><b>${name}</b><form method="dialog"><button class="sheet-close" aria-label="${esc(text.close)}">${iconSvg('close', 22, 2)}</button></form></div><iframe title="${name}" sandbox="${SHEET_SANDBOX}" allow="${esc(service.allow)}" data-src="${esc(sheet.url)}"></iframe></dialog>`
+}
+
+/** The sheet for an embed's panel on a live page, made the first time a button opens it. */
+function sheetFor(ctx: Context, provider: EmbedProvider, account: string): Sheet {
+	const url = EMBEDS[provider].panel(account)
+	let sheet = ctx.sheets.find((entry) => entry.url === url)
+	if (!sheet) ctx.sheets.push((sheet = { id: `sheet-${ctx.sheets.length + 1}`, provider, url }))
+	return sheet
+}
+
+/** The services whose panels a live page opens, which its CSP lets it frame: the same ones renderBioPage draws. */
+export function pageEmbeds(content: PageContent, now = Date.now()): EmbedProvider[] {
+	const providers = new Set<EmbedProvider>()
+	for (const item of visibleItems(content, now)) if (item.kind === 'embed') providers.add(item.provider)
+	if (content.embedButton && embedAccount(content.embedButton)) providers.add(content.embedButton.provider)
+	return [...providers]
+}
 
 /** A link to an address the visitor can see before tapping, which reports the tap in live mode. */
 function counted(ctx: Context, item: { id: string }, part: string, url: string): string {
@@ -736,6 +830,25 @@ function hoursHtml(ctx: Context, item: HoursItem): string {
 	return `<section class="panel hours" aria-labelledby="${esc(id)}"><h2 id="${esc(id)}">${esc(item.title.trim() || ctx.text.map)}</h2>${rows}${item.note.trim() ? `<p class="note">${esc(item.note)}</p>` : ''}${map}${address ? `<p class="addr">${esc(address)}</p>` : ''}${actions.length ? `<div class="acts${actions.length === 1 ? ' one' : ''}">${actions.join('')}</div>` : ''}</section>`
 }
 
+/** A link to an account's page on a service. On a live page a tap opens the service's panel in a sheet instead (SHEET_SCRIPT). */
+function embedLink(ctx: Context, item: { id: string }, provider: EmbedProvider, account: string): string {
+	const sheet = ctx.live ? ` data-sheet="${sheetFor(ctx, provider, account).id}"` : ''
+	return `${counted(ctx, item, provider, EMBEDS[provider].page(account))}${sheet}${ctx.newTab}`
+}
+
+function embedHtml(ctx: Context, item: EmbedItem): string {
+	const service = EMBEDS[item.provider]
+	const account = embedAccount(item)
+	const id = `e-${item.id}`
+	const title = item.title.trim()
+	const label = esc(embedWords(item.provider, ctx.locale).button)
+	// Only previews get this far without an account: the button shows, and goes nowhere.
+	const button = account ? `<a class="act main" ${embedLink(ctx, item, item.provider, account)}>${label}</a>` : `<span class="act main todo">${label}</span>`
+	const heading = title ? `<h2 id="${esc(id)}">${esc(item.title)}</h2>` : ''
+	const note = item.note.trim() ? `<p class="note">${esc(item.note)}</p>` : ''
+	return `<section class="panel embed" ${title ? `aria-labelledby="${esc(id)}"` : `aria-label="${esc(service.name)}"`}><div class="embed-head"><span class="embed-icon" aria-hidden="true">${iconSvg(service.icon, 28, 1.8)}</span><div class="embed-text">${heading}${note}</div></div>${button}</section>`
+}
+
 function itemHtml(ctx: Context, item: Item): string {
 	switch (item.kind) {
 		case 'link':
@@ -750,6 +863,8 @@ function itemHtml(ctx: Context, item: Item): string {
 			return productHtml(ctx, item)
 		case 'hours':
 			return hoursHtml(ctx, item)
+		case 'embed':
+			return embedHtml(ctx, item)
 	}
 }
 
@@ -771,6 +886,7 @@ export function renderBioPage(source: PageContent, options: RenderOptions): stri
 		now,
 		timeZone: options.timeZone ?? 'UTC',
 		locale,
+		sheets: [],
 	}
 
 	const name = content.profile.name.trim()
@@ -797,10 +913,17 @@ export function renderBioPage(source: PageContent, options: RenderOptions): stri
 		.filter(Boolean)
 		.join('\n')
 
-	// Pictures an AI gave the page: stored copies from before they existed have neither.
-	const { coverImage, bgImage, bgDim } = content.appearance
+	// Pictures an AI gave the page.
+	const { coverImage, bgImage, bgDim, bgTile } = content.appearance
 	const cover = coverImage ? `<figure class="cover"><img src="${esc(options.mediaUrl(coverImage))}" alt=""></figure>` : ''
-	const backdrop = bgImage ? `<div class="page-bg" style="--dim:${Number(bgDim ?? 0.75)}" aria-hidden="true"><img src="${esc(options.mediaUrl(bgImage))}" alt=""></div>` : ''
+	// A pattern repeats at the size the owner chose; anything else is one picture covering the screen. Media ids are
+	// letters, digits, dots and dashes, so the address needs no escaping inside url('…') beyond what esc() does.
+	const tile = Math.trunc(Number(bgTile))
+	const backdrop = !bgImage
+		? ''
+		: tile > 0
+			? `<div class="page-bg tile" style="--dim:${Number(bgDim)};background-image:url('${esc(options.mediaUrl(bgImage))}');background-size:${tile}px auto" aria-hidden="true"></div>`
+			: `<div class="page-bg" style="--dim:${Number(bgDim)}" aria-hidden="true"><img src="${esc(options.mediaUrl(bgImage))}" alt=""></div>`
 
 	const avatar = content.profile.avatar
 		? `<img src="${esc(options.mediaUrl(content.profile.avatar))}" alt="">`
@@ -836,12 +959,20 @@ export function renderBioPage(source: PageContent, options: RenderOptions): stri
 	const lineButton = lineUrl
 		? `<a class="line-button" ${counted(ctx, { id: 'page' }, LINE_PART, lineUrl)} aria-label="LINE"${ctx.newTab}>${iconSvg('line', 30)}</a>`
 		: ''
+	const floating = content.embedButton
+	const floatingAccount = floating ? embedAccount(floating) : null
+	const floatingWords = floating && floatingAccount ? embedWords(floating.provider, locale) : null
+	const embedButton =
+		floating && floatingAccount && floatingWords
+			? `<a class="embed-button" ${embedLink(ctx, { id: 'page' }, floating.provider, floatingAccount)} aria-label="${esc(floatingWords.button)}">${iconSvg(EMBEDS[floating.provider].icon, 22, 2)}<span>${esc(floatingWords.float)}</span></a>`
+			: ''
 	// The owner's own text can't match: esc() turns its quotes into entities.
-	const reportsTaps = / ping="/.test(itemsHtml + socials.join('') + lineButton)
+	const reportsTaps = / ping="/.test(itemsHtml + socials.join('') + lineButton + embedButton)
+	const showsEmbed = Boolean(embedButton) || items.some((item) => item.kind === 'embed')
 	// The page's own CSS, in a sheet of its own after the theme's, so it wins at the same specificity and nothing in it can
-	// spill into the theme's. It was checked when it was saved (src/shared/css.ts); "<" is the one thing that could end the
+	// spill into the theme's. It was checked when it came in (src/shared/css.ts); "<" is the one thing that could end the
 	// <style>, so that alone is looked for again here.
-	const css = content.appearance.css ?? ''
+	const css = content.appearance.css
 	const ownCss = css.trim() && !css.includes('<') ? `\n<style>${css}</style>` : ''
 
 	const body = `${options.draft ? `<p class="draft-note" role="status">${esc(text.draftNote)}</p>` : ''}
@@ -858,9 +989,10 @@ ${cover}
 ${items.length ? `<div class="items">${itemsHtml}</div>` : ''}
 ${footer}
 </main>
-${lineButton}
-${reportsTaps ? `<script>${TAP_SCRIPT}</script>` : ''}
+${lineButton}${embedButton}${ctx.sheets.map((sheet) => sheetHtml(text, sheet)).join('')}
+${reportsTaps ? `<script>${TAP_SCRIPT}</script>` : ''}${ctx.sheets.length ? `<script>${SHEET_SCRIPT}</script>` : ''}
 ${options.draft ? draftScript(options.draft) : ''}`
+	const bodyClass = [lineButton && 'has-line', embedButton && 'has-embed'].filter(Boolean).join(' ')
 
 	return `<!doctype html>
 <html lang="${text.lang}"${dirAttribute(text.lang)}>
@@ -869,9 +1001,9 @@ ${headHtml(look, title, options.fonts, live || options.settled ? body + ownCss :
 ${meta}
 <style>${pageVars(look)}
 ${BASE_CSS}
-${THEME_CSS[look.theme.id]}${lineButton ? `\n${LINE_BUTTON_CSS}` : ''}${options.mode === 'preview' ? `\n${TODO_CSS}` : ''}${options.draft ? `\n${DRAFT_CSS}` : ''}</style>${ownCss}
+${THEME_CSS[look.theme.id]}${lineButton ? `\n${LINE_BUTTON_CSS}` : ''}${showsEmbed ? `\n${EMBED_CSS}` : ''}${ctx.sheets.length ? `\n${SHEET_CSS}` : ''}${options.mode === 'preview' ? `\n${TODO_CSS}` : ''}${options.draft ? `\n${DRAFT_CSS}` : ''}</style>${ownCss}
 </head>
-<body${lineButton ? ' class="has-line"' : ''}>
+<body${bodyClass ? ` class="${bodyClass}"` : ''}>
 ${body}
 </body>
 </html>`

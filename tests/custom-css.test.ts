@@ -8,6 +8,7 @@ import {
 	defaultAppearance,
 	emptyContent,
 	emptyLink,
+	newEmbed,
 	newItem,
 	PageContentInputSchema,
 	PageContentSchema,
@@ -436,8 +437,12 @@ describe('the markup CSS is written against', () => {
 				{ ...newItem('product'), id: 'product-one', products: [product('bean-3')] },
 				{ ...newItem('hours'), id: 'hours-full', address: '1 Main St', phone: '02 1234 5678', note: 'Closed on holidays' },
 				{ ...newItem('hours'), id: 'hours-short', address: '2 Main St', phone: '', showMap: false },
+				{ ...newEmbed('kofi', 'embed-tips'), account: 'https://ko-fi.com/q_0t2', note: 'Thank you' },
+				// In a preview, a card with no account yet still shows, with a button that goes nowhere.
+				newEmbed('calendly', 'embed-unfinished'),
 			] as PageContent['items'],
 			lineButton: '@mei',
+			embedButton: { provider: 'calendly', account: 'https://calendly.com/mei' },
 		}
 	}
 
@@ -455,13 +460,15 @@ describe('the markup CSS is written against', () => {
 		const pages = [
 			renderBioPage(everything(), { mode: 'live', mediaUrl: media, linkHref: (item) => `/${item.slug}`, blockHref: (item, part) => `/_c/mei/${item.id}/${part}`, now: open }),
 			renderBioPage(everything(), { mode: 'preview', mediaUrl: media, now: closed, draft: { nonce: 'n', versionUrl: '/v', version: 1 } }),
-			renderBioPage({ ...everything(), appearance: { ...everything().appearance, theme: 'rail' }, items: everything().items.slice(0, 3) }, { mode: 'live', mediaUrl: media, locale: 'ar', now: open }),
+			// A tiled background, as appearance.bgTile draws it.
+			renderBioPage({ ...everything(), appearance: { ...everything().appearance, theme: 'rail', bgTile: 48 }, items: everything().items.slice(0, 3) }, { mode: 'live', mediaUrl: media, locale: 'ar', now: open }),
 		]
 		const found = new Set(pages.flatMap((html) => [...classesOn(html)]))
 		const promised = [
-			'act', 'acts', 'addr', 'avatar', 'badge', 'bio', 'block-title', 'cap', 'closed', 'cover', 'draft-note', 'feat', 'frame', 'gallery', 'go',
-			'grid', 'has-line', 'head', 'hint-line', 'hours', 'info', 'items', 'line-button', 'link', 'main', 'map', 'more', 'note', 'off', 'one',
-			'open-pill', 'page-bg', 'panel', 'ph', 'price', 'product', 'products', 'sep', 'single', 'slide', 'socials', 't', 'today', 'todo', 'track', 'video',
+			'act', 'acts', 'addr', 'avatar', 'badge', 'bio', 'block-title', 'cap', 'closed', 'cover', 'draft-note', 'embed', 'embed-button', 'embed-head',
+			'embed-icon', 'embed-text', 'feat', 'frame', 'gallery', 'go', 'grid', 'has-embed', 'has-line', 'head', 'hint-line', 'hours', 'info', 'items',
+			'line-button', 'link', 'main', 'map', 'more', 'note', 'off', 'one', 'open-pill', 'page-bg', 'panel', 'ph', 'price', 'product', 'products', 'sep',
+			'sheet', 'sheet-bar', 'sheet-close', 'single', 'slide', 'socials', 't', 'tile', 'today', 'todo', 'track', 'video',
 		]
 		// If this fails, a page's markup changed: CSS an AI wrote against it may stop working. Make sure that is meant, then update the
 		// customize topic (bodies.customize in src/worker/lib/agentTopics.ts, "Page markup") and this list together.

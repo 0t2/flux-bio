@@ -4,8 +4,8 @@ import type { CreateTokenResponse, PageJson, StateResponse } from '../src/shared
 import { SCHEMA_VERSION } from '../src/worker/lib/db'
 import { api, apiJson, visit } from './helpers'
 
-// 清除所有資料 puts a deployment back to a fresh install, whatever older or
-// pre-release versions left in the database.
+// 清除所有資料 puts a deployment back to a fresh install, whatever else is
+// in the database, tables this version doesn't know included.
 let token = ''
 
 beforeAll(async () => {
