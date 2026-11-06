@@ -48,7 +48,7 @@ Say at the start that their tool will keep asking whether it may run things, tha
 | Tool | Deploy | Run the site | Notes |
 | --- | --- | --- | --- |
 | Claude Code (terminal, IDE or the desktop app's Code tab) | Recommended | Yes | Needs a paid Claude plan |
-| Codex, OpenCode, Cursor, Cline, Roo Code, Kilo Code, Droid, Crush, Goose, Pi, TRAE, Qoder, ZCode, Eigent, Gemini CLI, GitHub Copilot, Windsurf | Should work | Should work | If a sandbox blocks the network, allow it first |
+| Codex, OpenCode, Cursor, Cline, Roo Code, Kilo Code, Droid, Crush, Goose, Pi, TRAE, Qoder, ZCode, Eigent, Gemini CLI, GitHub Copilot, Windsurf | Should work | Should work | |
 | Claude Code on the web, Claude Cowork, Codex cloud | Not recommended | Should work | Commands run in an isolated environment: allow its network to reach Cloudflare and the deployment |
 | Claude App | No | Should work | Upload `/skill.md` as a skill and let code execution reach the deployment |
 | ChatGPT custom GPTs | No | Should work | Actions can't send files: upload images in the dashboard, and restore backups with another tool |

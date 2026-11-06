@@ -35,13 +35,18 @@ export function UsageNotice() {
 	}
 	const limits = usage.dailyLimits
 	if (limits) {
-		const share = Math.max(usage.estimate.requests / limits.requests, usage.estimate.kvReads / limits.kvReads, usage.estimate.rowsWritten / limits.rowsWritten)
+		// The account's own numbers where Cloudflare gives them; Worker requests are always this site's estimate.
+		const account = usage.account
+		const shares = [usage.estimate.requests / limits.requests]
+		if (account) shares.push(account.kv.read / limits.kv.read, account.kv.write / limits.kv.write, account.d1.rowsRead / limits.d1.rowsRead, account.d1.rowsWritten / limits.d1.rowsWritten)
+		const share = Math.max(...shares)
 		if (share >= FULL) {
 			const reset = dateFormat({ hour: '2-digit', minute: '2-digit' }).format(Date.parse(usage.today.since) + 86_400_000)
 			notes.push({
 				key: 'today',
 				urgent: share >= NEARLY_FULL,
-				text: t('今天的免費額度估計已用 {percent}%，{time} 重新計算。這是估計值，圖片、機器人和帳號裡的其他專案沒有算進去。', { percent: Math.floor(share * 100), time: reset }),
+				link: true,
+				text: t('今天的免費額度已用 {percent}%，{time} 重新計算，用完的那一項會停到那時候。', { percent: Math.floor(share * 100), time: reset }),
 			})
 		}
 	}
@@ -70,7 +75,7 @@ export function UsageNotice() {
 					<p>{note.text}</p>
 					<span className="usage-note-actions">
 						{note.link && (
-							<Link href="/settings#stats-data" className="btn small">
+							<Link href={note.key === 'merge' ? '/settings#stats-data' : '/settings'} className="btn small">
 								{t('前往設定')}
 							</Link>
 						)}

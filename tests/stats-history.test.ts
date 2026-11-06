@@ -1,10 +1,11 @@
-import { env } from 'cloudflare:test'
+import { createExecutionContext, env, waitOnExecutionContext } from 'cloudflare:test'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { CreateTokenResponse, PageJson, StateResponse, StatsExportResponse, StatsResponse, UsageResponse } from '../src/shared/api'
 import { emptyContent, emptyLink, newItem, type PageContent } from '../src/shared/content'
 import { addMonths, dayIn } from '../src/shared/time'
 import { DAILY_MONTHS } from '../src/worker/lib/statsHistory'
-import { api, apiJson, visit } from './helpers'
+import app from '../src/worker/index'
+import { api, apiJson, ORIGIN, PASSWORD, visit } from './helpers'
 
 // Clicks inside blocks keep their page; old days become months; the owner can download and clear old numbers.
 
@@ -138,13 +139,47 @@ describe('usage', () => {
 		expect(usage.database.limit).toBe(500 * 1024 ** 2)
 		expect(usage.today.from).toBe('stats')
 		expect(usage.today.views).toBeGreaterThan(0)
-		expect(usage.estimate.kvReads).toBe(usage.today.views * 2 + usage.today.clicks)
-		expect(usage.dailyLimits?.requests).toBe(100_000)
+		expect(usage.estimate.requests).toBe(usage.today.views + usage.today.clicks)
+		// No Cloudflare analytics in tests, as in local development.
+		expect(usage.account).toBeNull()
+		expect(usage.dailyLimits).toEqual({
+			requests: 100_000,
+			kv: { read: 100_000, write: 1_000, delete: 1_000, list: 1_000 },
+			d1: { rowsRead: 5_000_000, rowsWritten: 100_000 },
+			databases: { count: 10, bytes: 5 * 1024 ** 3 },
+		})
 		const { settings } = await apiJson<StateResponse>('/state')
 		await apiJson('/settings', { method: 'PUT', json: { ...settings, plan: 'paid' } })
 		const paid = await apiJson<UsageResponse>('/usage')
 		expect(paid.dailyLimits).toBeNull()
 		expect(paid.database.limit).toBe(10 * 1024 ** 3)
 		await apiJson('/settings', { method: 'PUT', json: { ...settings, plan: 'free' } })
+	})
+})
+
+describe("the account's use", () => {
+	it("is read from Cloudflare's analytics through the SQL binding, with no token, and without one is left out", async () => {
+		const asked: string[] = []
+		const ANALYTICS_SQL = {
+			async query({ query }: { query: string }) {
+				asked.push(query)
+				if (query.includes('events.kvRequests')) return { data: [{ actionType: 'read', ops: '41000' }, { actionType: 'write', ops: 812 }] }
+				if (query.includes('events.d1BackendRequest')) return { data: [{ readRows: '1200000', writtenRows: '64000' }] }
+				if (query.includes('states.d1Storage')) return { data: [{ databaseId: 'a', bytes: 3_000_000 }, { databaseId: 'b', bytes: '1000000' }] }
+				return { data: [] }
+			},
+		}
+		const ctx = createExecutionContext()
+		const response = await app.fetch(new Request(`${ORIGIN}/api/usage`, { headers: { authorization: `Bearer ${PASSWORD}` } }), { ...env, ANALYTICS_SQL }, ctx)
+		await waitOnExecutionContext(ctx)
+		const usage = (await response.json()) as UsageResponse
+		expect(usage.account).toEqual({
+			kv: { read: 41_000, write: 812, delete: 0, list: 0 },
+			d1: { rowsRead: 1_200_000, rowsWritten: 64_000 },
+			databases: { count: 2, bytes: 4_000_000 },
+		})
+		// Every query bounds its time itself, and none names an account: the binding is scoped to this one.
+		expect(asked.filter((query) => /events\.(kvRequests|d1BackendRequest)|states\.d1Storage/.test(query)).every((query) => query.includes('timestamp >='))).toBe(true)
+		expect(asked.some((query) => /accountTag/i.test(query))).toBe(false)
 	})
 })
