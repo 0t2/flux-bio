@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import type { PageJson } from '../src/shared/api'
 import { emptyContent, emptyLink } from '../src/shared/content'
 import app from '../src/worker/index'
+import { forgetSite } from '../src/worker/lib/ops'
 import { IPHONE, ORIGIN, PASSWORD } from './helpers'
 
 // The free plan allows 100,000 KV reads and 1,000 writes a day, and AGENTS.md and the agent guide say what each
@@ -67,13 +68,18 @@ describe('what things cost in KV', () => {
 		expect(publish.writes).toBe(3)
 	})
 
-	it('a page view is two reads, at the home page and at its own address', async () => {
+	it('publishing the home page again is three writes: its copy leaves the site record first, then the page and the record are written', async () => {
+		const again = await measure(`/api/pages/${homeId}/publish`, { method: 'POST' })
+		expect(again).toMatchObject({ status: 200, writes: 3, deletes: 1 })
+	})
+
+	it('a page view is one read, at the home page and at its own address', async () => {
 		const home = await measure('/')
 		expect(home.status).toBe(200)
-		expect(home.reads).toBe(2)
+		expect(home.reads).toBe(1)
 		const other = await measure('/cost-other')
 		expect(other.status).toBe(200)
-		expect(other.reads).toBe(2)
+		expect(other.reads).toBe(1)
 		expect(home.writes + other.writes).toBe(0)
 	})
 
@@ -98,6 +104,24 @@ describe('what things cost in KV', () => {
 			expect(tap.status).toBe(204)
 			expect(tap).toMatchObject({ reads: 1, writes: 0, deletes: 0 })
 		}
+	})
+
+	it('costs no more in a copy of the Worker that has just started, which has yet to learn the time zone', async () => {
+		for (const path of ['/', '/cost-other', '/cost-shop']) {
+			forgetSite()
+			expect((await measure(path)).reads).toBe(1)
+		}
+		forgetSite()
+		expect((await measure('/_c/cost-tap/cost-link/link', { method: 'POST', body: 'PING' })).reads).toBe(1)
+	})
+
+	it('an address that is nothing is one read, and one that could never be anything is none, once the site is known', async () => {
+		forgetSite()
+		// The first not-found page in a copy of the Worker reads the site record for its language and look.
+		expect(await measure('/cost-nothing')).toMatchObject({ status: 404, reads: 2 })
+		expect(await measure('/cost-nothing-else')).toMatchObject({ status: 404, reads: 1 })
+		expect(await measure('/wp-login.php')).toMatchObject({ status: 404, reads: 0 })
+		expect(await measure('/wp-admin/setup-config.php')).toMatchObject({ status: 404, reads: 0 })
 	})
 
 	it('Share writes one short link once, and renaming a live one is two writes and two deletes', async () => {

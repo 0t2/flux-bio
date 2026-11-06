@@ -58,7 +58,7 @@ describe('days', () => {
 describe('what is left, for an owner', () => {
 	it('is page views and changes, not reads and writes', () => {
 		const usage = kvQuota([{ actionType: 'read', ops: 2000 }, { actionType: 'write', ops: 20 }] as never)
-		expect(leftInPlainWords(usage)).toEqual({ pageViews: 49_000, changes: 980 })
+		expect(leftInPlainWords(usage)).toEqual({ pageViews: 98_000, changes: 980 })
 	})
 
 	it('is whichever of KV reads and D1 rows written runs out first', () => {

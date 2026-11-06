@@ -87,6 +87,16 @@ describe('the site', () => {
 		expect(languageScript()).not.toMatch(/:\s*(readonly\s+)?string/)
 	})
 
+	it('loads only the fonts a language is set in: a Chinese one on the Traditional Chinese page alone', () => {
+		for (const locale of LOCALES) {
+			const page = renderLanding(template, words[`../landing/locales/${locale}.json`]!, locale)
+			const [, href = ''] = /<link rel="stylesheet" href="(https:\/\/fonts\.googleapis\.com\/css2\?[^"]+)">/.exec(page) ?? []
+			expect(href, locale).toContain('family=IBM+Plex+Sans:')
+			expect(href.includes('Noto+Sans+TC'), locale).toBe(locale === 'zh-TW')
+			expect(href.includes('IBM+Plex+Sans+Arabic'), locale).toBe(locale === 'ar')
+		}
+	})
+
 	it('has an address per language, and English from the menu stays English', () => {
 		const page = renderLanding(template, english, 'en')
 		expect(page).toContain('<a href="/en/" lang="en"')

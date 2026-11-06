@@ -25,12 +25,12 @@ import { translatedLocales } from '../../shared/translations'
 import { renderBioPage, TAP_SCRIPT_HASH, visibleItems } from '../../templates/render'
 import { renderSystemPage, type SystemPageKind, type SystemPageOptions } from '../../templates/system'
 import { agentGuide, agentSkill, workerNameOf } from '../lib/agent'
-import { getLinkRecord, getSite, getSnapshot, mediaKey, type LinkRecord, type SiteRecord, type Snapshot } from '../lib/cache'
+import { getLinkRecord, getNamed, getSnapshot, mediaKey, type LinkRecord, type SiteRecord, type Snapshot } from '../lib/cache'
 import { readPreviewToken, sessionKeyOf } from '../lib/auth'
 import { ensureSchema, getPage, listPublished, loadSettings, publicNames } from '../lib/db'
 import { fontKey } from '../lib/fonts'
 import { isTestSite } from '../lib/mode'
-import { findSite, linkRecordFromDb, siteTimeZone, snapshotFromDb } from '../lib/ops'
+import { findSite, linkRecordFromDb, siteFromDb, siteTimeZone, snapshotFromDb, systemSite } from '../lib/ops'
 import { verifyLinkPassword } from '../lib/password'
 import { pingSignature } from '../lib/domain'
 import { UTM_PARAMS } from '../lib/analytics'
@@ -111,7 +111,7 @@ site.get('/skill.md', (c) =>
 
 // For search engines. Neither can be a page or a short link: slugs can't contain dots.
 site.get('/robots.txt', async (c) => {
-	const pages = (await findSite(c.env)).bio !== false
+	const pages = ((await systemSite(c.env)) ?? (await findSite(c.env))).bio !== false
 	return c.text(robotsTxt(new URL(c.req.url).origin, pages, isTestSite(c.env)), 200, { 'cache-control': 'public, max-age=3600' })
 })
 site.get('/sitemap.xml', async (c) => {
@@ -153,9 +153,16 @@ async function sitemapPages(env: Env): Promise<SitemapPage[]> {
 site.get('/', async (c) => {
 	const record = await findSite(c.env)
 	if (record.bio === false) return record.homeUrl ? redirect(record.homeUrl, 302) : systemPage(c, 'short-links', 200, { site: record })
+	// The home page comes with the record, so this is the only read.
+	if (record.page) return serveBio(c, record.page)
 	if (record.home) {
+		// Its copy was taken out for a change whose last write never arrived: the page is served from its own copy
+		// or D1, and the record is written again.
 		const snapshot = (await getSnapshot(c.env, record.home)) ?? (await snapshotFromDb(c.env, record.home))
-		if (snapshot) return serveBio(c, snapshot, await siteTimeZone(c.env))
+		if (snapshot) {
+			c.executionCtx.waitUntil(siteFromDb(c.env).catch((error: unknown) => console.error('Could not rewrite the site record', error)))
+			return serveBio(c, snapshot)
+		}
 	}
 	if (!record.published.length) return systemPage(c, 'unpublished', 200, { site: record })
 	return systemPage(c, 'not-found', 404, { site: record, suggestions: record.published.slice(0, 3) })
@@ -219,14 +226,16 @@ site.get('/:segment', async (c) => {
 	const slug = normalizeSlug(c.req.param('segment'))
 	// Paths like "wp-login.php" can never be a page or a short link; skip the lookups.
 	if (slugProblem(slug) === 'format') return systemPage(c, 'not-found', 404)
-	const record = await getLinkRecord(c.env, slug)
-	if (record) return serveLink(c, record, slug)
-	const snapshot = await getSnapshot(c.env, slug)
-	if (snapshot) return serveBio(c, snapshot, await siteTimeZone(c.env))
+	// Pages and short links share their names, so one read says which of them this is.
+	const named = await getNamed(c.env, slug)
+	if (named?.link) return serveLink(c, named.link, slug)
+	if (named?.page) return serveBio(c, named.page)
 	const [stored, page] = await Promise.all([linkRecordFromDb(c.env, slug), snapshotFromDb(c.env, slug)])
 	if (stored) return serveLink(c, stored, slug)
-	if (page) return serveBio(c, page, await siteTimeZone(c.env))
-	return systemPage(c, 'not-found', 404, { suggestions: await suggestionsFor(c.env, slug), meta: `${new URL(c.req.url).host}/${slug}` })
+	if (page) return serveBio(c, page)
+	// Whether pages are on decides if any address may be suggested, so a site with no record in KV yet gets one made.
+	const record = (await systemSite(c.env)) ?? (await findSite(c.env).catch(() => undefined))
+	return systemPage(c, 'not-found', 404, { site: record, suggestions: await suggestionsFor(c.env, slug, record), meta: `${new URL(c.req.url).host}/${slug}` })
 })
 
 // The password form on a protected link posts back to the link itself.
@@ -269,12 +278,15 @@ export function customPageResponse(custom: CustomPage, headers: Record<string, s
 	})
 }
 
-function serveBio(c: SiteContext, snapshot: Snapshot, timeZone: string): Response {
+async function serveBio(c: SiteContext, snapshot: Snapshot): Promise<Response> {
 	const url = new URL(c.req.url)
+	// Counting the view can wait for the time zone after the page has left. Only opening hours are drawn in it,
+	// so only a page with them waits, and only in a copy of the Worker that doesn't know it yet.
+	const zone = siteTimeZone(c.env)
 	const languages = pageLanguages(snapshot.locale, snapshot.languages)
 	const source = sourceOf(c)
 	if (snapshot.content.custom) {
-		recordHit(c.env, c.executionCtx, c.req.raw, { kind: 'view', target: snapshot.pageId, source, timeZone, slug: snapshot.handle, url: '', page: snapshot.pageId })
+		recordHit(c.env, c.executionCtx, c.req.raw, { kind: 'view', target: snapshot.pageId, source, timeZone: zone, slug: snapshot.handle, url: '', page: snapshot.pageId })
 		return customPageResponse(snapshot.content.custom, { 'cache-control': 'no-cache' })
 	}
 	// Links carry the visit's source and campaign tags along, so a click from a page
@@ -301,14 +313,14 @@ function serveBio(c: SiteContext, snapshot: Snapshot, timeZone: string): Respons
 		linkHref: (link) => `/${encodeURIComponent(link.slug)}${suffix}`,
 		blockHref: (item, part) => `/_c/${handle}/${encodeURIComponent(item.id)}/${encodeURIComponent(part)}${suffix}`,
 		viaShortLink: snapshot.viaShortLink,
-		timeZone,
+		timeZone: snapshot.content.items.some((item) => item.kind === 'hours') ? await zone : undefined,
 		fonts: snapshot.fonts,
 	})
 	recordHit(c.env, c.executionCtx, c.req.raw, {
 		kind: 'view',
 		target: snapshot.pageId,
 		source,
-		timeZone,
+		timeZone: zone,
 		slug: snapshot.handle,
 		url: '',
 		page: snapshot.pageId,
@@ -407,7 +419,7 @@ async function closedPage(c: SiteContext, record: LinkRecord, slug: string): Pro
 /** The page a bio link sits on, so its system pages wear that page's look and can point back to it. */
 async function linkPage(c: SiteContext, record: LinkRecord): Promise<Pick<SystemPageOptions, 'page' | 'appearance'> & { site?: SiteRecord }> {
 	if (!record.page) return {}
-	const site = await findSite(c.env)
+	const site = (await systemSite(c.env)) ?? (await findSite(c.env))
 	// With pages off there is nothing to point back to.
 	if (site.bio === false) return { site }
 	const page = await getPage(c.env.DB, record.page)
@@ -507,12 +519,11 @@ function distance(a: string, b: string): number {
  * links visible on them. Standalone and hidden links are never suggested, so
  * a typo can't reveal a link someone shared privately.
  */
-async function suggestionsFor(env: Env, slug: string): Promise<string[]> {
-	if (slugProblem(slug) || slug.length < 2) return []
+async function suggestionsFor(env: Env, slug: string, site: SiteRecord | undefined): Promise<string[]> {
+	// With pages off there are no public addresses to suggest.
+	if (slugProblem(slug) || slug.length < 2 || site?.bio === false) return []
 	try {
 		await ensureSchema(env.DB)
-		// With pages off there are no public addresses to suggest.
-		if (!(await loadSettings(env.DB)).bio) return []
 		const now = Date.now()
 		const names = new Set(
 			(await publicNames(env.DB, now)).filter((entry) => (entry.startsAt === null || entry.startsAt <= now) && (entry.endsAt === null || entry.endsAt > now)).map((entry) => entry.name),
@@ -537,7 +548,7 @@ export async function systemPage(
 ): Promise<Response> {
 	const { site: known, ...options } = extra
 	// The site record holds the language setting, and the look when the page has none of its own.
-	const record = known ?? (await getSite(c.env))
+	const record = known ?? (await systemSite(c.env))
 	const look: Appearance | undefined = options.appearance ?? record?.look ?? undefined
 	const languages = pageLanguages(record?.locale ?? DEFAULT_SETTINGS.locale, record?.languages)
 	const html = renderSystemPage({
