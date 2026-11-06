@@ -113,11 +113,10 @@ p{margin:0;text-wrap:pretty}
 .tok-slugs i:nth-child(2){animation-delay:2.1s}
 .tok-slugs i:nth-child(3){animation-delay:4.6s}
 @keyframes tok-slug{0%{opacity:0;transform:translateY(.6em)}5%,33.3%{opacity:1;transform:none}38.3%,100%{opacity:0;transform:translateY(-.6em)}}
-/* The bot is the logo's octopus with an aerial and square lime eyes. It floats, tilts its head to listen, blinks, and its bulb glows. */
+/* The bot is the logo. It floats, tilts its head to listen, blinks, and its bulb glows. */
 .tok-bot{height:.98em;color:var(--ink);animation:bot-float 2.6s ease-in-out infinite}
 .tok-bot svg{width:auto;height:100%;overflow:visible;transform-origin:50% 80%;animation:bot-tilt 5s ease-in-out infinite}
-.tok-bot .lit{fill:var(--brand)}
-.tok-bot .bulb{stroke:currentColor;stroke-width:.7;animation:bot-glow 1.6s ease-in-out infinite}
+.tok-bot .bulb{animation:bot-glow 1.6s ease-in-out infinite}
 .tok-bot .eyes{transform-box:fill-box;transform-origin:center;animation:bot-blink 5s infinite}
 @keyframes bot-float{0%,100%{transform:none}50%{transform:translateY(-.05em)}}
 @keyframes bot-tilt{0%,52%,100%{transform:none}60%,84%{transform:rotate(-9deg)}}

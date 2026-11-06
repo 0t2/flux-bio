@@ -5,7 +5,7 @@
 /// <reference types="vite/client" />
 import { LOCALES, type Locale } from '../src/shared/content'
 import { dirAttribute } from '../src/shared/locale'
-import { LOGO_PATH, logoSvg } from '../src/templates/icons'
+import { LOGO_LIME, LOGO_PATH, logoLights, logoSvg } from '../src/templates/icons'
 import { THEME_LIST } from '../src/templates/themes'
 import { fontsHtml, type ChineseFont } from './fonts'
 
@@ -71,19 +71,10 @@ function themeParts(locale: Locale): Record<string, string> {
 }
 
 /**
- * The logo's octopus as a robot, for the headline's last beat: an aerial with a lime bulb and square lime eyes drawn
- * over the logo's own. Its parts carry classes the template's CSS moves: the bulb glows, the eyes blink.
+ * The logo for the headline's last beat, drawn so it can move: its holes filled with ink, then its lights on top in
+ * lime, the bulb and the eyes, which the template's CSS makes glow and blink. A blink closes onto the head.
  */
-const OCTOBOT = [
-	'<svg viewBox="0.4 -3 30.8 32.6">',
-	'<path d="M15.9 3.4V.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
-	'<circle class="lit bulb" cx="15.9" cy="-.9" r="1.7"/>',
-	`<path d="${LOGO_PATH}" fill="currentColor" fill-rule="evenodd"/>`,
-	// The logo's eyes are holes: fill them, so a blink closes onto the head and not onto the page behind.
-	'<circle cx="12.99" cy="11.42" r="1.4" fill="currentColor"/><circle cx="18.69" cy="11.42" r="1.4" fill="currentColor"/>',
-	'<g class="eyes"><rect class="lit" x="11.55" y="9.95" width="2.9" height="2.9" rx=".8"/><rect class="lit" x="17.25" y="9.95" width="2.9" height="2.9" rx=".8"/></g>',
-	'</svg>',
-].join('')
+const OCTOBOT = `<svg viewBox="0 0 32 32">${logoLights('currentColor')}<path d="${LOGO_PATH}" fill="currentColor" fill-rule="evenodd"/>${logoLights(LOGO_LIME, 0.3, { bulb: ' class="bulb"', eyes: ' class="eyes"' })}</svg>`
 
 /** The keys a language file must have: every {{key}} in the template. */
 export function templateKeys(template: string): string[] {
