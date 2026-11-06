@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from './zod'
 import { msg } from '../templates/msg'
 import { findFont } from './fonts'
 

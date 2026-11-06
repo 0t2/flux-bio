@@ -1,6 +1,6 @@
 import { Hono, type Context } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
-import { z } from 'zod'
+import { z } from '../../shared/zod'
 import type {
 	AuthInfo,
 	BulkLinksResponse,

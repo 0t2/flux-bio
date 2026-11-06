@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { config } from 'zod'
 import { defaultContent, emptyLink, newItem, socialHref, upgradeContent, videoEmbed, PageContentSchema, type LinkItem, type PageContent } from '../src/shared/content'
 import { toCsv } from '../src/shared/csv'
 import { openStatus, weekRows } from '../src/shared/hours'
@@ -291,5 +292,23 @@ describe('renderBioPage', () => {
 		expect(inkFor('#CCFF4D')).toBe('#0B0B12')
 		expect(inkFor('#7B5CFF')).toBe('#0B0B12')
 		expect(inkFor('#1E3A8A')).toBe('#FFFFFF')
+	})
+})
+
+describe('zod', () => {
+	// To parse faster zod tries `new Function` when the first schema is made. The dashboard's CSP refuses, and the
+	// browser reports the asking as a violation on every load. Told `jitless`, zod never asks.
+	it('is told not to ask whether it may build code from strings', () => {
+		expect(PageContentSchema.safeParse(defaultContent()).success).toBe(true)
+		expect(config().jitless).toBe(true)
+	})
+
+	it('gives every schema its `z` through src/shared/zod.ts, so that is settled before the first one is made', () => {
+		const sources = import.meta.glob<string>(['../src/**/*.{ts,tsx}', '../landing/*.ts', '../vite.openapi.ts'], { query: '?raw', import: 'default', eager: true })
+		const direct = Object.entries(sources)
+			.filter(([path, source]) => !path.endsWith('/src/shared/zod.ts') && /from ['"]zod(?:\/[^'"]*)?['"]/.test(source))
+			.map(([path]) => path)
+		expect(Object.keys(sources).length).toBeGreaterThan(100)
+		expect(direct).toEqual([])
 	})
 })

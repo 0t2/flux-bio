@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../../shared/zod'
 import { BackupSchema } from '../../shared/backup'
 import { PageContentSchema, ThemePresetSchema } from '../../shared/content'
 import { FONT_CATEGORIES, FONT_SCRIPTS } from '../../shared/fonts'

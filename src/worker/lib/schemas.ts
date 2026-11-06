@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from '../../shared/zod'
 import { LOCALES, SettingsSchema, THEME_IDS } from '../../shared/content'
 import { QR_MEDIA_ID, QrStyleSchema } from '../../shared/qr'
 import { STARTER_IDS } from '../../shared/starters'
