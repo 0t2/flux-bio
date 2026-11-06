@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import indexHtml from '../admin/index.html?raw'
+import main from '../src/admin/main.tsx?raw'
 import connectAi from '../src/admin/pages/settings/ConnectAi.tsx?raw'
 import editor from '../src/admin/pages/EditorPage.tsx?raw'
 import pagesPage from '../src/admin/pages/PagesPage.tsx?raw'
@@ -7,6 +9,30 @@ import styles from '../src/admin/styles.css?raw'
 
 const rule = (selector: string) => styles.slice(styles.indexOf(`\n${selector} {`)).split('}')[0] ?? ''
 const px = (block: string, property: string) => Number(block.match(new RegExp(`\\n\\s*${property}: (\\d+)px`))?.[1])
+
+describe("the dashboard's own fonts", () => {
+	const sheets = [...indexHtml.matchAll(/<link\s+rel="stylesheet"([^>]*?)href="(https:\/\/fonts\.googleapis\.com\/[^"]+)"/g)].map((match) => ({
+		late: /\bmedia="print"/.test(match[1]!) && /\bdata-late\b/.test(match[1]!),
+		families: [...new URL(match[2]!).searchParams.getAll('family')],
+	}))
+	const sliced = (family: string) => /^Noto (Sans|Serif) (TC|SC|JP|KR|HK)\b/.test(family)
+
+	it('never make the first paint wait for a font that comes as a hundred files', () => {
+		// Such a font's stylesheet is tens of kilobytes; the three families the page does wait for come to about one.
+		const waitedFor = sheets.filter((sheet) => !sheet.late).flatMap((sheet) => sheet.families)
+		expect(waitedFor.length).toBeGreaterThan(0)
+		expect(waitedFor.filter(sliced)).toEqual([])
+	})
+
+	it('still load the Chinese font, once per file: its weights as one range, turned on when the script starts', () => {
+		const late = sheets.filter((sheet) => sheet.late).flatMap((sheet) => sheet.families)
+		expect(late).toEqual(['Noto Sans TC:wght@400..700'])
+		expect(main).toContain(`document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"][data-late]')`)
+		expect(main).toMatch(/sheet\.media = 'all'/)
+		// Before the first render, so the page is never drawn without it once it has arrived.
+		expect(main.indexOf("sheet.media = 'all'")).toBeLessThan(main.indexOf('createRoot(root)'))
+	})
+})
 
 describe('a switch', () => {
 	it('has a knob exactly as tall as the room inside its track, so it sits in the middle', () => {

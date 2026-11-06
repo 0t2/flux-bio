@@ -18,7 +18,7 @@ import {
 	type ProductItem,
 	type VideoItem,
 } from '../shared/content'
-import { CHINESE_FONT_CHARACTERS, findFont, FONT_FAMILY, FONT_FILE, fontFileUrl, GOOGLE_TEXT_LIMIT, isSlicedFont, textOf, type HostedFont } from '../shared/fonts'
+import { CHINESE_FONT_CHARACTER, findFont, FONT_FAMILY, FONT_FILE, fontFileUrl, GOOGLE_TEXT_LIMIT, isSlicedFont, textOf, type HostedFont } from '../shared/fonts'
 import { hoursWords, localTime, openStatus, statusText, weekRows } from '../shared/hours'
 import { dirAttribute } from '../shared/locale'
 import { localizedContent } from '../shared/translations'
@@ -488,12 +488,29 @@ function fontLinks(look: ResolvedAppearance, shown?: string): string[] {
 		const whole = googleFontsHref(fonts)
 		return characters.length > GOOGLE_TEXT_LIMIT ? whole : `${whole}&text=${inAddress(characters.sort().join(''))}`
 	}
-	const beyond = [...new Set(shown)].filter((character) => character > '~')
+	const beyond = beyondAscii(shown)
 	return [
 		googleFontsHref(look.webFonts.filter((font) => !fallback.includes(font) && !own.includes(font))),
-		cut(fallback, [...new Set(shown.match(CHINESE_FONT_CHARACTERS) ?? [])]),
+		cut(fallback, beyond.filter((character) => CHINESE_FONT_CHARACTER.test(character))),
 		cut(own, [...ASCII, ...beyond]),
 	].filter(Boolean)
+}
+
+/**
+ * The characters of `text` past ASCII, each once, in the order they first appear. This reads a whole page on every
+ * view, and a page is mostly markup, so ASCII is stepped over without being looked at twice: collecting every
+ * character first was a quarter of what a view cost, and most of it on a long page.
+ */
+function beyondAscii(text: string): string[] {
+	const seen = new Set<string>()
+	for (let at = 0; at < text.length; at++) {
+		if (text.charCodeAt(at) <= 0x7e) continue
+		const point = text.codePointAt(at)!
+		// A character outside the basic plane is two code units, and one character.
+		if (point > 0xffff) at++
+		seen.add(String.fromCodePoint(point))
+	}
+	return [...seen]
 }
 
 /** Text as part of an address, with nothing left in it that HTML would write another way: encodeURIComponent keeps ' ( ) * ! as they are. */

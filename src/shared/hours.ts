@@ -1,5 +1,6 @@
 import type { Locale, Opening } from './content'
 import { textOf } from './fonts'
+import { formatterPerZone } from './time'
 
 /**
  * Opening hours: whether a place is open right now and how the week reads.
@@ -26,6 +27,7 @@ const DAY_NAMES: Record<Locale, Week<string>> = {
 	ar: ['الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'],
 }
 const WEEKDAYS_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const clockFormatter = formatterPerZone((timeZone) => new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }))
 
 const minutes = (clock: string): number => Number(clock.slice(0, 2)) * 60 + Number(clock.slice(3, 5))
 const clockOf = (minute: number): string => {
@@ -37,9 +39,9 @@ const clockOf = (minute: number): string => {
 export function localTime(timeZone: string, at: number = Date.now()): { day: number; minute: number } {
 	let parts: Intl.DateTimeFormatPart[]
 	try {
-		parts = new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(at)
+		parts = clockFormatter(timeZone).formatToParts(at)
 	} catch {
-		parts = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(at)
+		parts = clockFormatter('UTC').formatToParts(at)
 	}
 	const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? ''
 	return { day: Math.max(0, WEEKDAYS_EN.indexOf(get('weekday'))), minute: (Number(get('hour')) % 24) * 60 + Number(get('minute')) }

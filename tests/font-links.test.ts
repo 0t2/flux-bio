@@ -63,6 +63,26 @@ describe('the fonts a page in English links', () => {
 		}
 	})
 
+	it('count a character outside the basic plane once, as the one character it is', () => {
+		// 𠮷 and 𩸽 are two code units each. Read a unit at a time they would be four halves, none of them Chinese.
+		const content = page({ ...plain(), profile: { name: '𠮷野 Mei', bio: '𩸽と𠮷、野菜。 Fish & rice ¥980', avatar: null } })
+		const [chinese, ...more] = links(live(content, 'en'))
+		expect(more).toEqual([])
+		expect(textOf(chinese!)).toBe([...new Set('𠮷野𩸽と𠮷、野菜。')].sort().join(''))
+		expect([...textOf(chinese!)]).toHaveLength(7)
+		// Where the font is the page's own it draws every character, and half of one can't be written into an address.
+		const [own] = links(live({ ...content, ...plain({ bodyFont: 'Noto Sans TC' }) }, 'en'))
+		expect([...textOf(own!)].filter((character) => character.codePointAt(0)! > 0xffff)).toEqual(['𠮷', '𩸽'])
+	})
+
+	it('ask for a character past ASCII that isn\'t Chinese only where the font is the page\'s own', () => {
+		const content = page({ ...plain(), profile: { name: 'Zoë Müller', bio: 'Café — “open” £5 ¥980', avatar: null } })
+		expect(links(live(content, 'en'))).toEqual([])
+		const [own] = links(live({ ...content, ...plain({ bodyFont: 'Noto Sans TC' }) }, 'en'))
+		for (const character of 'ëü—“”£¥é') expect(textOf(own!), character).toContain(character)
+		expect([...textOf(own!)].filter((character) => character === 'é')).toHaveLength(1)
+	})
+
 	it('count what this visitor is shown, not the other languages the page is translated into', () => {
 		const content = page({ ...plain(), translations: { 'zh-TW': { 'Mei Lin': '林美', 'Cooking, markets and everyday things.': '美食、市場，還有日常。' } } })
 		expect(links(live(content, 'en'))).toEqual([])
