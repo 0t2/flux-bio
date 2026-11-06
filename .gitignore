@@ -16,6 +16,9 @@ coverage/
 # Pictures pnpm deploy:images downloads from a site, to ship as static files: the owner's, never committed
 public/media/
 
+# The Chinese font pnpm landing:fonts cuts to the landing page's characters: made again by each deploy
+landing/.fonts/
+
 # Skills stay on the maintainer's computer: nobody hosting FluxBio needs them
 .claude/skills/
 skills-lock.json

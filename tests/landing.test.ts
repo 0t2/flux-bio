@@ -9,6 +9,7 @@ import favicon from '../public/favicon.svg?raw'
 import { LOGO_PATH } from '../src/templates/icons'
 import motion from '../landing/public/motion.js?raw'
 import template from '../landing/template.html?raw'
+import { charactersBeyondAscii, coversPage, PLEX, plexFiles, type ChineseFont } from '../landing/fonts'
 import landingHeaders from '../landing/public/_headers?raw'
 import { THEME_IDS, type ThemeId } from '../src/shared/content'
 import { previewPage, previewsIn, THEME_SAMPLES } from '../landing/previews'
@@ -86,16 +87,6 @@ describe('the site', () => {
 		expect(renderLanding(template, english, 'en')).not.toContain('language.js')
 		expect(languageScript()).toContain('location.replace')
 		expect(languageScript()).not.toMatch(/:\s*(readonly\s+)?string/)
-	})
-
-	it('loads only the fonts a language is set in: a Chinese one on the Traditional Chinese page alone', () => {
-		for (const locale of LOCALES) {
-			const page = renderLanding(template, words[`../landing/locales/${locale}.json`]!, locale)
-			const [, href = ''] = /<link rel="stylesheet" href="(https:\/\/fonts\.googleapis\.com\/css2\?[^"]+)">/.exec(page) ?? []
-			expect(href, locale).toContain('family=IBM+Plex+Sans:')
-			expect(href.includes('Noto+Sans+TC'), locale).toBe(locale === 'zh-TW')
-			expect(href.includes('IBM+Plex+Sans+Arabic'), locale).toBe(locale === 'ar')
-		}
 	})
 
 	it('has an address per language, and English from the menu stays English', () => {
@@ -306,5 +297,61 @@ describe('the hero', () => {
 	// Picking one used to pull the page back up, because focus went to a radio that had scrolled out of view.
 	it('keeps its hidden radios in the viewport, so picking one never scrolls the page', () => {
 		expect(template).toContain('input.vh{position:fixed;top:50%;left:50%}')
+	})
+})
+
+describe("the pages' own fonts", () => {
+	const shipped = Object.keys(import.meta.glob('../landing/public/fonts/**/*.woff2', { query: '?url', import: 'default', eager: true })).map((path) => path.replace('../landing/public/fonts/', ''))
+	const licences = import.meta.glob<string>('../landing/public/fonts/**/*.txt', { query: '?raw', import: 'default', eager: true })
+	const page = (locale: (typeof LOCALES)[number], chinese?: ChineseFont) => renderLanding(template, words[`../landing/locales/${locale}.json`]!, locale, { chinese })
+	const linked = (html: string) => [...html.matchAll(/<link rel="stylesheet" href="([^"]+)">/g)].map((match) => match[1]!)
+	const made = (html: string): ChineseFont => ({ family: 'Noto Sans TC', characters: charactersBeyondAscii(html), faces: [{ weight: '400 600', file: '0123456789abcdef.woff2', range: 'U+4e00-9fff' }] })
+
+	it('are IBM Plex from this site in every language, each file under its licence', () => {
+		expect(plexFiles().sort()).toEqual(shipped.sort())
+		for (const font of PLEX) expect(licences[`../landing/public/fonts/${font.folder}/LICENSE.txt`], font.family).toContain('SIL Open Font License')
+		expect(licences['../landing/public/fonts/noto-sans-tc/OFL.txt']).toContain('SIL OPEN FONT LICENSE')
+		for (const locale of LOCALES) {
+			const html = page(locale)
+			for (const font of PLEX) expect(html, `${locale} ${font.family}`).toContain(`@font-face{font-family:'${font.family}';font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/${font.folder}/${font.file}-Regular-Latin1.woff2)`)
+			expect(html, locale).not.toContain('family=IBM+Plex+Sans:')
+			expect(html, locale).not.toContain('family=IBM+Plex+Mono')
+		}
+	})
+
+	it('reach Google from two pages only: Arabic for its script, and Traditional Chinese until its font is made', () => {
+		for (const locale of LOCALES) {
+			const html = page(locale)
+			const expected = locale === 'ar' ? ['https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&amp;display=swap'] : locale === 'zh-TW' ? ['https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600&amp;display=swap'] : []
+			expect(linked(html), locale).toEqual(expected)
+			expect(html.includes('fonts.gstatic.com'), locale).toBe(expected.length > 0)
+		}
+	})
+
+	it('serve the Traditional Chinese page its font from here once it is made, cut to the characters the page shows', () => {
+		const plain = page('zh-TW')
+		const font = made(plain)
+		expect(coversPage(font, plain)).toBe(true)
+		const html = page('zh-TW', font)
+		expect(linked(html)).toEqual([])
+		expect(html).not.toContain('fonts.g')
+		expect(html).toContain("@font-face{font-family:'Noto Sans TC';font-style:normal;font-weight:400 600;font-display:swap;src:url(/fonts/noto-sans-tc/0123456789abcdef.woff2) format('woff2');unicode-range:U+4e00-9fff}")
+		// Only that page: the others never showed Chinese in it.
+		expect(page('en', font)).not.toContain('noto-sans-tc')
+	})
+
+	it('go back to Google for it when the copy has a character the font was not made with', () => {
+		const plain = page('zh-TW')
+		const font = made(plain)
+		expect(coversPage(font, plain.replace('</h1>', '龘</h1>'))).toBe(false)
+		expect(coversPage({ ...font, faces: [] }, plain)).toBe(false)
+		expect(coversPage(null, plain)).toBe(false)
+		expect(charactersBeyondAscii('aé中中 →b')).toBe('é→中')
+	})
+
+	it('may be kept for a year, and are allowed by the pages that load them', () => {
+		const rule = (pattern: string) => landingHeaders.split(/\n(?=\S)/).find((block) => block.split('\n')[0] === pattern) ?? ''
+		expect(rule('/fonts/*')).toContain('Cache-Control: public, max-age=31536000, immutable')
+		for (const pattern of ['/', '/:language/']) expect(rule(pattern), pattern).toContain("font-src 'self' https://fonts.gstatic.com;")
 	})
 })
