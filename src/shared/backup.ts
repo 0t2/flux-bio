@@ -1,5 +1,6 @@
 import { z } from './zod'
-import { MEDIA_ID, PageContentInputSchema, SavedThemeSchema, SettingsSchema } from './content'
+import { MEDIA_ID, PageContentInputSchema, SavedThemeInputSchema, SettingsSchema } from './content'
+import { cssMediaIds } from './css'
 import { QR_MEDIA_ID } from './qr'
 
 /**
@@ -69,7 +70,7 @@ export const BackupSchema = z.object({
 	// A site with only short links has no pages.
 	pages: z.array(PageBackupSchema),
 	shortLinks: z.array(ShortLinkBackupSchema),
-	themes: z.array(SavedThemeSchema).max(100),
+	themes: z.array(SavedThemeInputSchema).max(100),
 	/** Ids of the uploaded images the pages use. */
 	media: z.array(z.string().regex(MEDIA_ID)),
 })
@@ -100,6 +101,8 @@ export function mediaIdsOf(content: z.infer<typeof PageContentInputSchema>): str
 	// Copies from before they existed have no such fields.
 	add(content.appearance.coverImage ?? null)
 	add(content.appearance.bgImage ?? null)
+	// Its CSS names them by address, as url(/media/<id>).
+	for (const id of cssMediaIds(content.appearance.css ?? '')) add(id)
 	for (const item of content.items) {
 		if (item.kind === 'gallery') item.images.forEach((image) => add(image.image))
 		if (item.kind === 'product') item.products.forEach((product) => add(product.image))

@@ -12,6 +12,7 @@ import type {
 	FontsResponse,
 	LinkJson,
 	LinkStatsResponse,
+	MediaListResponse,
 	ShortLinkResponse,
 	PageJson,
 	PageVersionJson,
@@ -34,7 +35,7 @@ import {
 	LINE_PART,
 	SOCIAL_PART,
 	randomString,
-	ThemePresetSchema,
+	ThemePresetInputSchema,
 	THEME_IDS,
 	type PageContent,
 	type Settings,
@@ -68,7 +69,7 @@ import {
 	verifySession,
 } from '../lib/auth'
 import { clearAllData, exportData, importData } from '../lib/backup'
-import { deleteUnusedMedia, unusedMedia, UNUSED_AFTER } from '../lib/media'
+import { deleteUnusedMedia, listMedia, unusedMedia, UNUSED_AFTER, type MediaMetadata } from '../lib/media'
 import { mediaKey } from '../lib/cache'
 import {
 	deleteToken,
@@ -121,6 +122,8 @@ import {
 	LinkPatchInput,
 	LinkShortInput,
 	LoginInput,
+	MEDIA_PER_PAGE,
+	MediaListQuery,
 	NewLinkInput,
 	NewPageInput,
 	NewTokenInput,
@@ -136,7 +139,7 @@ import { clearStats, DATABASE_LIMIT, databaseBytes, EXPORT_COLUMNS, exportStats,
 import { VERSION } from '../lib/version'
 import { clicksByPage, emptyLinkStats, linkStats, overview, targetOverview, type LinkStats } from '../lib/stats'
 import { ApiError, type AppEnv, type Auth } from '../types'
-import { customPageResponse, PREVIEW_CSP } from './site'
+import { customPageResponse, previewCsp } from './site'
 
 export const api = new Hono<AppEnv>()
 
@@ -153,7 +156,13 @@ async function readBody<T>(c: Context<AppEnv>, schema: z.ZodType<T>): Promise<T>
 			400,
 			'invalid',
 			msg('資料格式不正確'),
-			parsed.error.issues.map((issue) => ({ path: issue.path.map(String).join('.'), message: issue.message })),
+			parsed.error.issues.map((issue) => {
+				const path = issue.path.map(String).join('.')
+				// A check of ours gives its message as a key with values, as the CSS check does; zod's own are English already.
+				const params = issue.code === 'custom' ? (issue.params as Params | undefined) : undefined
+				const message = fill(issue.message, params)
+				return message === issue.message && !params ? { path, message } : { path, message, key: issue.message, ...(params && { params }) }
+			}),
 		)
 	}
 	return parsed.data
@@ -600,7 +609,7 @@ api.get('/pages/:id/preview', async (c) => {
 		mediaUrl: (id) => `/media/${id}`,
 		timeZone: settings.timezone,
 	})
-	return c.html(html, 200, { 'cache-control': 'no-store', 'content-security-policy': PREVIEW_CSP })
+	return c.html(html, 200, { 'cache-control': 'no-store', 'content-security-policy': previewCsp(page.draft) })
 })
 
 // ---------------------------------------------------------------- settings
@@ -666,8 +675,18 @@ api.post('/media', async (c) => {
 	const { bytes, type, ext } = await readImage(c)
 	const id = `${randomString(12)}.${ext}`
 	// Dated, so one nothing uses yet isn't taken for one nothing uses any more (lib/media.ts).
-	await c.env.KV.put(mediaKey(id), bytes, { metadata: { type, at: Date.now() } })
+	await c.env.KV.put(mediaKey(id), bytes, { metadata: { type, at: Date.now(), size: bytes.byteLength } satisfies MediaMetadata })
 	return c.json({ id, url: `/media/${id}` }, 201)
+})
+
+// Every uploaded picture, a page at a time: one KV list each (lib/media.ts).
+api.get('/media', async (c) => {
+	const query = MediaListQuery.safeParse(c.req.query())
+	if (!query.success) throw new ApiError(400, 'invalid', msg('查詢參數不正確'))
+	// KV refuses a cursor it didn't hand out.
+	const body: MediaListResponse | null = await listMedia(c.env, { limit: query.data.limit ?? MEDIA_PER_PAGE, cursor: query.data.cursor }).catch(() => null)
+	if (!body) throw new ApiError(400, 'invalid', msg('查詢參數不正確'))
+	return c.json(body)
 })
 
 // Pictures nothing uses any more: what would go, and letting them go. Before /media/:id.
@@ -687,7 +706,7 @@ api.put('/media/:id', async (c) => {
 	const id = c.req.param('id')
 	if (!MEDIA_ID.test(id)) throw new ApiError(400, 'invalid', msg('圖片 id 格式不正確'))
 	const { bytes, type } = await readImage(c)
-	await c.env.KV.put(mediaKey(id), bytes, { metadata: { type, at: Date.now() } })
+	await c.env.KV.put(mediaKey(id), bytes, { metadata: { type, at: Date.now(), size: bytes.byteLength } satisfies MediaMetadata })
 	return c.json({ id, url: `/media/${id}` })
 })
 
@@ -899,7 +918,7 @@ api.post('/stats/clear', async (c) => {
 api.get('/themes', async (c) => c.json({ themes: await loadThemes(c.env.DB) }))
 
 api.post('/themes', async (c) => {
-	const preset = await readBody(c, ThemePresetSchema)
+	const preset = await readBody(c, ThemePresetInputSchema)
 	const themes = await loadThemes(c.env.DB)
 	if (themes.length >= 100) throw new ApiError(409, 'limit', msg('最多存 100 個主題'))
 	const theme = { ...preset, id: newId(), createdAt: Date.now() }
@@ -968,9 +987,9 @@ api.post('/themes/fetch', async (c) => {
 	} catch {
 		throw new ApiError(400, 'fetch', msg('讀不到這個主題檔，請確認網址是公開的 JSON 檔'))
 	}
-	const single = ThemePresetSchema.safeParse(json)
+	const single = ThemePresetInputSchema.safeParse(json)
 	if (single.success) return c.json({ themes: [single.data] })
-	const list = z.object({ themes: z.array(ThemePresetSchema).min(1).max(500) }).safeParse(json)
+	const list = z.object({ themes: z.array(ThemePresetInputSchema).min(1).max(500) }).safeParse(json)
 	if (list.success) return c.json({ themes: list.data.themes })
 	throw new ApiError(400, 'invalid', msg('這不是 FluxBio 的主題檔（需要 name、base、accent、font、button）'))
 })

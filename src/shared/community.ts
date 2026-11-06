@@ -7,9 +7,10 @@ import { STARTER_IDS } from './starters'
  * (the kinds of page it suits, as in the starters) sorts the theme library. A
  * value this version doesn't know, from a newer list on GitHub, is dropped
  * instead of failing the whole list; tests/themes.test.ts makes sure the list
- * itself has it. Pictures belong to one deployment, so a shared look has none.
+ * itself has it. Pictures belong to one deployment, so a shared look has none, and a color set is colors: CSS is a
+ * look an AI made for one page.
  */
-export const CommunityThemeSchema = ThemePresetSchema.omit({ coverImage: true, bgImage: true, bgDim: true }).extend({
+export const CommunityThemeSchema = ThemePresetSchema.omit({ coverImage: true, bgImage: true, bgDim: true, css: true }).extend({
 	id: z.string().regex(/^[a-z0-9-]{2,40}$/),
 	uses: z.array(z.enum(STARTER_IDS)).max(STARTER_IDS.length).optional().catch(undefined),
 })

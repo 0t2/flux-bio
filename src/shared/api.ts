@@ -388,6 +388,26 @@ export interface CommunityThemesResponse {
 	source: 'github' | 'bundled'
 }
 
+/** One uploaded picture, as GET /api/media lists it. */
+export interface MediaJson {
+	id: string
+	/** Where it is, on this site: what a page, its CSS (url(/media/<id>)) or its own HTML uses. */
+	url: string
+	/** Its content type, e.g. "image/webp". */
+	type: string | null
+	/** Bytes; null for a picture uploaded before sizes were kept. */
+	size: number | null
+	/** Epoch milliseconds; null for a picture uploaded before uploads were dated. */
+	uploadedAt: number | null
+}
+
+/** GET /api/media: uploaded pictures, a page at a time. */
+export interface MediaListResponse {
+	media: MediaJson[]
+	/** Pass as ?cursor= for the next page; null when this was the last. */
+	nextCursor: string | null
+}
+
 /** GET /api/media/unused: uploaded pictures nothing refers to any more. */
 export interface UnusedMediaResponse {
 	/** Their ids: each is still at /media/<id> until deleted. */

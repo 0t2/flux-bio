@@ -1,4 +1,5 @@
 import { BACKUP_VERSION, mediaIdsOf, type Backup } from '../../shared/backup'
+import { cssMediaIds } from '../../shared/css'
 import { isHttpUrl, MEDIA_ID } from '../../shared/content'
 import { pageLanguages } from '../../shared/locale'
 import { normalizeSlug, slugProblem } from '../../shared/slug'
@@ -39,6 +40,7 @@ export async function exportData(env: Env): Promise<Backup> {
 	for (const theme of themes) {
 		if (theme.coverImage) media.add(theme.coverImage)
 		if (theme.bgImage) media.add(theme.bgImage)
+		for (const id of cssMediaIds(theme.css ?? '')) media.add(id)
 	}
 	for (const row of rows) {
 		const logo = (row.qr as { logoMedia?: unknown } | null)?.logoMedia

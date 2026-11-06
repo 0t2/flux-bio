@@ -58,7 +58,7 @@ export const OPERATIONS: Operation[] = [
 		id: 'readGuide',
 		tag: 'Account',
 		summary: 'Read a part of the guide',
-		description: 'Plain text, no token needed. Topics: first-conversation, trying-it, faq, custom-page, look, links, translate, test-site, quota, move, domain, short-links-only, update, remove. /llms.txt says when to read each.',
+		description: 'Plain text, no token needed. Topics: first-conversation, trying-it, faq, custom-page, share-image, look, customize, links, translate, test-site, quota, move, domain, short-links-only, update, remove. /llms.txt says when to read each.',
 		open: true,
 		produces: 'text',
 	},
@@ -172,6 +172,18 @@ export const OPERATIONS: Operation[] = [
 		summary: 'Upload an image',
 		description: 'Raw bytes as the body with its content type: png, jpeg, webp, gif or avif, 2 MB at most. Returns { id } to use as profile.avatar, seo.image or a gallery or product image.',
 		body: 'image',
+	},
+	{
+		method: 'get',
+		path: '/api/media',
+		id: 'listImages',
+		tag: 'Media',
+		summary: 'List uploaded images',
+		description: 'Each with id, url (/media/{id}), type, size and uploadedAt, in id order. nextCursor: ask again with ?cursor= for more. One call is one KV list; the free plan allows 1,000 a day, so list once and keep the answer.',
+		query: [
+			{ name: 'limit', description: 'How many, 1000 at most, which is also the default' },
+			{ name: 'cursor', description: 'nextCursor from the page before' },
+		],
 	},
 	{ method: 'put', path: '/api/media/{id}', id: 'putImage', tag: 'Media', summary: 'Upload an image under a given id (used by imports)', body: 'image' },
 	{

@@ -211,7 +211,9 @@ const SITE_RECORD_PAGES = 10
 
 async function siteRecord(db: D1Database, settings: Settings, pages: PageRow[]): Promise<SiteRecord> {
 	const home = pages.find((page) => page.id === settings.home)
-	const look = (home?.published ?? home?.draft ?? pages.find((page) => page.published)?.published)?.appearance ?? null
+	const appearance = (home?.published ?? home?.draft ?? pages.find((page) => page.published)?.published)?.appearance
+	// System pages wear the colors and fonts, not the CSS: it was written for a page of links, and a system page isn't one.
+	const look = appearance ? { ...appearance, css: '' } : null
 	// Null with pages off or the home page not published yet: nothing that reads this record can then name a page.
 	const page = home ? await snapshotOf(db, home, settings) : null
 	return {

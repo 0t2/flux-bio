@@ -1,5 +1,6 @@
 import { fill, msg, type Message, type Params } from '../templates/msg'
 import { isHttpUrl, socialHref, videoEmbed, type PageContent } from './content'
+import { cssProblem } from './css'
 import { normalizeSlug, SLUG_PROBLEM_TEXT, slugProblem } from './slug'
 
 export interface Problem {
@@ -92,6 +93,10 @@ export function publishProblems(content: PageContent, handle: string): Problem[]
 	})
 
 	if (content.lineButton?.trim() && !socialHref('line', content.lineButton)) report('lineButton', msg('右下角 LINE 按鈕的網址格式不正確'), {})
+
+	// Checked when the draft was saved; again here, so a draft saved under an older check can't go live without this one.
+	const css = content.appearance.css ? cssProblem(content.appearance.css) : null
+	if (css) report('appearance.css', css.key, css.params ?? {})
 
 	return problems
 }

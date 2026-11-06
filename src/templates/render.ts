@@ -668,7 +668,7 @@ function videoHtml(ctx: Context, item: VideoItem): string {
 		`body{background:#111}img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}span{position:relative;width:64px;height:64px;border-radius:999px;background:${ctx.look.accent};display:flex;align-items:center;justify-content:center;box-shadow:0 6px 24px rgba(0,0,0,.4)}`,
 	)
 	const caption = item.title.trim() ? `<p class="cap">${esc(item.title)}</p>` : ''
-	return `<section aria-label="${esc(title)}"><div class="frame"><iframe title="${esc(title)}" loading="lazy" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" srcdoc="${esc(doc)}"></iframe></div>${caption}</section>`
+	return `<section class="video" aria-label="${esc(title)}"><div class="frame"><iframe title="${esc(title)}" loading="lazy" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" srcdoc="${esc(doc)}"></iframe></div>${caption}</section>`
 }
 
 function galleryHtml(ctx: Context, item: GalleryItem): string {
@@ -838,6 +838,11 @@ export function renderBioPage(source: PageContent, options: RenderOptions): stri
 		: ''
 	// The owner's own text can't match: esc() turns its quotes into entities.
 	const reportsTaps = / ping="/.test(itemsHtml + socials.join('') + lineButton)
+	// The page's own CSS, in a sheet of its own after the theme's, so it wins at the same specificity and nothing in it can
+	// spill into the theme's. It was checked when it was saved (src/shared/css.ts); "<" is the one thing that could end the
+	// <style>, so that alone is looked for again here.
+	const css = content.appearance.css ?? ''
+	const ownCss = css.trim() && !css.includes('<') ? `\n<style>${css}</style>` : ''
 
 	const body = `${options.draft ? `<p class="draft-note" role="status">${esc(text.draftNote)}</p>` : ''}
 ${backdrop}
@@ -860,11 +865,11 @@ ${options.draft ? draftScript(options.draft) : ''}`
 	return `<!doctype html>
 <html lang="${text.lang}"${dirAttribute(text.lang)}>
 <head>
-${headHtml(look, title, options.fonts, live || options.settled ? body : undefined)}
+${headHtml(look, title, options.fonts, live || options.settled ? body + ownCss : undefined)}
 ${meta}
 <style>${pageVars(look)}
 ${BASE_CSS}
-${THEME_CSS[look.theme.id]}${lineButton ? `\n${LINE_BUTTON_CSS}` : ''}${options.mode === 'preview' ? `\n${TODO_CSS}` : ''}${options.draft ? `\n${DRAFT_CSS}` : ''}</style>
+${THEME_CSS[look.theme.id]}${lineButton ? `\n${LINE_BUTTON_CSS}` : ''}${options.mode === 'preview' ? `\n${TODO_CSS}` : ''}${options.draft ? `\n${DRAFT_CSS}` : ''}</style>${ownCss}
 </head>
 <body${lineButton ? ' class="has-line"' : ''}>
 ${body}

@@ -1,3 +1,4 @@
+import type { MediaJson, MediaListResponse } from '../../shared/api'
 import { MEDIA_ID } from '../../shared/content'
 import { isShippableMediaId } from '../../shared/mediaAssets'
 import { MEDIA_PREFIX, mediaKey } from './cache'
@@ -90,4 +91,27 @@ export async function deleteUnusedMedia(env: Env, now = Date.now()): Promise<{ d
 	const failed = results.filter((result) => result.status === 'rejected')
 	for (const result of failed) console.error('KV kept an unused picture', (result as PromiseRejectedResult).reason)
 	return { deleted: doomed.length - failed.length, more: more || ids.length > doomed.length || failed.length > 0 }
+}
+
+/** What an upload keeps beside its bytes in KV, so a list of them needs no read of each. */
+export interface MediaMetadata {
+	type?: string
+	/** When it was uploaded, epoch milliseconds. */
+	at?: number
+	/** Its size in bytes. */
+	size?: number
+}
+
+/**
+ * Uploaded pictures, a page at a time, in the order KV keeps them (by id). One call is one KV list, and the free plan
+ * allows 1,000 of those a day, shared with the check for unused pictures: an AI building a look lists once and keeps
+ * the answer, rather than listing again for every picture.
+ */
+export async function listMedia(env: Env, { limit, cursor }: { limit: number; cursor?: string }): Promise<MediaListResponse> {
+	const page = await env.KV.list<MediaMetadata>({ prefix: MEDIA_PREFIX, cursor, limit })
+	const media = page.keys.map(({ name, metadata }): MediaJson => {
+		const id = name.slice(MEDIA_PREFIX.length)
+		return { id, url: `/media/${id}`, type: metadata?.type ?? null, size: metadata?.size ?? null, uploadedAt: metadata?.at ?? null }
+	})
+	return { media, nextCursor: page.list_complete ? null : page.cursor }
 }
