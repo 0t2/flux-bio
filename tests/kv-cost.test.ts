@@ -96,11 +96,11 @@ describe('what things cost in KV', () => {
 		const made = await measure('/api/pages', { method: 'POST', json: { handle: 'cost-tap', name: 'Tap' } })
 		const { page } = (await made.response.json()) as { page: PageJson }
 		const link = { ...emptyLink(), id: 'cost-link', title: 'Link', url: 'https://example.com/tap', slug: 'cost-tap-link' }
-		const kofi = { ...newItem('kofi'), id: 'cost-kofi', username: 'cost' }
-		const content = { ...page.draft, items: [link, kofi], kofiButton: 'cost', countSocials: true, socials: [{ id: 'cost-icon', platform: 'instagram', url: 'https://instagram.com/cost' }] }
+		const embed = { ...newItem('embed'), id: 'cost-embed', account: 'cost' }
+		const content = { ...page.draft, items: [link, embed], embedButton: { provider: 'calendly', account: 'cost/intro' }, countSocials: true, socials: [{ id: 'cost-icon', platform: 'instagram', url: 'https://instagram.com/cost' }] }
 		await measure(`/api/pages/${page.id}/draft`, { method: 'PUT', json: content, headers: { 'if-match': String(page.draftUpdatedAt) } })
 		await measure(`/api/pages/${page.id}/publish`, { method: 'POST' })
-		for (const path of ['/_c/cost-tap/cost-link/link', '/_c/cost-tap/cost-icon/social', '/_c/cost-tap/cost-kofi/kofi', '/_c/cost-tap/page/kofi']) {
+		for (const path of ['/_c/cost-tap/cost-link/link', '/_c/cost-tap/cost-icon/social', '/_c/cost-tap/cost-embed/kofi', '/_c/cost-tap/page/calendly']) {
 			const tap = await measure(path, { method: 'POST', body: 'PING' })
 			expect(tap.status).toBe(204)
 			expect(tap).toMatchObject({ reads: 1, writes: 0, deletes: 0 })

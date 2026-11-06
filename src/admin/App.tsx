@@ -9,7 +9,6 @@ import { t, useLanguage } from './i18n'
 import { EditorPage } from './pages/EditorPage'
 import { LoginPage } from './pages/LoginPage'
 import { SetupPage } from './pages/SetupPage'
-import { ShortenPage } from './pages/ShortenPage'
 import { ShortLinksPage } from './pages/ShortLinksPage'
 import { AppProvider, useApp } from './state/app'
 import { CurrentPage } from './state/page'
@@ -45,7 +44,7 @@ function Dashboard() {
 	const [error, setError] = useState<string | null>(null)
 
 	useEffect(() => {
-		// Keep the query too, e.g. /shorten?url=… from the bookmarklet. Worked out once: a 401 calls this twice, and by the
+		// Keep the query too. Worked out once: a 401 calls this twice, and by the
 		// second time the address is already the login page's, which would go inside its own "next".
 		const next = encodeURIComponent(location + window.location.search)
 		const toLogin = () => navigate(`/login?next=${next}`, { replace: true })
@@ -76,10 +75,6 @@ function Dashboard() {
 			<Switch>
 				<Route path="/setup">
 					<SetupPage />
-				</Route>
-				{/* Bookmarklets installed from v0.2's settings still open this page. */}
-				<Route path="/shorten">
-					<ShortenPage />
 				</Route>
 				<Route>
 					<Main />
@@ -121,28 +116,14 @@ function Routes({ pages }: { pages: boolean }) {
 						<EditorPage />
 					</Route>
 				)}
-				{/* The theme library's address, in a tab left open. */}
-				{pages && (
-					<Route path="/appearance/themes">
-						<Redirect to="/appearance" replace />
-					</Route>
-				)}
 				<Route path="/short-links">
 					<ShortLinksPage />
-				</Route>
-				{/* Bulk creation moved to the owner's AI. */}
-				<Route path="/short-links/bulk">
-					<Redirect to="/short-links" replace />
 				</Route>
 				<Route path="/short-links/:id/stats">{(params) => <LinkStatsPage id={params.id} />}</Route>
 				<Route path="/short-links/:id/qr">{(params) => <QrPage id={params.id} />}</Route>
 				<Route path="/stats">{pages ? <StatsPage /> : <ShortLinksStats />}</Route>
 				<Route path="/settings">
 					<SettingsPage />
-				</Route>
-				{/* v0.2 had tabs here. */}
-				<Route path="/settings/:tab">
-					<Redirect to="/settings" replace />
 				</Route>
 				{pages && (
 					<Route path="/pages">

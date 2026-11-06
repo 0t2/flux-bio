@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { PageJson, StateResponse } from '../src/shared/api'
-import { emptyContent, emptyLink, LOCALES, newItem, SettingsSchema, upgradeSettings, type Locale, type PageContent } from '../src/shared/content'
+import { defaultAppearance, emptyContent, emptyLink, LOCALES, newItem, type Locale, type PageContent } from '../src/shared/content'
 import { statusText, weekRows } from '../src/shared/hours'
-import { matchLanguageTag, negotiateLocale, pageLanguages, resolveLocale } from '../src/shared/locale'
+import { matchLanguageTag, negotiateLocale, resolveLocale } from '../src/shared/locale'
 import { renderBioPage } from '../src/templates/render'
 import { renderSystemPage, type SystemPageKind } from '../src/templates/system'
 import { resolveAppearance } from '../src/templates/themes'
@@ -40,16 +40,6 @@ describe('resolveLocale', () => {
 		expect(resolveLocale('zh-TW', ['en'], 'ko-KR')).toBe('zh-TW')
 		expect(resolveLocale('zh-TW', ['en'], 'ko, en;q=0.5')).toBe('en')
 		expect(resolveLocale('en', ['ja'], null)).toBe('en')
-	})
-
-	it('reads old "auto" settings as every language, English first', () => {
-		expect(pageLanguages('auto')).toEqual({ locale: 'en', languages: LOCALES.filter((code) => code !== 'en') })
-		expect(pageLanguages('ja', ['en', 'ja', 'xx', 'en'])).toEqual({ locale: 'ja', languages: ['en'] })
-		expect(pageLanguages(undefined)).toEqual({ locale: 'en', languages: [] })
-		const upgraded = SettingsSchema.parse(upgradeSettings({ home: '', timezone: 'UTC', locale: 'auto', domain: '' }, 'main'))
-		expect(upgraded.locale).toBe('en')
-		expect(upgraded.languages).toHaveLength(LOCALES.length - 1)
-		expect(SettingsSchema.parse(upgradeSettings({ home: '', timezone: 'UTC', locale: 'ja', domain: '' }, 'main')).languages).toEqual([])
 	})
 })
 
@@ -200,7 +190,7 @@ describe('every language', () => {
 	})
 
 	it('uses fonts that suit Japanese, Korean and Simplified Chinese', () => {
-		const appearance = { theme: 'liquid' as const, accent: '', font: 'auto' as const, button: 'auto' as const, showSocial: true }
+		const appearance = defaultAppearance()
 		const tw = resolveAppearance(appearance)
 		expect(tw.vars['--body-font']).toContain("'Noto Sans TC'")
 		expect(tw.fontsHref).toContain('Noto+Sans+TC')

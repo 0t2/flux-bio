@@ -354,7 +354,7 @@ Rules worth knowing:
   the draft; going live is an ordinary publish, so links come back through the same code. Versions aren't in backups, and an import clears them. The first publish on a page without any also saves what was live.
 - **Items.** `draft.items` is the page, top to bottom. Each item has a `kind`: `link`, `heading`,
   `video` (YouTube or Vimeo URL), `gallery` (up to 10 images), `product` (up to 8 cards),
-  `hours` (opening hours Monday first, address, phone, map) or `kofi` (a card asking for a tip on Ko-fi: `username`, title, note).
+  `hours` (opening hours Monday first, address, phone, map) or `embed` (a card that opens another service's panel over the page: `provider`, `account`, title, note).
   `newItem(kind)` in `src/shared/content.ts` shows the shape of each. Ids are 4–32 characters of
   `A-Za-z0-9_-` and must be unique within a page.
 - **Translations.** `draft.translations` holds the owner's text in other languages:
@@ -367,13 +367,17 @@ Rules worth knowing:
   `_`. Some words are reserved, such as `admin`, `api`, `media` and `assets`.
 - **Scheduling.** A link's `startsAt`/`endsAt` (epoch ms) hide it from the page outside that window,
   and its short link shows "not open yet" or "expired" (with a button back to the page).
-- **Buttons show the real address.** In a public page's HTML, link buttons, products, gallery images, the map button and Ko-fi buttons are `<a href="<the address>" ping="/_c/<handle>/<id>/<part>">`, so a visitor can see where one goes. `TAP_SCRIPT` in `src/templates/render.ts` takes the attribute off and POSTs to that address on a tap, with `fetch` and `keepalive`, because Firefox ignores `ping` by default and ad blockers stop it; without JavaScript the attribute does the job, and the page works either way. That counts the tap under the same id as a click on the link's short link, and costs what a redirect costs (one Worker request, one KV read). Someone who blocks both goes uncounted. Every link still gets a short link when published, for sharing elsewhere.
+- **Buttons show the real address.** In a public page's HTML, link buttons, products, gallery images, the map button and embed buttons are `<a href="<the address>" ping="/_c/<handle>/<id>/<part>">`, so a visitor can see where one goes. `TAP_SCRIPT` in `src/templates/render.ts` takes the attribute off and POSTs to that address on a tap, with `fetch` and `keepalive`, because Firefox ignores `ping` by default and ad blockers stop it; without JavaScript the attribute does the job, and the page works either way. That counts the tap under the same id as a click on the link's short link, and costs what a redirect costs (one Worker request, one KV read). Someone who blocks both goes uncounted. Every link still gets a short link when published, for sharing elsewhere.
 - **Hiding the address.** `hideUrl` on a link makes its button `/<slug>` instead: that suits affiliate links, and every click counts. A link with a password, UTM tags, device addresses, `lineExternal` or `inAppPrompt` does the same whatever `hideUrl` says (`linkNeedsWorker` in `lib/ops.ts`, kept in the page's snapshot as `viaShortLink`), because a button that skipped the redirect would skip those. Changing one of them rewrites the page's snapshot.
 - **The LINE button.** `lineButton` in a page's content floats a LINE button at the bottom right, and a tap on it counts under `<page id>.line`.
-- **Ko-fi.** A `kofi` card's button and the floating `kofiButton` (above the LINE button when both are on) link to `ko-fi.com/<username>`, and count under
-  `<item id>.kofi` and `<page id>.kofi`. On a live page a tap opens Ko-fi's tip panel in a `<dialog>` over the page instead (`SHEET_SCRIPT`), in a
-  sandboxed frame that has no address until then: nothing on the page loads from Ko-fi before a tap, and Ko-fi's own widget script never runs on it.
-  `kofiPage()` in `src/shared/content.ts` reads the username out of whatever the owner pasted: the name, the address, or Ko-fi's widget code.
+- **Other services' panels.** An `embed` card's button and the floating `embedButton` (`{ provider, account }`, above the LINE button
+  when both are on) link to the account's page on a service from `EMBEDS` in `src/shared/embeds.ts`: Ko-fi's tip panel (`kofi`) or
+  Calendly's booking calendar (`calendly`). They count under `<item id>.<provider>` and `<page id>.<provider>`, so a count keeps its
+  service's name when a card changes service. On a live page a tap opens the service's own panel in a `<dialog>` over the page instead
+  (`SHEET_SCRIPT`), in a frame sandboxed by `SHEET_SANDBOX` that has no address until then: nothing on the page loads from the service
+  before a tap, its own widget script never runs on it, and the page's CSP may frame only the services on that page. Each service's
+  `account()` reads the account out of whatever the owner pasted: the account, its address, or the service's embed code. Adding a
+  service is one entry there, if it meets the conditions written above `EMBED_PROVIDERS`.
 - **Social icons.** They're never counted unless `countSocials` is on in a page's content; then they report a tap the way buttons do. Email icons aren't counted. Video players still go through a `/_c` redirect, because they open inside their frame.
 - **Short links only.** With `bio` off, a page's address, `/_draft` and `/_c` answer not found with no
   suggestions, `/robots.txt` and `/sitemap.xml` list no pages, and a short link's own system pages don't point
@@ -518,7 +522,7 @@ tests/                  Vitest tests (run in workerd)
     `stats(day, target, kind, dim, value, count, page)`. Targets: a page view counts under the page id,
     a short link click under the link id, a tap on a link's button under the link id too, a click inside a block under `<item id>.<part>`
     (`play`, `map`, `more`, or a product or image id), a social icon on a page with `countSocials` on under `<social id>.social`, and
-    the floating LINE and Ko-fi buttons under `<page id>.line` and `<page id>.kofi`. Those with a `.` also keep their page in `page`, so a page's numbers survive
+    the LINE button under `<page id>.line`, and an embed's under `<item id>.<provider>`, the floating one's under `<page id>.<provider>`. Those with a `.` also keep their page in `page`, so a page's numbers survive
     deleting a block and no list of pages is read to tell whose a click was; a link's page is in `links`. Days are in the time zone from settings.
     Days are kept for 13 whole months (6 once the database passes 70% of the plan's size), then each month becomes one row whose
     `day` is `YYYY-MM`, which sorts before that month's days and so is never in a range of days (`lib/statsHistory.ts`).
@@ -530,10 +534,9 @@ tests/                  Vitest tests (run in workerd)
     `lib/analytics.ts` (kind, target, source, country, device, browser, os, referrer host, daily
     visitor hash, region, city, utm_content, language, network, slug, destination URL, utm_source,
     utm_medium, utm_campaign, page) and the doubles are `EVENT_NUMBERS`: the local day (yyyymmdd)
-    and hour, the latitude and longitude rounded to 0.1°, the network's AS number, and `layout`.
+    and hour, the latitude and longitude rounded to 0.1°, and the network's AS number.
     `network` is the AS organization (e.g. "Chunghwa Telecom"). Network queries require an AS number
-    above 0, and campaign queries ignore `utm_content` where `layout` is 0. AE allows 20 blobs and the list is
-    full: put new fields in doubles. Append, never reorder.
+    above 0. AE allows 20 blobs and the list is full: put new fields in doubles. Append, never reorder.
     `lib/analytics.ts` reads them through the Analytics SQL binding (`ANALYTICS_SQL`, no API token);
     its sampling column is `sampleInterval`, not `_sample_interval`.
   - *Never store anything that identifies a person.* That means no IP address, no user-agent string
@@ -550,9 +553,9 @@ tests/                  Vitest tests (run in workerd)
 - **A page can be something other than links.** `custom` in its content makes it the owner's own HTML or a redirect (`CustomPageSchema`). Everything else about a page still applies: the draft, publishing, versions, backups, stats, being the home page. Its HTML is sent with a CSP `sandbox` and no `allow-same-origin` (`CUSTOM_CSP`), because it shares an address with the dashboard: without that, a script in it could use the owner's session. Keep that header on every route that serves it.
 - **Public pages are plain HTML.** Apart from custom pages, `renderBioPage()` builds them with no JavaScript but `TAP_SCRIPT`, which the CSP allows by its hash and a page with nothing to report leaves out, and the
   dashboard preview renders the same function in an iframe sandboxed without scripts, and updates it in place (`lib/morph.ts`) so an edit doesn't reload it. Videos and maps sit in
-  frames that show a picture and load the real player or map only when tapped, and Ko-fi's panel in a frame that is empty until then.
+  frames that show a picture and load the real player or map only when tapped, and an embed's panel in a frame that is empty until then.
   The only other scripts on a public page are `SHEET_SCRIPT`, which opens that panel and is allowed by its hash too, on a page with
-  something from Ko-fi, and the copy button of the in-app browser notice, allowed by a per-response nonce.
+  an embed, and the copy button of the in-app browser notice, allowed by a per-response nonce.
 - **Fonts come from Google, or from the Worker.** By default public pages link to Google Fonts,
   which costs no quota. A Chinese, Japanese or Korean font comes cut into a hundred files or so, and its stylesheet, the list
   of them, is about 35 KB that holds up the first paint. So a live page asks Google for such a font with exactly the characters
@@ -644,7 +647,7 @@ composition in a shadow root, and the landing page's lists come from the themes,
   locale files, and at least one color set. Every color in a composition must be a variable from `pageVars()` or a mix
   of them, so it keeps working in colors an AI picks. Then `pnpm test`.
 - **What an AI can set** through the API, and the dashboard can't: `accent`, `accent2`, `bg`, `fg`, `font`, `headFont`,
-  `bodyFont`, `button`, `bgImage` and `bgDim` in `appearance`. A page with any of these shows on 外觀 as a look made by
+  `bodyFont`, `button`, `bgImage`, `bgDim` and `bgTile` in `appearance`. A page with any of these shows on 外觀 as a look made by
   AI, and picking a color set clears them. `coverImage` is the page's own picture: the owner uploads it in the profile,
   and picking a color set keeps it.
 - **Fonts.** `headFont` and `bodyFont` take any family on the list in `src/shared/googleFonts.ts`

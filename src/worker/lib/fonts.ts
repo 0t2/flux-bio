@@ -1,6 +1,5 @@
 import type { Locale, PageContent, Settings } from '../../shared/content'
 import { findFont, fontAxis, GOOGLE_TEXT_LIMIT, isSlicedFont, textOf, type GoogleFont, type HostedFont } from '../../shared/fonts'
-import { pageLanguages } from '../../shared/locale'
 import { builtInWords } from '../../templates/render'
 import { resolveAppearance, type WebFont } from '../../templates/themes'
 
@@ -132,8 +131,7 @@ export async function hostFonts(
 ): Promise<HostedFont[] | null> {
 	// A custom page brings its own fonts, or sends visitors elsewhere.
 	if (!settings.hostFonts || page.published.custom) return null
-	const { locale, languages } = pageLanguages(settings.locale, settings.languages)
-	const locales = [locale, ...languages]
+	const locales = [settings.locale, ...settings.languages]
 	const chars = pageCharacters(page.published, locales, page.handle)
 	try {
 		return await Promise.all(pageWebFonts(page.published, locales).map((web) => hostFamily(env, page.id, web, chars, page.fonts ?? [])))

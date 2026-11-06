@@ -1,4 +1,4 @@
-import type { Locale, StoredAppearance, ThemeId } from '../shared/content'
+import type { Appearance, Locale, ThemeId } from '../shared/content'
 import { findFont, fontAxis, headingWeight, LOCALE_SCRIPTS, type GoogleFont } from '../shared/fonts'
 import { msg } from './msg'
 
@@ -371,12 +371,11 @@ export interface ResolvedAppearance {
 }
 
 /** Applies the person's choices on top of the theme's defaults; `locale` picks fonts that suit the page's language. */
-export function resolveAppearance(appearance: StoredAppearance, locale: Locale = 'zh-TW'): ResolvedAppearance {
+export function resolveAppearance(appearance: Appearance, locale: Locale = 'zh-TW'): ResolvedAppearance {
 	const base = THEMES[appearance.theme] ?? THEMES.liquid
 	const accent = HEX.test(appearance.accent) ? appearance.accent.toUpperCase() : base.accent
-	// Pages saved before v0.3 have no colors of their own.
-	const t = themeWithColors(base, appearance.bg ?? '', appearance.fg ?? '')
-	const second = HEX.test(appearance.accent2 ?? '') ? (appearance.accent2 as string).toUpperCase() : base.accent2
+	const t = themeWithColors(base, appearance.bg, appearance.fg)
+	const second = HEX.test(appearance.accent2) ? appearance.accent2.toUpperCase() : base.accent2
 	const accent2 = TEXT_ON_SECOND_COLOR.includes(t.id) ? groundFor(second, t) : second
 	// On the accent, the page's own colors read better than plain black or white when they can.
 	const ink = [t.bg, t.fg, accent2].find((color) => contrast(color, accent) >= 4.5) ?? inkFor(accent)

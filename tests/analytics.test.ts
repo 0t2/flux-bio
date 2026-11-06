@@ -70,8 +70,6 @@ describe('analytics events', () => {
 		expect([number('day'), number('hour')]).toEqual([20261031, 14])
 		expect([number('latitude'), number('longitude')]).toEqual([25, 121.5])
 		expect(number('asn')).toBe(3462)
-		// Rows that hold utm_content where the time zone used to be.
-		expect(number('layout')).toBe(1)
 	})
 
 	it('writes 0 when Cloudflare has no place or network', () => {

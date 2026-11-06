@@ -1,4 +1,4 @@
-import { LOCALES, type Locale, type LocaleSetting } from './content'
+import { LOCALES, type Locale } from './content'
 
 /**
  * The language of the built-in text on public pages for one visitor: the
@@ -13,17 +13,6 @@ export function resolveLocale(locale: Locale, languages: readonly Locale[], acce
 /** As resolveLocale, but `?lang=<code>` names one of the languages turned on outright: search engines and the owner's own checks use it. */
 export function requestedLocale(asked: string | null | undefined, locale: Locale, languages: readonly Locale[], acceptLanguage: string | null | undefined): Locale {
 	return [locale, ...languages].find((code) => code === asked) ?? resolveLocale(locale, languages, acceptLanguage)
-}
-
-/**
- * The page language and the languages turned on, from settings, a KV copy or
- * a backup. Before v0.3 these said "auto" for every language, English first;
- * anything unknown falls back to English alone.
- */
-export function pageLanguages(locale: LocaleSetting | string | undefined, languages?: readonly string[]): { locale: Locale; languages: Locale[] } {
-	if (locale === 'auto') return { locale: 'en', languages: LOCALES.filter((code) => code !== 'en') }
-	const main: Locale = KNOWN.has(locale ?? '') ? (locale as Locale) : 'en'
-	return { locale: main, languages: otherLanguages(main, languages ?? []) }
 }
 
 /** The turned-on languages without the page language or repeats, in the order of LOCALES. */
@@ -56,7 +45,6 @@ const FALLBACK: Locale = 'en'
 const MAX_HEADER = 512
 const MAX_RANGES = 24
 
-const KNOWN = new Set<string>(LOCALES)
 const EXACT = new Map<string, Locale>(LOCALES.map((locale) => [locale.toLowerCase(), locale]))
 /** Primary language subtag → locale, for languages with one locale. Chinese and Portuguese are matched apart. */
 const PRIMARY = new Map<string, Locale>([

@@ -31,23 +31,19 @@ export const EVENT_FIELDS = [
 	'os',
 	'referrer',
 	'visitor',
-	// Added in v0.1.2
 	'region',
 	'city',
-	// utm_content since v0.3 (layout 1). Before that this slot held the visitor's time zone,
-	// which nothing read; those rows have layout 0 and their content counts as empty.
 	'utmContent',
 	'language',
-	// The visitor's network (Cloudflare's asOrganization, e.g. "Chunghwa Telecom") since v0.3.
-	// Before that this slot held the Cloudflare data center, which nothing read; those rows
-	// have asn 0 and network queries leave them out.
+	// The visitor's network (Cloudflare's asOrganization, e.g. "Chunghwa Telecom"). Rows where Cloudflare
+	// didn't know it have asn 0, and network queries leave them out.
 	'network',
 	'slug',
 	'url',
 	'utmSource',
 	'utmMedium',
 	'utmCampaign',
-	// Added in v0.2: the page a view or click belongs to; "" for standalone short links.
+	// The page a view or click belongs to; "" for standalone short links.
 	'page',
 ] as const
 type EventField = (typeof EVENT_FIELDS)[number]
@@ -55,15 +51,11 @@ const column = (field: EventField) => `blob${EVENT_FIELDS.indexOf(field) + 1}`
 
 /**
  * Numbers in each data point. Append new fields; never reorder.
- * - v0.2: the day (yyyymmdd) and hour in the site's time zone.
- * - v0.3: where Cloudflare places the visitor's IP, rounded to 0.1° (about 11 km,
- *   so a town, not a street), and the network's AS number. 0 when unknown;
- *   rows written before v0.3 read as 0 too.
- * - v0.3: `layout`, which version of EVENT_FIELDS wrote the row: 1 once utmContent
- *   took the time zone's slot, 0 (missing) before.
+ * - the day (yyyymmdd) and hour in the site's time zone.
+ * - where Cloudflare places the visitor's IP, rounded to 0.1° (about 11 km,
+ *   so a town, not a street), and the network's AS number. 0 when unknown.
  */
-export const EVENT_NUMBERS = ['day', 'hour', 'latitude', 'longitude', 'asn', 'layout'] as const
-const LAYOUT = 1
+export const EVENT_NUMBERS = ['day', 'hour', 'latitude', 'longitude', 'asn'] as const
 type EventNumber = (typeof EVENT_NUMBERS)[number]
 const numberColumn = (field: EventNumber) => `double${EVENT_NUMBERS.indexOf(field) + 1}`
 
@@ -186,7 +178,6 @@ export function eventDoubles(request: Request, input: Pick<EventInput, 'day' | '
 		latitude: coordinate(request, 'latitude', 90),
 		longitude: coordinate(request, 'longitude', 180),
 		asn: asn(request),
-		layout: LAYOUT,
 	}
 	return EVENT_NUMBERS.map((field) => values[field])
 }
@@ -292,13 +283,13 @@ export interface Period {
 	previousFrom: string
 }
 
-type CampaignRow = { s: string; m: string; c: string; ct: string; v: number; k: string; n: number }
+type CampaignRow = { s: string; m: string; c: string; ct: string; k: string; n: number }
 
 /** Views and clicks per set of tags, the busiest 12. */
 function campaignCounts(rows: CampaignRow[]): CampaignCount[] {
 	const counts = new Map<string, CampaignCount>()
 	for (const row of rows) {
-		const tags = { source: String(row.s), medium: String(row.m), campaign: String(row.c), content: Number(row.v) >= 1 ? String(row.ct) : '' }
+		const tags = { source: String(row.s), medium: String(row.m), campaign: String(row.c), content: String(row.ct) }
 		if (!tags.source && !tags.medium && !tags.campaign && !tags.content) continue
 		const key = JSON.stringify(tags)
 		const count = counts.get(key) ?? { ...tags, views: 0, clicks: 0 }
@@ -454,18 +445,17 @@ export async function insights(env: Env, scope: Scope, period: Period): Promise<
 				top('browser', people, 8),
 				top('language', people, 6, `AND ${column('language')} != ''`),
 				top('referrer', people, 8, `AND ${column('referrer')} != ''`),
-				// Campaign tags count on both page views and clicks. Rows from before layout 1 hold a
-				// time zone where utm_content is now; campaignCounts() leaves those out.
+				// Campaign tags count on both page views and clicks.
 				query<CampaignRow>(
 					`SELECT ${column('utmSource')} AS s, ${column('utmMedium')} AS m, ${column('utmCampaign')} AS c,
-					${column('utmContent')} AS ct, ${numberColumn('layout')} AS v, ${column('kind')} AS k,
+					${column('utmContent')} AS ct, ${column('kind')} AS k,
 					SUM(sampleInterval) AS n FROM ${from}
 					${where(
 						'any',
 						`AND (${column('utmSource')} != '' OR ${column('utmMedium')} != '' OR ${column('utmCampaign')} != ''
-						OR (${column('utmContent')} != '' AND ${numberColumn('layout')} >= 1))`,
+						OR ${column('utmContent')} != '')`,
 					)}
-					GROUP BY s, m, c, ct, v, k ORDER BY n DESC LIMIT 100`,
+					GROUP BY s, m, c, ct, k ORDER BY n DESC LIMIT 100`,
 				),
 				query<{ d: number; h: number; n: number }>(
 					`SELECT ${day} AS d, ${numberColumn('hour')} AS h, SUM(sampleInterval) AS n FROM ${from} ${where('click')} GROUP BY d, h`,

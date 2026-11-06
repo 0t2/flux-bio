@@ -1,5 +1,6 @@
 import { z } from './zod'
 import { msg } from '../templates/msg'
+import { EMBED_ACTIONS, EMBED_PROVIDERS, EMBEDS, type EmbedProvider } from './embeds'
 import { findFont } from './fonts'
 
 export const THEME_IDS = ['liquid', 'editorial', 'brutal', 'jelly', 'minimal', 'aurora', 'notebook', 'boutique', 'sunset', 'sky', 'pop', 'portrait', 'sheet', 'rail', 'duo', 'relief', 'bento', 'dots', 'pastel', 'letter', 'obsidian', 'moon', 'chips', 'tracks'] as const
@@ -52,14 +53,7 @@ export type LinkIcon = (typeof LINK_ICONS)[number]
 export const LOCALES = ['zh-TW', 'en', 'zh-CN', 'ja', 'ko', 'es', 'pt-BR', 'fr', 'de', 'id', 'th', 'vi', 'ar'] as const
 export type Locale = (typeof LOCALES)[number]
 
-/**
- * What settings, KV copies and backups written before v0.3 may hold: one
- * language, or "auto" for every language (English when none matched). Read
- * them with pageLanguages() in shared/locale.ts.
- */
-export type LocaleSetting = Locale | 'auto'
-
-export const ITEM_KINDS = ['link', 'heading', 'video', 'gallery', 'product', 'hours', 'kofi'] as const
+export const ITEM_KINDS = ['link', 'heading', 'video', 'gallery', 'product', 'hours', 'embed'] as const
 export type ItemKind = (typeof ITEM_KINDS)[number]
 
 export const ITEM_LIMIT = 100
@@ -170,16 +164,20 @@ export const HoursItemSchema = z.object({
 })
 export type HoursItem = z.infer<typeof HoursItemSchema>
 
-/** A card asking for a tip on Ko-fi. Nothing from Ko-fi loads until a visitor taps its button (see kofiPanelUrl). */
-export const KofiItemSchema = z.object({
+/**
+ * A card for the owner's account on another service (EMBEDS in src/shared/embeds.ts): a link to it that, on a live page,
+ * opens the service's own panel over the page. Nothing loads from the service until a visitor taps.
+ */
+export const EmbedItemSchema = z.object({
 	id: itemId,
-	kind: z.literal('kofi'),
-	username: z.string().max(2048).describe("The owner's Ko-fi page, as in ko-fi.com/<username>. Its address, or Ko-fi's widget code, works too"),
+	kind: z.literal('embed'),
+	provider: z.enum(EMBED_PROVIDERS).describe(`The service, whose panel opens over the page on a tap: ${EMBED_PROVIDERS.map((id) => `${id} (${EMBEDS[id].about})`).join(', ')}`),
+	account: z.string().max(2048).describe("The owner's account on that service. Its address, or the service's own embed code, works too"),
 	title: z.string().max(80),
 	note: z.string().max(120).describe('One line under the title, e.g. what tips pay for; "" for none'),
 	hidden: z.boolean(),
 })
-export type KofiItem = z.infer<typeof KofiItemSchema>
+export type EmbedItem = z.infer<typeof EmbedItemSchema>
 
 export const ItemSchema = z.discriminatedUnion('kind', [
 	LinkItemSchema,
@@ -188,7 +186,7 @@ export const ItemSchema = z.discriminatedUnion('kind', [
 	GalleryItemSchema,
 	ProductItemSchema,
 	HoursItemSchema,
-	KofiItemSchema,
+	EmbedItemSchema,
 ])
 export type Item = z.infer<typeof ItemSchema>
 export type BlockItem = Exclude<Item, LinkItem | HeadingItem>
@@ -209,6 +207,10 @@ export const FontFamilySchema = z
 	.max(60)
 	.refine((name) => name === '' || findFont(name) !== null, { message: msg('Google Fonts 沒有這個字型') })
 
+/**
+ * A page's look. The fields with a default may be left out, and get the theme's own: an AI building a look through
+ * the API can send the theme and only the colors, fonts or pictures it means to set.
+ */
 export const AppearanceSchema = z.object({
 	theme: z.enum(THEME_IDS),
 	/** Empty string means "use the theme's own accent". */
@@ -236,10 +238,13 @@ export const AppearanceSchema = z.object({
 	bgImage: mediaRef.default(null),
 	/** How much of that layer covers the picture: enough for the page's text to stay readable on it. */
 	bgDim: z.number().min(0.4).max(0.95).default(0.75),
+	/**
+	 * 0: the picture covers the screen, one copy cropped to fit. Otherwise it repeats, each copy this many CSS pixels wide
+	 * (its height follows), so a pattern looks the same on a phone and a wide screen.
+	 */
+	bgTile: z.number().int().min(0).max(2000).default(0),
 })
 export type Appearance = z.infer<typeof AppearanceSchema>
-/** An appearance as stored before v0.3, without its own colors; KV copies and the site record may still have it. */
-export type StoredAppearance = z.input<typeof AppearanceSchema>
 
 export const SeoSchema = z.object({
 	title: z.string().max(80),
@@ -296,47 +301,28 @@ export const PageContentSchema = z.object({
 	items: z.array(ItemSchema).max(ITEM_LIMIT),
 	seo: SeoSchema,
 	showBadge: z.boolean(),
-	/** Left out until something is translated; missing in everything saved before it existed. */
+	/** Left out until something is translated. */
 	translations: TranslationsSchema.optional(),
 	/** Left out for a page of links. The rest of the content stays, so taking this away brings that page back. */
 	custom: CustomPageSchema.optional(),
 	/** Left out or false: nobody hears about a tap on a social icon. */
 	/** Left out, there is no LINE button floating at the bottom right. */
 	lineButton: z.string().max(2048).optional().describe("Where the LINE button floating at the bottom right of the page goes: an address like https://lin.ee/… or an official account's @id. Left out or empty, there is no button"),
-	/** Left out, there is no Ko-fi button floating at the bottom right. */
-	kofiButton: z.string().max(2048).optional().describe("The owner's Ko-fi page, as in ko-fi.com/<username> (or its address), for a Ko-fi button floating at the bottom right of the page, above the LINE button when there is one. A tap opens Ko-fi's tip panel over the page. Left out or empty, there is no button"),
+	/** Left out, there is no button floating at the bottom right for another service. */
+	embedButton: z
+		.object({ provider: z.enum(EMBED_PROVIDERS), account: z.string().max(2048) })
+		.optional()
+		.describe("A button floating at the bottom right, above the LINE button when there is one, that opens a service's panel over the page as an `embed` card's button does: `provider` and `account` as there. Left out, or with no account, there is none"),
 	countSocials: z.boolean().optional().describe("Count clicks on this page's social icons, at one Worker request and one KV read per click. Email icons are never counted"),
 })
 export type PageContent = z.infer<typeof PageContentSchema>
 
-/** Upgrades content saved by earlier versions; anything else passes through untouched. */
-export function upgradeContent(raw: unknown): unknown {
-	if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw
-	const value: Record<string, unknown> = { ...raw }
-	// v0.1 had only links, under "links".
-	if (Array.isArray(value.links) && !Array.isArray(value.items)) {
-		value.items = value.links.map((link: unknown) =>
-			link && typeof link === 'object' ? { kind: 'link', startsAt: null, endsAt: null, ...link } : link,
-		)
-		delete value.links
-	}
-	if (value.seo && typeof value.seo === 'object' && !('imageMode' in value.seo)) {
-		const seo = value.seo as Record<string, unknown>
-		value.seo = { imageMode: seo.image ? 'upload' : 'auto', tagline: '', autoImage: null, autoImageKey: '', ...seo }
-	}
-	return value
-}
-
-/** PageContentSchema that also accepts content in an older shape. */
-export const PageContentInputSchema = z.preprocess(upgradeContent, PageContentSchema)
-
 /**
- * Stored content, upgraded, with fonts no longer on the list dropped: a page
- * saved with a family that a newer list leaves out still opens, in its
- * theme's font, instead of failing to parse.
+ * Stored content with fonts no longer on the list dropped: a page saved with a
+ * family that a newer list leaves out still opens, in its theme's font,
+ * instead of failing to parse.
  */
-export function storedContent(raw: unknown): unknown {
-	const value = upgradeContent(raw)
+export function storedContent(value: unknown): unknown {
 	if (!value || typeof value !== 'object' || !('appearance' in value)) return value
 	const appearance = value.appearance as Record<string, unknown> | null
 	if (!appearance || typeof appearance !== 'object') return value
@@ -383,26 +369,6 @@ export type Settings = z.infer<typeof SettingsSchema>
 
 export const DEFAULT_SETTINGS: Settings = { home: '', timezone: 'UTC', locale: 'en', languages: [], domain: '', hostFonts: false, bio: true, homeUrl: '', qrLogo: '', plan: 'free' }
 
-/**
- * Brings stored settings up to date. v0.1 had one page: { handle, homepage,
- * timezone, locale }. Before v0.3, locale could be "auto" (every language,
- * English first) and there was no list of languages.
- */
-export function upgradeSettings(raw: unknown, legacyPageId: string): unknown {
-	if (!raw || typeof raw !== 'object') return raw
-	let value = raw as Record<string, unknown>
-	if (!('home' in value)) value = { home: value.homepage ? legacyPageId : '', timezone: value.timezone, locale: value.locale, domain: '' }
-	if (value.locale === 'auto') value = { ...value, locale: 'en', languages: LOCALES.filter((code) => code !== 'en') }
-	if (!('languages' in value)) value = { ...value, languages: [] }
-	// Fonts were copied to the Worker only in v0.3, and only with this switch on.
-	if (!('hostFonts' in value)) value = { ...value, hostFonts: false }
-	// Pages could not be switched off before.
-	if (!('bio' in value)) value = { ...value, bio: true, homeUrl: '' }
-	// QR codes had no default picture before.
-	if (!('qrLogo' in value)) value = { ...value, qrLogo: '' }
-	return 'plan' in value ? value : { ...value, plan: 'free' }
-}
-
 /** A saved look: a base theme plus the colors, font and button chosen on top. */
 export const ThemePresetSchema = z.object({
 	name: z.string().trim().min(1).max(40),
@@ -423,6 +389,7 @@ export const ThemePresetSchema = z.object({
 	coverImage: mediaId.optional(),
 	bgImage: mediaId.optional(),
 	bgDim: z.number().min(0.4).max(0.95).optional(),
+	bgTile: z.number().int().min(0).max(2000).optional(),
 })
 export type ThemePreset = z.infer<typeof ThemePresetSchema>
 
@@ -442,7 +409,7 @@ export function presetFromAppearance(name: string, appearance: Appearance): Them
 		...(appearance.bodyFont && { bodyFont: appearance.bodyFont }),
 		button: appearance.button,
 		...(appearance.coverImage && { coverImage: appearance.coverImage }),
-		...(appearance.bgImage && { bgImage: appearance.bgImage, bgDim: appearance.bgDim }),
+		...(appearance.bgImage && { bgImage: appearance.bgImage, bgDim: appearance.bgDim, ...(appearance.bgTile && { bgTile: appearance.bgTile }) }),
 	}
 }
 
@@ -462,13 +429,14 @@ export function appearanceFromPreset(preset: ThemePreset, current: Appearance): 
 		coverImage: preset.coverImage ?? current.coverImage ?? null,
 		bgImage: preset.bgImage ?? null,
 		bgDim: preset.bgDim ?? 0.75,
+		bgTile: preset.bgTile ?? 0,
 	}
 }
 
 const sameColor = (a: string | undefined, b: string | undefined) => (a ?? '').toUpperCase() === (b ?? '').toUpperCase()
 
 export function samePreset(
-	a: Pick<ThemePreset, 'base' | 'accent' | 'accent2' | 'bg' | 'fg' | 'font' | 'headFont' | 'bodyFont' | 'button' | 'coverImage' | 'bgImage'>,
+	a: Pick<ThemePreset, 'base' | 'accent' | 'accent2' | 'bg' | 'fg' | 'font' | 'headFont' | 'bodyFont' | 'button' | 'coverImage' | 'bgImage' | 'bgTile'>,
 	appearance: Appearance,
 ): boolean {
 	return (
@@ -482,7 +450,9 @@ export function samePreset(
 		a.font === appearance.font &&
 		a.button === appearance.button &&
 		(!a.coverImage || a.coverImage === appearance.coverImage) &&
-		(a.bgImage ?? null) === (appearance.bgImage ?? null)
+		(a.bgImage ?? null) === appearance.bgImage &&
+		// How a background repeats only matters when there is one.
+		(!a.bgImage || (a.bgTile ?? 0) === appearance.bgTile)
 	)
 }
 
@@ -498,7 +468,7 @@ export function randomString(length: number, alphabet = ID_ALPHABET): string {
 export const newId = (): string => randomString(10)
 
 export function defaultAppearance(): Appearance {
-	return { theme: 'liquid', accent: '', accent2: '', bg: '', fg: '', font: 'auto', headFont: '', bodyFont: '', button: 'auto', showSocial: true, coverImage: null, bgImage: null, bgDim: 0.75 }
+	return { theme: 'liquid', accent: '', accent2: '', bg: '', fg: '', font: 'auto', headFont: '', bodyFont: '', button: 'auto', showSocial: true, coverImage: null, bgImage: null, bgDim: 0.75, bgTile: 0 }
 }
 
 export function emptyLink(): LinkItem {
@@ -546,9 +516,14 @@ function makeItem(kind: ItemKind): Item {
 			return { id, kind, title: '', products: [newProduct()], moreUrl: '', hidden: false }
 		case 'hours':
 			return { id, kind, title: msg('營業時間'), week: defaultWeek(), note: '', address: '', phone: '', showMap: true, hidden: false }
-		case 'kofi':
-			return { id, kind, username: '', title: msg('請我喝杯咖啡'), note: '', hidden: false }
+		case 'embed':
+			return newEmbed('kofi', id)
 	}
+}
+
+/** A fresh card for a service, titled for what its button does (in zh-TW, like newItem). */
+export function newEmbed(provider: EmbedProvider, id = newId()): EmbedItem {
+	return { id, kind: 'embed', provider, account: '', title: EMBED_ACTIONS[EMBEDS[provider].action].title, note: '', hidden: false }
 }
 
 export function defaultSeo(): Seo {
@@ -610,30 +585,7 @@ export const SOCIAL_PART = 'social'
 export const LINK_PART = 'link'
 /** The page's floating LINE button in /_c, filed under "<page id>.line". */
 export const LINE_PART = 'line'
-/** The button of a Ko-fi card, filed under "<item id>.kofi", and the page's floating Ko-fi button, under "<page id>.kofi". */
-export const KOFI_PART = 'kofi'
-
-/** Ko-fi's own addresses, which are nobody's page: ko-fi.com/s/… is a shop item, ko-fi.com/post/… a post. */
-const KOFI_PATHS = new Set(['s', 'i', 'c', 'e', 'post', 'album', 'home', 'manage', 'explore', 'account', 'settings', 'login', 'signup', 'gold', 'search', 'feed', 'summary', 'cdn'])
-
-/**
- * The name of a Ko-fi page (ko-fi.com/<name>) in what the owner typed or pasted: the name, "@name", the page's address
- * with or without https://, or Ko-fi's widget code, which names it. Null when there is none.
- */
-export function kofiPage(value: string): string | null {
-	const input = value.trim()
-	const name =
-		/(?:^|[^\w.-])(?:https?:\/\/)?(?:www\.)?ko-fi\.com\/([\w-]+)/i.exec(input)?.[1] ??
-		/kofiWidgetOverlay\.draw\(\s*['"]([\w-]+)['"]/.exec(input)?.[1] ??
-		input.replace(/^@/, '')
-	return /^[\w-]{1,60}$/.test(name) && !KOFI_PATHS.has(name.toLowerCase()) ? name : null
-}
-
-/** The Ko-fi page itself: where a tap goes without JavaScript, or in a new tab. */
-export const kofiUrl = (page: string): string => `https://ko-fi.com/${page}`
-
-/** Ko-fi's tip panel, made for a frame: what its embed code on Ko-fi's Widgets page loads. */
-export const kofiPanelUrl = (page: string): string => `https://ko-fi.com/${page}/?hidefeed=true&widget=true&embed=true&preview=true`
+// An embed's button is filed under "<item id>.<provider>", the floating one under "<page id>.<provider>" (EMBED_PROVIDERS).
 
 /** Turns what someone typed for a social icon into a usable href, or null. */
 export function socialHref(platform: SocialPlatform, value: string): string | null {

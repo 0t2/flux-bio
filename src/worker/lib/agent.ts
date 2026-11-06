@@ -200,7 +200,7 @@ Pick what fits; never more than two at a time.
 - Tag where visitors come from with \`?s=\` on the page URL or a short URL, and tell places on one platform apart with UTM tags (see "Sources and UTM tags"). For one URL shared in several places, one short link per platform.
 - Schedule limited offers with \`startsAt\`/\`endsAt\` instead of removing them by hand.
 - For links shared inside LINE, turn on \`lineExternal\`. For shop, sign-in or payment links shared on Instagram or Facebook, turn on \`inAppPrompt\`.
-- A floating LINE button for a shop, or anyone whose customers use LINE, as in Taiwan, Japan and Thailand; a Ko-fi button or card for anyone who takes tips there (see "Page content").
+- A floating LINE button for a shop, or anyone whose customers use LINE, as in Taiwan, Japan and Thailand; an embed card or button for anyone taking tips or bookings (see "Page content").
 - Fill in \`seo.title\` and \`seo.description\` (about 60 characters) for share previews, and a share picture (see "Share image").
 - A week after a change, compare stats with the period before (see "Report on stats").
 - Keep a backup now and then (see "Back up").

@@ -1,5 +1,6 @@
 import { fill, msg, type Message, type Params } from '../templates/msg'
-import { isHttpUrl, kofiPage, socialHref, videoEmbed, type PageContent } from './content'
+import { isHttpUrl, socialHref, videoEmbed, type PageContent } from './content'
+import { embedAccount, EMBEDS } from './embeds'
 import { normalizeSlug, SLUG_PROBLEM_TEXT, slugProblem } from './slug'
 
 export interface Problem {
@@ -80,10 +81,12 @@ export function publishProblems(content: PageContent, handle: string): Problem[]
 					}
 				})
 				return
-			case 'kofi':
-				if (item.username.trim() && !kofiPage(item.username)) report(at('username'), msg('第 {n} 項 Ko-fi：找不到 Ko-fi 帳號，請填 ko-fi.com/ 後面那段'), { n })
-				else if (!item.hidden && !item.username.trim()) report(at('username'), msg('第 {n} 項 Ko-fi 還沒填帳號'), { n })
+			case 'embed': {
+				const { name } = EMBEDS[item.provider]
+				if (item.account.trim() && !embedAccount(item)) report(at('account'), msg('第 {n} 項 {name}：找不到 {name} 帳號，請貼上你的 {name} 網址'), { n, name })
+				else if (!item.hidden && !item.account.trim()) report(at('account'), msg('第 {n} 項 {name} 還沒填帳號'), { n, name })
 				return
+			}
 			case 'heading':
 				return
 		}
@@ -96,7 +99,8 @@ export function publishProblems(content: PageContent, handle: string): Problem[]
 	})
 
 	if (content.lineButton?.trim() && !socialHref('line', content.lineButton)) report('lineButton', msg('右下角 LINE 按鈕的網址格式不正確'), {})
-	if (content.kofiButton?.trim() && !kofiPage(content.kofiButton)) report('kofiButton', msg('右下角 Ko-fi 按鈕找不到 Ko-fi 帳號'), {})
+	const button = content.embedButton
+	if (button?.account.trim() && !embedAccount(button)) report('embedButton.account', msg('右下角 {name} 按鈕找不到 {name} 帳號'), { name: EMBEDS[button.provider].name })
 
 	return problems
 }
