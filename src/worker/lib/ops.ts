@@ -285,8 +285,11 @@ export async function systemSite(env: Env): Promise<SiteRecord | null> {
 export async function siteTimeZone(env: Env): Promise<string> {
 	if (timeZoneMemo && Date.now() - timeZoneMemo.at < TIME_ZONE_MEMO) return timeZoneMemo.timeZone
 	try {
-		await ensureSchema(env.DB)
-		const { timezone } = await loadSettings(env.DB)
+		// A page with opening hours waits for this before it is drawn, so the settings are asked for alongside
+		// the schema check, not after it: one trip to D1 in a new copy of the Worker, where it was three. Only a
+		// database with no tables yet has nothing to ask, and that one is asked again once they are made.
+		const [early] = await Promise.all([loadSettings(env.DB).catch(() => null), ensureSchema(env.DB)])
+		const { timezone } = early ?? (await loadSettings(env.DB))
 		timeZoneMemo = { timeZone: timezone, at: Date.now() }
 		return timezone
 	} catch (error) {
