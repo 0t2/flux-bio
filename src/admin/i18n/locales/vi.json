@@ -946,5 +946,6 @@
 	"整個 Cloudflare 帳號，今天": "Toàn bộ tài khoản Cloudflare, hôm nay",
 	"部署到 Cloudflare 後，這裡會顯示整個帳號今天實際用了多少。": "Khi đã lên Cloudflare, đây sẽ hiện toàn bộ tài khoản thực sự đã dùng bao nhiêu hôm nay.",
 	"帳號的數字來自 Cloudflare，會晚幾分鐘，包含帳號裡的其他專案。Cloudflare 沒有提供請求數，這裡用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。": "Số liệu tài khoản lấy từ Cloudflare, trễ vài phút, và gồm cả các dự án khác của bạn. Cloudflare không cung cấp số yêu cầu, nên được ước tính từ {views} lượt xem và {clicks} lượt nhấp hôm nay của trang này, không tính hình ảnh và bot.",
-	"請求數用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。": "Số yêu cầu được ước tính từ {views} lượt xem và {clicks} lượt nhấp hôm nay của trang này, không tính hình ảnh và bot."
+	"請求數用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。": "Số yêu cầu được ước tính từ {views} lượt xem và {clicks} lượt nhấp hôm nay của trang này, không tính hình ảnh và bot.",
+	"幫我查 Cloudflare 帳號今天的詳細用量，看是哪個專案用掉的": "Kiểm tra mức sử dụng chi tiết hôm nay của tài khoản Cloudflare và dự án nào đã dùng gì"
 }

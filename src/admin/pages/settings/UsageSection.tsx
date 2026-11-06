@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Settings } from '../../../shared/content'
 import { request } from '../../api'
+import { AskAi } from '../../components/AskAi'
 import { Section, toast } from '../../components/ui'
 import { t } from '../../i18n'
 import { dateFormat, formatNumber, formatSize } from '../../lib/format'
@@ -91,6 +92,7 @@ export function UsageSection() {
 					? t('帳號的數字來自 Cloudflare，會晚幾分鐘，包含帳號裡的其他專案。Cloudflare 沒有提供請求數，這裡用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。', { views: formatNumber(usage.today.views), clicks: formatNumber(usage.today.clicks) })
 					: t('請求數用這個網站今天的 {views} 次瀏覽和 {clicks} 次點擊估計，圖片和機器人沒有算進去。', { views: formatNumber(usage.today.views), clicks: formatNumber(usage.today.clicks) })}
 			</p>
+			<AskAi say={t('幫我查 Cloudflare 帳號今天的詳細用量，看是哪個專案用掉的')} />
 		</Section>
 	)
 }
