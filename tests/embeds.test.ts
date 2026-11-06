@@ -247,7 +247,7 @@ describe('the floating embed button', () => {
 		const html = await htmlOf(`/${handle}`)
 		expect(html).toContain('<body class="has-line has-embed">')
 		expect(html).toContain('.has-line .embed-button{bottom:calc(84px')
-		expect(html).toContain('.has-embed.has-line main{padding-bottom:148px}')
+		expect(html).toContain('.has-embed.has-line main{padding-bottom:calc(148px + env(safe-area-inset-bottom))}')
 	})
 
 	it('goes nowhere when the account makes no sense, and an empty one is no button', async () => {

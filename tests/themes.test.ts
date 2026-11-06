@@ -12,7 +12,9 @@ import {
 	type PageContent,
 	type ThemeId,
 } from '../src/shared/content'
-import { THEME_CSS } from '../src/templates/compositions'
+import { ownLinkLook, THEME_CSS } from '../src/templates/compositions'
+import { guideNames } from '../src/worker/lib/agent'
+import { guideTopic } from '../src/worker/lib/agentTopics'
 import { renderBioPage } from '../src/templates/render'
 import { contrast, fitBackground, resolveAppearance, TEXT_ON_SECOND_COLOR, THEMES } from '../src/templates/themes'
 import list from '../themes/community.json'
@@ -289,5 +291,30 @@ describe('colors an AI picks', () => {
 				if (/background:var\(--accent\)[;}]/.test(rule)) expect(rule, theme).not.toContain('color:var(--fg)')
 			}
 		}
+	})
+})
+
+describe('what `button` does, as the guide says it', () => {
+	it('reads what each theme draws on its link buttons itself from its composition', () => {
+		expect(ownLinkLook('jelly')).toEqual({ border: false, corners: false, shadow: true, bare: false })
+		expect(ownLinkLook('notebook')).toEqual({ border: false, corners: false, shadow: false, bare: false })
+		expect(ownLinkLook('liquid')).toEqual({ border: true, corners: false, shadow: true, bare: false })
+		expect(ownLinkLook('letter')).toMatchObject({ border: true, corners: true })
+		expect(ownLinkLook('obsidian')).toMatchObject({ border: true, corners: 12 })
+		expect(ownLinkLook('aurora')).toMatchObject({ corners: true })
+		expect(ownLinkLook('dots')).toMatchObject({ bare: true })
+	})
+
+	it('names every theme once, by what it keeps of its own', () => {
+		const look = guideTopic('look', guideNames('https://bio.example'))!
+		const buttons = look.slice(look.indexOf('**Buttons.**'), look.indexOf('**Make a theme.**'))
+		expect(buttons).toContain('- `shadow`: 10px corners, 10px icons, 24px avatar, and a 2px border in the text color with a hard 4px offset shadow')
+		expect(buttons).toContain('The only value that draws a border.')
+		expect(buttons).toContain('Candy (shadow)')
+		expect(buttons).toContain('So on Candy only `shadow` gives link buttons a border')
+		const own = buttons.slice(buttons.indexOf('Some themes draw part'), buttons.indexOf(' Featured links'))
+		for (const id of THEME_IDS) expect(own.split(new RegExp(`\\b${THEMES[id].en}\\b`)).length - 1, id).toBeGreaterThanOrEqual(1)
+		// Pill by default where the theme says so.
+		for (const id of THEME_IDS) if (THEMES[id].button === 'pill') expect(buttons.split('\n')[1], id).toContain(THEMES[id].en)
 	})
 })

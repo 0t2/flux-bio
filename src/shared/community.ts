@@ -1,5 +1,7 @@
 import { z } from './zod'
-import { ThemePresetSchema } from './content'
+import { THEME_LIST } from '../templates/themes'
+import { ThemePresetSchema, type Locale, type ThemeId } from './content'
+import { THEME_WORDS } from './serverWords'
 import { STARTER_IDS } from './starters'
 
 /**
@@ -17,3 +19,15 @@ export const CommunityThemeSchema = ThemePresetSchema.omit({ coverImage: true, b
 export type CommunityTheme = z.infer<typeof CommunityThemeSchema>
 
 export const CommunityListSchema = z.object({ themes: z.array(CommunityThemeSchema).max(1000) })
+
+/** A base theme as the dashboard names it in one language, and its English name, which the guide uses. */
+export interface BaseThemeName {
+	id: ThemeId
+	name: string
+	en: string
+}
+
+/** Every base theme, named as the owner sees it on Appearance in `locale`. */
+export function baseThemeNames(locale: Locale): BaseThemeName[] {
+	return THEME_LIST.map((theme) => ({ id: theme.id, name: locale === 'zh-TW' ? theme.label : (THEME_WORDS[locale]?.[theme.label] ?? theme.en), en: theme.en }))
+}

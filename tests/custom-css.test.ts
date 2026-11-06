@@ -70,6 +70,40 @@ describe('the CSS check', () => {
 		for (const css of fine) expect(problemOf(css), css).toBeNull()
 	})
 
+	it('lets an address pick out links in an attribute selector, which matches and loads nothing', () => {
+		const fine = [
+			'.socials a[href^="https://x.com"]{background:var(--c1)}',
+			"a[href^='https://www.threads.com/']{color:var(--fg)}",
+			'.items>a.link[href*="//shop.example/"]{border-style:dashed}',
+			'a[href^="https://x.com" i]{color:var(--fg)}',
+			'a[ href ^= "https://x.com" s ]{color:var(--fg)}',
+			'a[href="mailto:mei@example.com"],a[href|="https://a"],a[href~="https://b"],a[href$="https://c"]{color:var(--fg)}',
+			'[xlink|href^="https://x.com"],[*|href^="https://x.com"],[|href^="https://x.com"]{color:var(--fg)}',
+			'a[href^="javascript:"]{display:none}',
+			':is(a[href^="https://x.com"],a[href^="https://twitter.com"]) svg{stroke-width:2.4}',
+			'.socials:has(a[href^="https://x.com"]){gap:20px}',
+			'@supports selector(a[href^="https://x.com"]){.a{color:red}}',
+			'.items{& a.link[href^="https://shop.example"]{font-weight:700}}',
+		]
+		for (const css of fine) expect(problemOf(css), css).toBeNull()
+
+		// Anywhere else, an address in a string is still refused: a value takes no attribute selector, nor does a function that loads.
+		const refused = [
+			'a[href^="https://x.com"]{--next:"https://evil.example/x.png"}',
+			'a[href^="https://x.com"]{background:url(https://evil.example/x.png)}',
+			'.a{content:["https://evil.example/x.png"]}',
+			'.a{content:[x "https://evil.example/x.png"]}',
+			'.a{grid-template-areas:"https://evil.example/x.png"}',
+			'.a{background:image-set([href="https://evil.example/x.png"])}',
+			'[href "https://evil.example/x.png"]{color:red}',
+			'[="https://evil.example/x.png"]{color:red}',
+		]
+		for (const css of refused) expect(problemOf(css), css).not.toBeNull()
+		expect(problemOf(':root{--picture:"https://evil.example/x.png"}')).toBe(
+			'Line 1: “https://evil.example/x.png” looks like an address. CSS can’t load anything from another address: an address can only go in an attribute selector, such as a[href^="https://…"]',
+		)
+	})
+
 	it('refuses anything that could end the <style>', () => {
 		for (const css of ['</style><script>alert(1)</script>', '.a{color:red}</STYLE >', '.a::after{content:"<"}', '<!-- .a{} -->']) {
 			expect(problemOf(css), css).toMatch(/can't contain “<”/)
@@ -462,13 +496,15 @@ describe('the markup CSS is written against', () => {
 			renderBioPage(everything(), { mode: 'preview', mediaUrl: media, now: closed, draft: { nonce: 'n', versionUrl: '/v', version: 1 } }),
 			// A tiled background, as appearance.bgTile draws it.
 			renderBioPage({ ...everything(), appearance: { ...everything().appearance, theme: 'rail', bgTile: 48 }, items: everything().items.slice(0, 3) }, { mode: 'live', mediaUrl: media, locale: 'ar', now: open }),
+			// The name out of sight, and the social icons after the items.
+			renderBioPage({ ...everything(), appearance: { ...everything().appearance, showName: false, socialPlace: 'bottom' } }, { mode: 'live', mediaUrl: media, now: open }),
 		]
 		const found = new Set(pages.flatMap((html) => [...classesOn(html)]))
 		const promised = [
 			'act', 'acts', 'addr', 'avatar', 'badge', 'bio', 'block-title', 'cap', 'closed', 'cover', 'draft-note', 'embed', 'embed-button', 'embed-head',
 			'embed-icon', 'embed-text', 'feat', 'frame', 'gallery', 'go', 'grid', 'has-embed', 'has-line', 'head', 'hint-line', 'hours', 'info', 'items',
 			'line-button', 'link', 'main', 'map', 'more', 'note', 'off', 'one', 'open-pill', 'page-bg', 'panel', 'ph', 'price', 'product', 'products', 'sep',
-			'sheet', 'sheet-bar', 'sheet-close', 'single', 'slide', 'socials', 't', 'tile', 'today', 'todo', 'track', 'video',
+			'sheet', 'sheet-bar', 'sheet-close', 'single', 'slide', 'socials', 't', 'tile', 'today', 'todo', 'track', 'video', 'visually-hidden',
 		]
 		// If this fails, a page's markup changed: CSS an AI wrote against it may stop working. Make sure that is meant, then update the
 		// customize topic (bodies.customize in src/worker/lib/agentTopics.ts, "Page markup") and this list together.

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { normalizeSlug, slugProblem, SLUG_PROBLEM_TEXT } from '../../shared/slug'
 import { initials } from '../../templates/render'
 import { Icon } from '../components/Icon'
-import { Section, toast } from '../components/ui'
+import { Section, toast, Toggle } from '../components/ui'
 import { t } from '../i18n'
 import { uploadImage } from '../lib/image'
 import { errorText } from '../pages/settings/util'
@@ -22,6 +22,7 @@ export function ProfileSection() {
 				<HandleField />
 				<NameField />
 			</div>
+			<ShowNameField />
 			<BioField />
 		</Section>
 	)
@@ -244,6 +245,28 @@ function NameField() {
 					})
 				}}
 			/>
+		</div>
+	)
+}
+
+/** Off, the name is out of sight but still the page's heading: for an avatar that is a logo with the name in it. */
+function ShowNameField() {
+	const { draft, update } = usePage()
+	return (
+		<div className="field">
+			<span className="label">{t('在頁面上顯示名稱')}</span>
+			<span className="inline-toggle">
+				<Toggle
+					on={draft.appearance.showName}
+					onChange={(showName) =>
+						update((d) => {
+							d.appearance.showName = showName
+						})
+					}
+					label={t('在頁面上顯示名稱')}
+				/>
+				{t('頭像就是寫著名稱的 logo 時可以關掉。關掉後只是看不到，螢幕閱讀器和搜尋引擎還是讀得到。')}
+			</span>
 		</div>
 	)
 }

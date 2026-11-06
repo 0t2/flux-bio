@@ -41,7 +41,7 @@ import {
 	type ThemeId,
 } from '../../shared/content'
 import { FONT_CATEGORIES, FONT_SCRIPTS, searchFonts } from '../../shared/fonts'
-import { requestedLocale } from '../../shared/locale'
+import { matchLanguageTag, requestedLocale } from '../../shared/locale'
 import { untranslated } from '../../shared/translations'
 import { DEFAULT_QR_STYLE, QR_SIZE_IDS, qrLogoMedia, qrSvg, QrStyleSchema, type QrStyle } from '../../shared/qr'
 import { addDays, dayIn, lastDays } from '../../shared/time'
@@ -49,7 +49,7 @@ import { fill, msg, type Message, type Params } from '../../templates/msg'
 import { SOCIAL_META } from '../../templates/icons'
 import { renderBioPage } from '../../templates/render'
 import communityThemes from '../../../themes/community.json'
-import { CommunityListSchema } from '../../shared/community'
+import { baseThemeNames, CommunityListSchema } from '../../shared/community'
 import { guideNames, guideSite, openApi, workerNameOf } from '../lib/agent'
 import { guideTopic } from '../lib/agentTopics'
 import { accountUse, countsSince, insights, type Insights } from '../lib/analytics'
@@ -920,12 +920,16 @@ api.get('/fonts', (c) => {
 })
 
 api.get('/themes/community', async (c) => {
-	let body: CommunityThemesResponse = { themes: CommunityListSchema.parse(communityThemes).themes, source: 'bundled' }
+	// The themes' names in the owner's language, for an AI to say them as the dashboard does: ?lang=, else the page language.
+	const asked = c.req.query('lang')
+	const lang = (asked && matchLanguageTag(asked)) || (await loadSettings(c.env.DB)).locale
+	const named = { lang, bases: baseThemeNames(lang) }
+	let body: CommunityThemesResponse = { themes: CommunityListSchema.parse(communityThemes).themes, source: 'bundled', ...named }
 	try {
 		const response = await fetch(COMMUNITY_URL, { cf: { cacheTtl: 3600, cacheEverything: true }, signal: AbortSignal.timeout(4000) })
 		if (response.ok) {
 			const parsed = CommunityListSchema.safeParse(await response.json())
-			if (parsed.success) body = { themes: parsed.data.themes, source: 'github' }
+			if (parsed.success) body = { themes: parsed.data.themes, source: 'github', ...named }
 		}
 	} catch {
 		// Offline, or the repository isn't public yet: the bundled list is fine.

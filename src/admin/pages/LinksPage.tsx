@@ -428,7 +428,7 @@ function SocialSection() {
 				</button>
 			}
 		>
-			<p className="hint">{t('顯示在名稱下方的一排小圖示。要整排關掉，請到「外觀」。')}</p>
+			<p className="hint">{t('一排小圖示，在名稱下方或連結下方。要換位置或整排關掉，請到「外觀」。')}</p>
 			{socials.map((social, index) => (
 				<div className="social-row" key={social.id}>
 					<select

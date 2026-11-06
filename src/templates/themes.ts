@@ -174,10 +174,10 @@ export function uiFontStack(locale: Locale = 'zh-TW'): string {
 	return `system-ui, -apple-system, ${local}, sans-serif`
 }
 
-
-const RADIUS: Record<ButtonKey, string> = { pill: '999px', rounded: '16px', square: '0px', shadow: '10px' }
-const ICON_RADIUS: Record<ButtonKey, string> = { pill: '999px', rounded: '999px', square: '0px', shadow: '10px' }
-const AVATAR_RADIUS: Record<ButtonKey, string> = { pill: '999px', rounded: '999px', square: '0px', shadow: '24px' }
+/** The corners each `button` gives buttons and panels, social icons and the avatar. The guide's topic "look" reads them. */
+export const RADIUS: Record<ButtonKey, string> ={ pill: '999px', rounded: '16px', square: '0px', shadow: '10px' }
+export const ICON_RADIUS: Record<ButtonKey, string> = { pill: '999px', rounded: '999px', square: '0px', shadow: '10px' }
+export const AVATAR_RADIUS: Record<ButtonKey, string> = { pill: '999px', rounded: '999px', square: '0px', shadow: '24px' }
 
 const HEX = /^#[0-9a-fA-F]{6}$/
 
