@@ -1,7 +1,7 @@
 {
 	"s001": "FluxBio: Open-Source-Link-in-Bio mit Kurzlinks",
 	"s002": "Open-Source-Tool für Link-in-Bio und Kurzlinks, das auf Cloudflare Workers läuft. Buttons auf deiner Seite zeigen die echte Adresse und zählen trotzdem Klicks, oder nutzen per Schalter einen Kurzlink. Verbinde deine KI: Seite ändern, Statistiken ansehen – einfach sagen, fertig.",
-	"s003": "FluxBio: Link-in-Bio, Linkkürzer – und versteht dich obendrein.",
+	"s003": "FluxBio: Link-in-Bio, Kurzlinks und hört auf dich.",
 	"s004": "Open-Source-Link-in-Bio mit Kurzlinks, auf deinem eigenen Cloudflare-Konto. Verbinde deine KI und sag einfach, was du willst.",
 	"s005": "FluxBio-Startseite",
 	"s006": "Hauptmenü",
@@ -12,7 +12,6 @@
 	"s013": "Die Seite „QR-Code-Design“: Farben und Punktform wählen, Profilbild in der Mitte, Rahmentext darunter",
 	"s019": "Kurzlink-Beispiel",
 	"s020": "Fußzeile",
-	"s021": "Link-in-Bio, Linkkürzer&nbsp;– und versteht dich obendrein",
 	"s022": "Schluss mit zwei Diensten",
 	"s023": "Überlass es deiner KI, sag einfach, was du willst",
 	"s024": "So sieht das Dashboard aus",
@@ -36,8 +35,7 @@
 	"s042": "<b>Live-Vorschau</b><span>Per Drag-and-drop sortieren, Links hervorheben oder zeitgesteuert ein- und ausblenden: Die Handyvorschau rechts zieht sofort mit. Öffentlich wird es erst, wenn du auf „Veröffentlichen“ klickst.</span>",
 	"s043": "<b>Statistiken</b><span>Aufrufe, Klicks und eindeutige Besucher pro Tag, jeweils im Vergleich zum Vorzeitraum, und woher die Besucher kamen.</span>",
 	"s044": "<b>QR-Code</b><span>Farben und Punktform ändern, Profilbild in die Mitte, herunterladen und drucken.</span>",
-	"s049": "Verbinde deine KI: Seite ändern, Kurzlinks anlegen, Statistiken ansehen – einfach sagen, fertig. Buttons auf deiner Seite zeigen die echte Adresse und zählen trotzdem Klicks, oder nutzen per Schalter einen Kurzlink. Alles Open Source, läuft auf Cloudflare Workers.",
-	"s050": "Seiten, Kurzlinks und Klickdaten liegen in deinem eigenen Cloudflare-Konto. Der kostenlose Plan reicht völlig.",
+	"s049": "Verbinde deine KI und sag einfach, was du willst.<br>Kostenlos, Open Source, in deinem eigenen Cloudflare-Konto.",
 	"s051": "Seiten bauen, Links teilen und Ergebnisse ansehen, alles an einem Ort. Nur Kurzlinks? Schalte die Seiten einfach aus.",
 	"s052": "Jedes der 24 Themes hat sein eigenes Design und mehrere Farbsets zur Auswahl. Eigene Bilder und Farben? Lass deine KI eins für dich bauen.",
 	"s053": "Buttons auf deiner Seite zeigen die echte Adresse, man sieht also, wohin sie führen. Jeder Link hat außerdem einen Kurzlink, zu finden unter Teilen, und ein Schalter setzt ihn auf den Button, wenn du die Adresse nicht zeigen willst, etwa bei Affiliate-Links. Du kannst auch eigenständige anlegen. Das Kürzel wählst du selbst, mit Buchstaben aus jeder Sprache: Umlaute, Thai und Hindi inklusive.",
@@ -154,5 +152,8 @@
 	"s187": "Kostenlos",
 	"s188": "Tarif",
 	"s189": "Bilder mit der Seite deployt",
-	"s190": "Bitte deine KI, deine Bilder mit der Seite zu deployen; dann kostet ihr Laden kein Kontingent. Im Dashboard gibt es dafür keinen Knopf, und später hochgeladene Bilder zählen bis zum nächsten Deployment."
+	"s190": "Bitte deine KI, deine Bilder mit der Seite zu deployen; dann kostet ihr Laden kein Kontingent. Im Dashboard gibt es dafür keinen Knopf, und später hochgeladene Bilder zählen bis zum nächsten Deployment.",
+	"s191": "Link-in-Bio,",
+	"s192": "Kurzlinks",
+	"s193": "und hört auf dich"
 }

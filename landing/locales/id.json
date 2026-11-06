@@ -1,7 +1,7 @@
 {
 	"s001": "FluxBio: Link in bio + tautan pendek yang open source",
 	"s002": "Alat Link in bio dan tautan pendek open source yang berjalan di Cloudflare Workers. Tombol di halamanmu menampilkan alamat asli dan tetap menghitung klik, atau memakai tautan pendek dengan satu sakelar. Hubungkan AI-mu, lalu untuk mengubah halaman atau melihat statistik, tinggal bilang saja.",
-	"s003": "FluxBio: Link in bio, juga penyingkat tautan, dan paham maumu.",
+	"s003": "FluxBio: Link in bio, tautan pendek, dan paham kamu.",
 	"s004": "Link in bio + tautan pendek open source, berjalan di akun Cloudflare-mu sendiri, dan cukup dikelola lewat obrolan dengan AI.",
 	"s005": "Beranda FluxBio",
 	"s006": "Menu utama",
@@ -12,7 +12,6 @@
 	"s013": "Halaman gaya kode QR: pilih warna dan bentuk titik, foto profil di tengah, dan teks bingkai di bawahnya",
 	"s019": "Contoh tautan pendek",
 	"s020": "Kaki halaman",
-	"s021": "Link in bio, juga penyingkat tautan, dan paham maumu",
 	"s022": "Tak perlu lagi dua layanan",
 	"s023": "Serahkan ke AI-mu, tinggal bilang saja",
 	"s024": "Begini tampilan dasbornya",
@@ -36,8 +35,7 @@
 	"s042": "<b>Edit sambil lihat hasilnya</b><span>Seret untuk mengurutkan, jadikan unggulan, atau jadwalkan kapan tampil dan berakhir. Pratinjau ponsel di kanan ikut berubah, dan halaman baru terbuka untuk publik setelah kamu menekan “Terbitkan”.</span>",
 	"s043": "<b>Statistik</b><span>Tayangan, klik, dan pengunjung unik harian, masing-masing dibandingkan dengan periode sebelumnya, serta dari mana pengunjung datang.</span>",
 	"s044": "<b>Kode QR</b><span>Ganti warna dan bentuk titik, taruh foto profil di tengah, unduh, lalu langsung cetak.</span>",
-	"s049": "Hubungkan AI-mu, lalu untuk mengubah halaman, membuat tautan pendek, atau melihat statistik, tinggal bilang saja. Tombol di halamanmu menampilkan alamat asli dan tetap menghitung klik, atau memakai tautan pendek dengan satu sakelar. Semuanya open source dan berjalan di Cloudflare Workers.",
-	"s050": "Halaman, tautan pendek, dan data klik tersimpan di akun Cloudflare-mu sendiri. Paket gratisnya sudah cukup.",
+	"s049": "Hubungkan AI-mu, lalu tinggal bilang.<br>Gratis, open source, di akun Cloudflare milikmu sendiri.",
 	"s051": "Buat halaman, bagikan tautan, dan lihat hasilnya di satu tempat. Hanya butuh tautan pendek? Matikan fitur halaman.",
 	"s052": "Masing-masing dari 24 tema punya desain sendiri dan beberapa pilihan warna. Mau pakai gambar dan warna sendiri? Minta AI membuatkannya.",
 	"s053": "Tombol di halamanmu menampilkan alamat asli, jadi pengunjung tahu ke mana tujuannya. Setiap tautan juga punya tautan pendek, tersedia di Bagikan, dan satu sakelar memasangnya di tombol untuk tautan yang tidak ingin kamu tampilkan, seperti tautan afiliasi. Kamu juga bisa membuatnya terpisah, dengan slug pilihanmu dalam huruf bahasa apa pun.",
@@ -154,5 +152,8 @@
 	"s187": "Gratis",
 	"s188": "Paket",
 	"s189": "Gambar di-deploy bersama situs",
-	"s190": "Minta AI-mu men-deploy gambarmu bersama situs, maka pengunjung yang memuatnya tidak memakai kuota. Tidak ada tombolnya di dasbor, dan gambar yang diunggah sesudahnya tetap dihitung sampai deploy berikutnya."
+	"s190": "Minta AI-mu men-deploy gambarmu bersama situs, maka pengunjung yang memuatnya tidak memakai kuota. Tidak ada tombolnya di dasbor, dan gambar yang diunggah sesudahnya tetap dihitung sampai deploy berikutnya.",
+	"s191": "Link in bio,",
+	"s192": "tautan pendek,",
+	"s193": "dan paham kamu"
 }
