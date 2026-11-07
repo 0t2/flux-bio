@@ -108,7 +108,7 @@ pnpm dev   # keep this running in the background
 
 It prints its address, normally `http://localhost:5173`. The first start takes a little while, so wait for `<address>/llms.txt` to answer.
 
-Then make their page, with that password as the bearer token: ask the name to show, what they do and where they are, one at a time, then do step 1 of the hand-over (1.7), but publish it, because nobody else can reach this address. Follow `<address>/api/guide/trying-it`. Give them `<address>/` to open, and say in plain words:
+Then make their page, with that password as the bearer token: ask the name to show, what they do and where they are, one at a time, then do step 1 of the hand-over (1.7), publishing locally unless they explicitly asked for a preview; then keep a draft and send a preview link. Follow `<address>/api/guide/trying-it`. Give them the preview link when requested, otherwise `<address>/` for the locally published page, and say in plain words:
 
 - This address only opens on this computer. To show anyone else, it has to go online.
 - It stops when this computer or this tool does. You can start it again with `pnpm dev`, and nothing is lost, because it is all in their FluxBio folder.
@@ -121,7 +121,7 @@ FROM=http://localhost:5173 FROM_AUTH="Authorization: Bearer <password in .dev.va
 TO=https://<site> TO_AUTH="Authorization: Bearer <password in .secrets.env>"
 curl -s -H "$FROM_AUTH" $FROM/api/export | sed "s#$FROM#$TO#g" > backup.json   # links between their pages go with them
 for id in $(jq -r '.media[]' backup.json); do
-  curl -s -D headers.txt -o picture "$FROM/media/$id"
+  curl -fsS -H "$FROM_AUTH" -D headers.txt -o picture "$FROM/api/media/$id" || exit 1
   curl -s -X PUT -H "$TO_AUTH" -H "content-type: $(awk 'tolower($1)=="content-type:"{print $2}' headers.txt | tr -d '\r')" --data-binary @picture "$TO/api/media/$id"
 done
 curl -s -X POST -H "$TO_AUTH" -H 'content-type: application/json' --data @backup.json $TO/api/import

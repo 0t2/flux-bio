@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import type { PageJson } from '../src/shared/api'
+import type { CreateTokenResponse, PageJson } from '../src/shared/api'
 import { backupFileParts, BackupSchema, type Backup } from '../src/shared/backup'
 import { emptyContent, emptyLink } from '../src/shared/content'
 import { agentGuide } from '../src/worker/lib/agent'
@@ -84,8 +84,22 @@ describe('the guide', () => {
 		expect(guide).toContain('If the backup fails, stop')
 	})
 
-	it('keeps the file out of git and tells it to skip images it already has', () => {
+	it('backs up through an authenticated endpoint that reads overwritten image bytes afresh', async () => {
 		expect(guide).toContain('Keep it out of any git repository')
-		expect(guide).toContain('skip the ones already in that folder')
+		const recipe = guide.split('**Back up.**')[1]!.split('**Set up a new site.**')[0]!
+		const address = recipe.match(/`GET (https:\/\/[^`]+\/api\/media\/<id>)`/)?.[1]
+		expect(address).toBeDefined()
+		const id = 'snapshot-same-id.png'
+		const path = new URL(address!.replace('<id>', id)).pathname
+		const { token } = await apiJson<CreateTokenResponse>('/tokens', { method: 'POST', json: { name: 'Backup', scope: 'full' } })
+		expect((await call(path)).status).toBe(401)
+		// Restoring a file can replace bytes without changing its ID. A second backup must read them again.
+		for (const bytes of [PIXEL, Uint8Array.from([...PIXEL, 0])]) {
+			expect((await api(`/media/${id}`, { method: 'PUT', body: bytes, headers: { 'content-type': 'image/png' }, bearer: token })).status).toBe(200)
+			const response = await call(path, { headers: { authorization: `Bearer ${token}` } })
+			expect(response.status).toBe(200)
+			expect(response.headers.get('cache-control')).toBe('no-store')
+			expect(new Uint8Array(await response.arrayBuffer())).toEqual(bytes)
+		}
 	})
 })
