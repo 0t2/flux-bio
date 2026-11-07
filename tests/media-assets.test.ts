@@ -7,9 +7,9 @@ import gitignore from '../.gitignore?raw'
 // pnpm deploy:images ships the pictures pages use as static files, which visitors load without running the Worker.
 
 describe('which pictures ship', () => {
-	it('fetches the new ones, removes those no page uses any more, and keeps what is already there', () => {
+	it('refreshes every used image and removes those no page uses any more', () => {
 		expect(planMediaAssets(['a1.webp', 'b2.png', 'c3.jpg'], ['b2.png', 'old.webp', '.DS_Store'])).toEqual({
-			download: ['a1.webp', 'c3.jpg'],
+			download: ['a1.webp', 'b2.png', 'c3.jpg'],
 			remove: ['.DS_Store', 'old.webp'],
 			skipped: [],
 		})

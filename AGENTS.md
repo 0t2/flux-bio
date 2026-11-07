@@ -282,8 +282,11 @@ Use a full token in `FLUXBIO_TOKEN` for the selected site or the admin password 
 from `sites.json` or `FLUXBIO_SITES`, as in the Worker configuration. Use the shared admin password or a full token for
 each site in `FLUXBIO_TOKEN_<ID>` (uppercase, with hyphens replaced by underscores). In CI, use the
 `FLUXBIO_SITE_TOKENS` secret as a JSON object keyed by site ID. With `--mode staging`, the script uses
-`.secrets.staging.env`. When updating an older deployment, run this again after the first deploy so scoped images can
-be downloaded through the new `GET /api/media/{id}` endpoint.
+`.secrets.staging.env`. Each run rebuilds the image bundle from authenticated `GET /api/media/{id}` reads, including
+files already downloaded, so overwriting an image keeps its next bundle current. The script checks the source's actual
+site and live/test mode before downloading. If a hostname still reaches its old site, it leaves those images to KV and
+continues the deploy. Run it again after deploying a changed site assignment or updating an older version to fill the
+bundle. Sites that cannot be read and images that fail to download keep no old files in the next bundle.
 
 **A test site.** To try a change first, run it on the owner's computer: `pnpm exec cf dev --mode staging` (with
 `ADMIN_PASSWORD` in `.dev.vars`) makes nothing on Cloudflare and uses none of their quota, and only that computer can open it.
@@ -441,7 +444,7 @@ date until retaken, which `landing/AGENTS.md` describes ("Retake the dashboard s
 ```sh
 cp .dev.vars.example .dev.vars   # set ADMIN_PASSWORD for local dev
 pnpm dev         # cf dev: Vite + workerd on http://localhost:5173, dashboard at /admin/
-pnpm test        # Vitest inside the Workers runtime (tests/)
+pnpm test        # Node deployment-script checks, then Vitest inside the Workers runtime (tests/)
 pnpm typecheck   # generates .cloudflare/types, then type-checks the Worker, dashboard and config
 pnpm build       # builds into .cloudflare/output
 pnpm i18n check  # lists dashboard text that isn't translated yet

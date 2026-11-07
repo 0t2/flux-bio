@@ -19,7 +19,7 @@ export function isShippableMediaId(id: string): boolean {
 }
 
 export interface MediaAssetPlan {
-	/** Used by the pages and not in the folder yet. */
+	/** Used by the pages: fetched again because an upload or restore can overwrite the same id. */
 	download: string[]
 	/** In the folder and no longer used: removed, so a picture taken off every page stops shipping. */
 	remove: string[]
@@ -27,12 +27,12 @@ export interface MediaAssetPlan {
 	skipped: string[]
 }
 
-/** What to fetch and what to delete, given the ids the site's pages use and the files already there. Ids never change content. */
+/** What to fetch and what to delete, given the ids the site's pages use and the files already there. Existing files are refreshed from KV. */
 export function planMediaAssets(used: readonly string[], present: readonly string[]): MediaAssetPlan {
 	const wanted = new Set(used.filter(isShippableMediaId))
 	const have = new Set(present)
 	return {
-		download: [...wanted].filter((id) => !have.has(id)).sort(),
+		download: [...wanted].sort(),
 		remove: [...have].filter((id) => !wanted.has(id)).sort(),
 		skipped: [...new Set(used.filter((id) => !isShippableMediaId(id)))].sort(),
 	}
