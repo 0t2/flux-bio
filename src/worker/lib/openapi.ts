@@ -43,7 +43,7 @@ interface Operation {
 	linksToken?: true
 	/** Needs no token. */
 	open?: true
-	produces?: 'html' | 'csv' | 'text' | 'svg'
+	produces?: 'html' | 'csv' | 'text' | 'svg' | 'image'
 	/** Says which draft the caller read: If-Match with the page's draftUpdatedAt. */
 	draftVersion?: 'required' | 'optional'
 }
@@ -187,6 +187,7 @@ export const OPERATIONS: Operation[] = [
 			{ name: 'cursor', description: 'nextCursor from the page before' },
 		],
 	},
+	{ method: 'get', path: '/api/media/{id}', id: 'getImage', tag: 'Media', summary: 'Read the current uploaded image bytes', produces: 'image' },
 	{ method: 'put', path: '/api/media/{id}', id: 'putImage', tag: 'Media', summary: 'Upload an image under a given id (used by imports)', body: 'image' },
 	{
 		method: 'get',
@@ -387,7 +388,9 @@ function operationObject(op: Operation): Record<string, unknown> {
 					? { required: true, content: { 'application/json': { schema: jsonSchema(op.body) } } }
 					: undefined
 	const ok =
-		op.produces === 'html'
+		op.produces === 'image'
+			? { 'image/*': { schema: { type: 'string', format: 'binary' } } }
+			: op.produces === 'html'
 			? { 'text/html': { schema: { type: 'string' } } }
 			: op.produces === 'text'
 				? { 'text/plain': { schema: { type: 'string' } } }

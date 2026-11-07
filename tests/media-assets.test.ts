@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isShippableMediaId, planMediaAssets } from '../src/shared/mediaAssets'
-import { MEDIA_CSP } from '../src/worker/routes/site'
+import { MEDIA_CSP } from '../src/worker/lib/media'
 import headers from '../public/_headers?raw'
 import gitignore from '../.gitignore?raw'
 

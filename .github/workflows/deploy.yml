@@ -39,8 +39,8 @@ jobs:
       # reaches one account only, so cf needs no account id.
       # Without the FLUXBIO_SITE variable no FluxBio site is deployed: `cf deploy` would make a new
       # Worker, database and KV namespace on the account, and stop for want of its password.
-      # With it and FLUXBIO_TOKEN (a full token made on that site), the site's pictures go out as static
-      # files (pnpm deploy:images), so visitors load them without costing quota. They are downloaded
+      # With a full token, the site's pictures go out as static files (pnpm deploy:images).
+      # FLUXBIO_SITE_TOKENS supplies per-site credentials on a shared Worker. Images are downloaded
       # afresh each time, never cached: an Actions cache in a public repository can be read by pull
       # requests from forks. If that fails, or there is no token, the deploy goes out without them.
       - if: github.event_name == 'push' && github.repository == '0t2/flux-bio'
@@ -50,7 +50,7 @@ jobs:
           # The one script a deploy runs.
           deployer=$(printf '%s\n' "$changed" | grep -E '^scripts/deploy-images\.mjs$' || true)
           if [ -n "$FLUXBIO_SITE" ] && [ -n "$product$deployer" ]; then
-            if [ -n "$FLUXBIO_TOKEN" ]; then
+            if [ -n "$FLUXBIO_TOKEN$FLUXBIO_SITE_TOKENS" ]; then
               pnpm deploy:images --site "$FLUXBIO_SITE" || pnpm exec cf deploy
             else
               pnpm exec cf deploy
@@ -62,6 +62,7 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           FLUXBIO_TOKEN: ${{ secrets.FLUXBIO_TOKEN }}
+          FLUXBIO_SITE_TOKENS: ${{ secrets.FLUXBIO_SITE_TOKENS }}
           FLUXBIO_SITE: ${{ vars.FLUXBIO_SITE }}
           # The other sites the Worker holds, as sites.json would list them: a checkout has no such file, and a deploy
           # without the list would unbind them (cloudflare.config.ts).

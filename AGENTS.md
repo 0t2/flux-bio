@@ -272,16 +272,18 @@ lists the sites and opens each one's dashboard; a sign-in is for one site, so ea
 - Taking a site out of the file and deploying only unbinds it. Its database and namespace stay until the owner deletes them.
 - A test site (`--mode staging`) is always one site.
 
-**Pictures as static files.** Each picture a visitor's browser doesn't have yet costs a Worker request and a KV read, and
-on a page with several they are most of what a view costs. `pnpm deploy:images --site https://<site>` downloads the pictures
-the site's pages use into `public/media/` (gitignored) and deploys with them as static files: Cloudflare answers those
-without running the Worker, free and unlimited, at the same `/media/<id>`, with the headers in `public/_headers`. A picture
-uploaded since then is served from KV as before, until the next run, and a picture no page uses any more is left out.
-It needs a full token in `FLUXBIO_TOKEN` or the admin password in `.secrets.env`, and the owner's computer: the dashboard
-can't deploy. With several sites it reads each one, since they all ship from the one folder: the others with the password or
-a token in `FLUXBIO_TOKEN_<ID>`, and one it can't read keeps the files it has. So offer it, in plain words, when the owner adds pictures or asks about quota, and after new uploads. A deploy
-without it (`pnpm run deploy`) ships whatever `public/media/` holds, nothing on a fresh checkout, and the pictures go back
-to costing quota without anything breaking. With `--mode staging` it reads and deploys the test site.
+**Pictures as static files.** Each picture a visitor's browser doesn't have yet normally costs a Worker request and a KV
+read. `pnpm deploy:images --site https://<site>` downloads the pictures its pages use and deploys them at the same
+`/media/<id>`. On a single live site Cloudflare serves those files directly, at no request or KV cost. With several sites
+or `--mode staging`, the Worker selects the site's own folder under `public/_site-media/`, so these images save KV reads
+but still count as Worker requests. If a file has not been shipped, the Worker serves it from the site's KV.
+
+Use a full token in `FLUXBIO_TOKEN` for the selected site or the admin password in `.secrets.env`. The other sites come
+from `sites.json` or `FLUXBIO_SITES`, as in the Worker configuration. Use the shared admin password or a full token for
+each site in `FLUXBIO_TOKEN_<ID>` (uppercase, with hyphens replaced by underscores). In CI, use the
+`FLUXBIO_SITE_TOKENS` secret as a JSON object keyed by site ID. With `--mode staging`, the script uses
+`.secrets.staging.env`. When updating an older deployment, run this again after the first deploy so scoped images can
+be downloaded through the new `GET /api/media/{id}` endpoint.
 
 **A test site.** To try a change first, run it on the owner's computer: `pnpm exec cf dev --mode staging` (with
 `ADMIN_PASSWORD` in `.dev.vars`) makes nothing on Cloudflare and uses none of their quota, and only that computer can open it.
@@ -445,7 +447,7 @@ pnpm build       # builds into .cloudflare/output
 pnpm i18n check  # lists dashboard text that isn't translated yet
 pnpm landing     # builds the landing page, the project's own site; its other commands are in landing/AGENTS.md
 pnpm brand       # remakes the favicon, app icons and the landing page's logo pictures from LOGO_PATH in src/templates/icons.ts
-pnpm deploy:images --site <url>  # deploy with the site's pictures as static files, which cost no quota (--no-deploy, --mode staging)
+pnpm deploy:images --site <url>  # deploy with the site's pictures as static files (--no-deploy, --mode staging)
 pnpm usage       # today's free KV and D1 quota used and left, and each D1 database's size, on the signed-in Cloudflare account (--date, --days, --json)
 ```
 

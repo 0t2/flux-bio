@@ -4,7 +4,6 @@ import {
 	isHttpUrl,
 	LINE_PART,
 	mapsUrl,
-	MEDIA_ID,
 	LINK_PART,
 	randomString,
 	SOCIAL_PART,
@@ -18,6 +17,8 @@ import {
 	type Settings,
 } from '../../shared/content'
 import { embedAccount, EMBEDS } from '../../shared/embeds'
+import { scopedMediaPath, SCOPED_MEDIA_PATH } from '../../shared/mediaAssetPaths'
+import { isShippableMediaId } from '../../shared/mediaAssets'
 import { FONT_FILE } from '../../shared/fonts'
 import { requestedLocale, resolveLocale } from '../../shared/locale'
 import { normalizeSlug, slugProblem } from '../../shared/slug'
@@ -26,11 +27,13 @@ import { translatedLocales } from '../../shared/translations'
 import { pageEmbeds, renderBioPage, SHEET_SCRIPT_HASH, TAP_SCRIPT_HASH, visibleItems } from '../../templates/render'
 import { renderSystemPage, type SystemPageKind, type SystemPageOptions } from '../../templates/system'
 import { agentGuide, agentSkill, guideSite, workerNameOf } from '../lib/agent'
-import { getLinkRecord, getNamed, getSnapshot, mediaKey, type LinkRecord, type SiteRecord, type Snapshot } from '../lib/cache'
+import { getLinkRecord, getNamed, getSnapshot, type LinkRecord, type SiteRecord, type Snapshot } from '../lib/cache'
 import { readPreviewToken, sessionKeyOf } from '../lib/auth'
 import { ensureSchema, getPage, listPublished, loadSettings, publicNames } from '../lib/db'
 import { fontKey } from '../lib/fonts'
+import { MEDIA_CACHE, MEDIA_CSP, readMedia } from '../lib/media'
 import { isTestSite } from '../lib/mode'
+import { siteId, sitesOf } from '../lib/sites'
 import { findSite, linkRecordFromDb, siteFromDb, siteTimeZone, snapshotFromDb, systemSite } from '../lib/ops'
 import { verifyLinkPassword } from '../lib/password'
 import { pingSignature } from '../lib/domain'
@@ -81,25 +84,25 @@ export const previewCsp = (content: PageContent) => csp("'self'", "'none'", FRAM
  */
 export const CUSTOM_CSP = 'sandbox allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads'
 
-/** Uploaded images are never documents: no scripts even when opened directly. */
-/** Also in public/_headers, for pictures shipped as static files (pnpm deploy:images). */
-export const MEDIA_CSP = "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox"
-
 export const site = new Hono<AppEnv>({ strict: false })
+
+// Cloudflare invokes the Worker for this prefix even when the requested file exists.
+site.get(`${SCOPED_MEDIA_PATH}/*`, (c) => c.text('Not Found', 404))
 
 site.get('/media/:id', async (c) => {
 	const id = c.req.param('id')
-	if (!MEDIA_ID.test(id)) return c.notFound()
-	const { value, metadata } = await c.env.KV.getWithMetadata<{ type?: string }>(mediaKey(id), 'stream')
-	if (!value) return c.notFound()
-	return new Response(value, {
-		headers: {
-			'content-type': metadata?.type ?? 'application/octet-stream',
-			'cache-control': 'public, max-age=31536000, immutable',
-			'x-content-type-options': 'nosniff',
-			'content-security-policy': MEDIA_CSP,
-		},
-	})
+	const scope = isTestSite(c.env) ? 'staging' : sitesOf(c.env).length > 1 ? `sites/${siteId(c.env)}` : null
+	if (scope && c.env.ASSETS && isShippableMediaId(id)) {
+		const asset = await c.env.ASSETS.fetch(new URL(scopedMediaPath(scope, id), c.req.url))
+		if (asset.ok) {
+			const headers = new Headers(asset.headers)
+			headers.set('cache-control', MEDIA_CACHE)
+			headers.set('x-content-type-options', 'nosniff')
+			headers.set('content-security-policy', MEDIA_CSP)
+			return new Response(asset.body, { status: asset.status, headers })
+		}
+	}
+	return (await readMedia(c.env, id, MEDIA_CACHE)) ?? c.notFound()
 })
 
 // Fonts copied from Google Fonts for published pages (lib/fonts.ts). A file's name changes with its contents.
@@ -122,7 +125,7 @@ site.get('/_fonts/:name', async (c) => {
 site.get('/_fluxbio/ping', async (c) => {
 	const nonce = c.req.query('n') ?? ''
 	if (!/^[\w-]{16,64}$/.test(nonce)) return c.text('bad nonce', 400)
-	return c.text(await pingSignature(c.env, nonce), 200, { 'cache-control': 'no-store' })
+	return c.text(await pingSignature(c.env, new URL(c.req.url).hostname, nonce), 200, { 'cache-control': 'no-store' })
 })
 
 // Guides for AI agents (see lib/agent.ts). Slugs can't contain dots, so these never shadow a link.

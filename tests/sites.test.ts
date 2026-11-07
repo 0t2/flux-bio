@@ -47,6 +47,40 @@ const settingsOf = async (origin: string) => (await api<StateResponse>(origin, '
 describe('two sites in one Worker', () => {
 	let pageId = ''
 
+	it('serves each hostname its own bundled image and keeps the raw KV bytes available to deployment tools', async () => {
+		const id = 'shared.png'
+		const bytes = async (response: Response) => new TextDecoder().decode(await response.arrayBuffer())
+		await env.KV.put(`media:${id}`, 'main KV', { metadata: { type: 'image/png' } })
+		await other.KV_LINK.put(`media:${id}`, 'link KV', { metadata: { type: 'image/png' } })
+		const assets = new Map([
+			['/_site-media/sites/main/shared.png', 'main asset'],
+			['/_site-media/sites/link/shared.png', 'link asset'],
+			['/_site-media/sites/main/main-only.png', 'main asset only'],
+		])
+		const bindings = {
+			...env,
+			ASSETS: {
+				fetch: (url: URL) => assets.has(url.pathname)
+					? new Response(assets.get(url.pathname), { headers: { 'content-type': 'image/png' } })
+					: new Response(null, { status: 404 }),
+			},
+		}
+		expect(await bytes(await at(MAIN, `/media/${id}`, {}, bindings))).toBe('main asset')
+		const bundled = await at(LINK, `/media/${id}`, {}, bindings)
+		expect(await bytes(bundled)).toBe('link asset')
+		expect(bundled.headers.get('x-content-type-options')).toBe('nosniff')
+		expect((await at(LINK, '/media/main-only.png', {}, bindings)).status).toBe(404)
+		expect((await at(LINK, '/_site-media/sites/main/shared.png', {}, bindings)).status).toBe(404)
+
+		expect((await at(LINK, `/api/media/${id}`, {}, bindings)).status).toBe(401)
+		const raw = await at(LINK, `/api/media/${id}`, { headers: owner }, bindings)
+		expect(await bytes(raw)).toBe('link KV')
+		expect(raw.headers.get('cache-control')).toBe('no-store')
+
+		assets.delete('/_site-media/sites/link/shared.png')
+		expect(await bytes(await at(LINK, `/media/${id}`, {}, bindings))).toBe('link KV')
+	})
+
 	it('keeps a name for each: a page at one, a short link at the other', async () => {
 		pageId = await publish(MAIN, 'hello', 'Corner Shop')
 		// The same name, which one site would refuse as taken.

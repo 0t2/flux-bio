@@ -4,6 +4,24 @@ import { isShippableMediaId } from '../../shared/mediaAssets'
 import { MEDIA_PREFIX, mediaKey } from './cache'
 import { KV_OPS_AT_ONCE } from './mode'
 
+/** Uploaded images are never documents, even when opened directly. */
+export const MEDIA_CSP = "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox"
+export const MEDIA_CACHE = 'public, max-age=31536000, immutable'
+
+export async function readMedia(env: Env, id: string, cacheControl: string): Promise<Response | null> {
+	if (!MEDIA_ID.test(id)) return null
+	const { value, metadata } = await env.KV.getWithMetadata<{ type?: string }>(mediaKey(id), 'stream')
+	if (!value) return null
+	return new Response(value, {
+		headers: {
+			'content-type': metadata?.type ?? 'application/octet-stream',
+			'cache-control': cacheControl,
+			'x-content-type-options': 'nosniff',
+			'content-security-policy': MEDIA_CSP,
+		},
+	})
+}
+
 /**
  * Pictures nothing uses any more. An upload is one KV entry that never changes, and nothing deletes it when a page
  * stops showing it: a replaced avatar, a picture taken out of a gallery, the share card from before the name changed.

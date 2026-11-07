@@ -15,6 +15,7 @@ coverage/
 
 # Pictures pnpm deploy:images downloads from a site, to ship as static files: the owner's, never committed
 public/media/
+public/_site-media/
 
 # The landing page's dashboard screenshots, made by pnpm shots: on the maintainer's computer and on fluxbio.link,
 # from where pnpm landing:pictures fetches the ones a checkout lacks

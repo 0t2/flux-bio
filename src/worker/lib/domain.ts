@@ -4,18 +4,18 @@ import { deploymentSecret } from './db'
 
 /**
  * Custom domain check: this Worker asks https://<domain>/_fluxbio/ping to
- * sign a random nonce with the deployment's own secret. Only this
- * deployment knows it, so a match means the domain really serves this
- * FluxBio. Anyone can call the ping, which is why it never signs with
+ * sign a random nonce and the receiving hostname with the site's secret.
+ * A ping relayed to another hostname produces a different signature.
+ * Anyone can call the ping, which is why it never signs with
  * ADMIN_PASSWORD: that would let them test guesses at the password offline.
  */
 
 const encoder = new TextEncoder()
 
-export async function pingSignature(env: Env, nonce: string): Promise<string> {
+export async function pingSignature(env: Env, hostname: string, nonce: string): Promise<string> {
 	const secret = await deploymentSecret(env.DB)
 	const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
-	const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(`fluxbio-ping:${nonce}`))
+	const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(`fluxbio-ping:${hostname.toLowerCase()}:${nonce}`))
 	return [...new Uint8Array(signature)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
@@ -31,11 +31,11 @@ export interface DomainCheck {
 const check = (ok: boolean, key: string, params: Params): DomainCheck => ({ ok, message: fill(key, params), key, params })
 
 /**
- * `via` is the hostname the request asking for the check came in at. When it is the domain, the domain has already
- * reached this deployment: the request did, so there is nothing to ask.
+ * A request on the exact HTTPS origin already reached this site. Local HTTP
+ * or requests on a nonstandard port still need the HTTPS check.
  */
-export async function verifyDomain(env: Env, domain: string, via?: string): Promise<DomainCheck> {
-	if (via && via.toLowerCase() === domain) return check(true, msg('{domain} 已經接到這個 Worker。'), { domain })
+export async function verifyDomain(env: Env, domain: string, via?: URL): Promise<DomainCheck> {
+	if (via?.origin === `https://${domain}`) return check(true, msg('{domain} 已經接到這個 Worker。'), { domain })
 	const nonce = randomString(24)
 	let response: Response
 	try {
@@ -51,7 +51,7 @@ export async function verifyDomain(env: Env, domain: string, via?: string): Prom
 		return check(false, msg('{domain} 回應了 {status}，看起來還沒接到這個 Worker。'), { domain, status: response.status })
 	}
 	const body = (await response.text()).trim()
-	if (body !== (await pingSignature(env, nonce))) {
+	if (body !== (await pingSignature(env, domain, nonce))) {
 		return check(false, msg('{domain} 有回應，但接到的是另一套 FluxBio。'), { domain })
 	}
 	return check(true, msg('{domain} 已經接到這個 Worker。'), { domain })

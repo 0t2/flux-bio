@@ -1,16 +1,13 @@
-// Deploys FluxBio with the pictures its pages use as static files, so visitors load them without running the Worker
-// and they cost none of the free plan's requests or KV reads (src/shared/mediaAssets.ts).
-//   pnpm deploy:images --site https://links.example.com          download the pictures, then deploy
-//   pnpm deploy:images --site <url> --no-deploy                  only update public/media
-//   pnpm deploy:images --site <url> --mode staging               deploy the test site (passed to cf deploy)
-// The site can also come from FLUXBIO_SITE. The key is FLUXBIO_TOKEN (a full token), or ADMIN_PASSWORD from
-// .secrets.env (.secrets.staging.env with --mode staging). Pictures uploaded after this run cost as before until the next.
-// A Worker that holds several sites (sites.json) ships all their pictures from the one folder, so the others are read
-// too: each with FLUXBIO_TOKEN_<ID> or the admin password, since a token is for one site.
+// Deploys FluxBio with the pictures its pages use as static files.
+//   pnpm deploy:images --site https://links.example.com
+//   pnpm deploy:images --site <url> --no-deploy
+//   pnpm deploy:images --site <url> --mode staging
 import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { runnerImport } from 'vite'
+import { listedSites } from '../sites.config.ts'
+import { SCOPED_MEDIA_PATH } from '../src/shared/mediaAssetPaths.ts'
 
 const { module: assets } = await runnerImport('./src/shared/mediaAssets.ts')
 
@@ -30,80 +27,80 @@ for (let i = 0; i < args.length; i++) {
 	else fail(`Unknown option ${arg}. Try --site <url>, --no-deploy or --mode staging.`)
 }
 if (!opts.site) fail('Which site? Pass --site https://<your site>, or set FLUXBIO_SITE.')
-let site
+
+let selected
 try {
-	site = new URL(opts.site).origin
+	selected = new URL(opts.site)
+	if (!['https:', 'http:'].includes(selected.protocol)) throw new Error('Not a web address')
 } catch {
 	fail(`${opts.site} is not an address. Write it as https://<your site>.`)
 }
 
-// FLUXBIO_TOKEN is for the live site, so a test site uses its own password first.
-function secret() {
-	const file = opts.mode === 'staging' ? '.secrets.staging.env' : '.secrets.env'
-	const password = existsSync(file) ? readFileSync(file, 'utf8').match(/^ADMIN_PASSWORD=(.+)$/m)?.[1]?.trim() : null
-	return opts.mode === 'staging' ? (password ?? null) : (process.env.FLUXBIO_TOKEN ?? password ?? null)
-}
-const key = secret() ?? fail('No key to read the site with. Set FLUXBIO_TOKEN to a full API token, or keep ADMIN_PASSWORD in .secrets.env.')
+const staging = opts.mode === 'staging'
+const sites = staging ? {} : listedSites()
+const multisite = Object.keys(sites).some((id) => id !== 'main')
+const selectedId = Object.entries(sites).find(([, hosts]) => hosts.includes(selected.hostname))?.[0] ?? 'main'
+const secretFile = staging ? '.secrets.staging.env' : '.secrets.env'
+const password = existsSync(secretFile) ? readFileSync(secretFile, 'utf8').match(/^ADMIN_PASSWORD=(.+)$/m)?.[1]?.trim() : null
 
-// The export lists the pictures the pages use.
-const response = await fetch(`${site}/api/export`, { headers: { authorization: `Bearer ${key}` } })
-if (response.status === 401 || response.status === 403) fail(`${site} refused the key (${response.status}). It needs a full token, or the admin password.`)
-if (!response.ok) fail(`${site} answered ${response.status}. Is it a FluxBio, and is it online?`)
-/** Which site each picture is fetched from. */
-const from = new Map(((await response.json()).media ?? []).map((id) => [id, site]))
-
-// The other sites this Worker holds. One that can't be read keeps the files it has: a picture is only removed when
-// every site has said it doesn't use it.
-let everySiteRead = true
-if (opts.mode !== 'staging' && existsSync('sites.json')) {
-	let listed
+let siteTokens = {}
+if (!staging && process.env.FLUXBIO_SITE_TOKENS) {
 	try {
-		listed = JSON.parse(readFileSync('sites.json', 'utf8'))
+		siteTokens = JSON.parse(process.env.FLUXBIO_SITE_TOKENS)
+		if (!siteTokens || typeof siteTokens !== 'object' || Array.isArray(siteTokens) || Object.values(siteTokens).some((token) => typeof token !== 'string')) throw new Error()
 	} catch {
-		fail('sites.json is not JSON, so there is no telling which other sites this Worker holds.')
-	}
-	const password = existsSync('.secrets.env') ? readFileSync('.secrets.env', 'utf8').match(/^ADMIN_PASSWORD=(.+)$/m)?.[1]?.trim() : null
-	for (const [id, hosts] of Object.entries(listed)) {
-		if (!Array.isArray(hosts) || hosts.includes(new URL(site).host)) continue
-		const other = hosts[0] ? `https://${hosts[0]}` : null
-		const otherKey = process.env[`FLUXBIO_TOKEN_${id.toUpperCase().replaceAll('-', '_')}`] ?? password
-		const answer = other && otherKey ? await fetch(`${other}/api/export`, { headers: { authorization: `Bearer ${otherKey}` } }).catch(() => null) : null
-		if (!answer?.ok) {
-			everySiteRead = false
-			console.error(`  The site "${id}" could not be read${other ? ` at ${other}` : ', which has no hostname listed'}: its pictures stay as they are.`)
-			continue
-		}
-		for (const picture of (await answer.json()).media ?? []) if (!from.has(picture)) from.set(picture, other)
+		fail('FLUXBIO_SITE_TOKENS must be a JSON object mapping site IDs to full API tokens.')
 	}
 }
 
-const dir = assets.MEDIA_ASSET_DIR
-mkdirSync(dir, { recursive: true })
-const plan = assets.planMediaAssets([...from.keys()], readdirSync(dir))
-if (!everySiteRead) plan.remove = []
-for (const id of plan.remove) rmSync(join(dir, id), { force: true })
-let failed = 0
-// Public, like any visitor's: a picture still in KV costs one Worker request and one KV read, and one that already
-// ships as a static file costs nothing. A few at a time, because a deploy from a fresh checkout fetches every one.
-const AT_ONCE = 6
-for (let at = 0; at < plan.download.length; at += AT_ONCE) {
-	await Promise.all(
-		plan.download.slice(at, at + AT_ONCE).map(async (id) => {
-			const picture = await fetch(`${from.get(id)}/media/${encodeURIComponent(id)}`)
-			if (!picture.ok) {
+const scopedDir = `public${SCOPED_MEDIA_PATH}`
+const siteDir = (id) => join(scopedDir, 'sites', id)
+const primaryKey = staging ? password : process.env.FLUXBIO_TOKEN || keyFor(selectedId)
+const primaryDir = staging ? join(scopedDir, 'staging') : multisite ? siteDir(selectedId) : assets.MEDIA_ASSET_DIR
+const primary = await syncImages(selected.origin, primaryKey, primaryDir, staging || multisite)
+if (primary) fail(primary)
+
+for (const [id, hosts] of Object.entries(sites)) {
+	if (id === selectedId || !multisite) continue
+	const result = hosts[0] ? await syncImages(`https://${hosts[0]}`, keyFor(id), siteDir(id), true) : 'No hostname listed.'
+	if (result) console.error(`  The site "${id}" could not be read: ${result}`)
+}
+
+if (opts.deploy) {
+	const deploy = spawn('pnpm', ['exec', 'cf', 'deploy', ...(opts.mode ? ['--mode', opts.mode] : [])], { stdio: 'inherit' })
+	deploy.on('exit', (code) => process.exit(code ?? 1))
+}
+
+function keyFor(id) {
+	return process.env[`FLUXBIO_TOKEN_${id.toUpperCase().replaceAll('-', '_')}`] || (Object.hasOwn(siteTokens, id) ? siteTokens[id] : null) || password
+}
+
+async function syncImages(origin, key, dir, scoped) {
+	if (!key) return 'Set a full API token for this site, or use the admin password.'
+	const headers = { authorization: `Bearer ${key}` }
+	const response = await fetch(`${origin}/api/export`, { headers, redirect: 'error' }).catch(() => null)
+	if (!response?.ok) return `${origin} ${response ? `answered ${response.status}` : 'could not be reached'}.`
+
+	mkdirSync(dir, { recursive: true })
+	const plan = assets.planMediaAssets((await response.json()).media ?? [], readdirSync(dir))
+	for (const id of plan.remove) rmSync(join(dir, id), { force: true })
+	let failed = 0
+	const atOnce = 6
+	for (let at = 0; at < plan.download.length; at += atOnce) {
+		await Promise.all(plan.download.slice(at, at + atOnce).map(async (id) => {
+			const path = `/media/${encodeURIComponent(id)}`
+			// Scoped assets must come from this site's KV, even during the first deploy from an old shared bundle.
+			const picture = await fetch(scoped ? `${origin}/api${path}` : `${origin}${path}`, {
+				...(scoped ? { headers } : {}),
+				redirect: 'error',
+			}).catch(() => null)
+			if (!picture?.ok) {
 				failed++
-				console.error(`  ${id}: ${picture.status}, left to the Worker`)
 				return
 			}
 			writeFileSync(join(dir, id), Buffer.from(await picture.arrayBuffer()))
-		}),
-	)
+		}))
+	}
+	const shipped = readdirSync(dir).length
+	console.log(`${origin}: ${shipped} static pictures (${plan.download.length - failed} new, ${plan.remove.length} removed, ${plan.skipped.length + failed} left to KV).`)
 }
-const shipped = readdirSync(dir).length
-console.log(
-	`Pictures: ${shipped} ship as static files (${plan.download.length - failed} new, ${plan.remove.length} no longer used and removed${plan.skipped.length ? `, ${plan.skipped.length} left to the Worker` : ''}).`,
-)
-
-if (!opts.deploy) process.exit(0)
-const deploy = spawn('pnpm', ['exec', 'cf', 'deploy', ...(opts.mode ? ['--mode', opts.mode] : [])], { stdio: 'inherit' })
-deploy.on('exit', (code) => process.exit(code ?? 1))

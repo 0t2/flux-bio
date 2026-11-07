@@ -68,7 +68,7 @@ import {
 	verifySession,
 } from '../lib/auth'
 import { clearAllData, exportData, importData } from '../lib/backup'
-import { deleteUnusedMedia, listMedia, unusedMedia, UNUSED_AFTER, type MediaMetadata } from '../lib/media'
+import { deleteUnusedMedia, listMedia, readMedia, unusedMedia, UNUSED_AFTER, type MediaMetadata } from '../lib/media'
 import { mediaKey } from '../lib/cache'
 import {
 	deleteToken,
@@ -608,7 +608,7 @@ api.put('/settings', async (c) => {
 	const domain = input.domain === undefined ? current.domain : normalizeDomain(input.domain)
 	if (domain !== current.domain) {
 		if (domain) {
-			const check = await verifyDomain(c.env, domain, new URL(c.req.url).hostname)
+			const check = await verifyDomain(c.env, domain, new URL(c.req.url))
 			if (!check.ok) throw new ApiError(400, 'domain', { key: check.key, params: check.params })
 		}
 	}
@@ -621,7 +621,7 @@ api.post('/settings/verify-domain', async (c) => {
 	const { domain } = await readBody(c, DomainInput)
 	const host = normalizeDomain(domain)
 	if (!host) throw new ApiError(400, 'invalid', msg('請輸入網域'))
-	return c.json({ domain: host, ...(await verifyDomain(c.env, host, new URL(c.req.url).hostname)) })
+	return c.json({ domain: host, ...(await verifyDomain(c.env, host, new URL(c.req.url))) })
 })
 
 // ---------------------------------------------------------------- media
@@ -674,6 +674,13 @@ api.get('/media/unused', async (c) => {
 api.delete('/media/unused', async (c) => {
 	const body: DeletedMediaResponse = await deleteUnusedMedia(c.env)
 	return c.json(body)
+})
+
+// Build and backup tools can read the current bytes even if a static copy is deployed.
+api.get('/media/:id', async (c) => {
+	const image = await readMedia(c.env, c.req.param('id'), 'no-store')
+	if (!image) throw new ApiError(404, 'not-found', msg('找不到'))
+	return image
 })
 
 // Imports re-upload images under the ids the settings file uses.
