@@ -591,7 +591,7 @@ api.get('/pages/:id/preview', async (c) => {
 
 api.post('/pages/:id/preview-link', async (c) => {
 	const [page, settings] = await Promise.all([loadPage(c), loadSettings(c.env.DB)])
-	if (!settings.bio) throw new ApiError(409, 'bio-off', msg('頁面功能關閉時，預覽連結打不開，請先把它打開'))
+	if (!settings.bio) throw new ApiError(409, 'bio-off', msg('只做短網址時，預覽連結打不開，請先把它關掉'))
 	// A bare POST is fine: the length has a default.
 	const raw = await c.req.raw.clone().text()
 	const { minutes } = raw.trim() ? await readBody(c, PreviewLinkInput) : {}

@@ -619,7 +619,7 @@ function EditForm({ link, onDone }: { link: LinkJson; onDone: (saved: LinkJson) 
 				<p className="hint">
 					{app.settings.bio
 						? tr('這是頁面上的連結：目的網址、開放時間和到期日請到 {link} 修改並發布。這裡可以設定代稱、密碼和 UTM。', { link: <Link href="/">{t('[nav]頁面')}</Link> })
-						: tr('這是頁面上的連結：要改目的網址、開放時間和到期日，請先到 {link} 打開頁面功能。這裡可以設定代稱、密碼和 UTM。', { link: <Link href="/settings">{t('設定')}</Link> })}
+						: tr('這是頁面上的連結：要改目的網址、開放時間和到期日，請先到 {link} 關掉「只做短網址」。這裡可以設定代稱、密碼和 UTM。', { link: <Link href="/settings">{t('設定')}</Link> })}
 				</p>
 				</>
 			)}

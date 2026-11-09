@@ -6,13 +6,16 @@ import { t } from '../../i18n'
 import { useApp } from '../../state/app'
 import { errorText } from './util'
 
-/** Turns bio pages off, for a deployment that is only a link shortener, and says where "/" goes then. */
+/**
+ * The switch for using this site only for short links (`bio: false`), and where "/" goes then. It is on when pages are
+ * off, so that it reads the way it is named: an owner who sees it off isn't left thinking short links are off.
+ */
 export function BioSection() {
 	const app = useApp()
-	const on = app.settings.bio
+	const on = !app.settings.bio
 	const [asking, setAsking] = useState(false)
 	const [busy, setBusy] = useState(false)
-	// Where the switch is going: it rewrites every published page.
+	// Where bio pages are going: it rewrites every published page.
 	const [going, setGoing] = useState<boolean | null>(null)
 	const [error, setError] = useState<string | null>(null)
 	const published = app.pages.filter((page) => page.publishedAt).length
@@ -30,7 +33,7 @@ export function BioSection() {
 			setGoing(null)
 			// The dashboard rebuilds itself around this: with pages off, no page is loaded.
 			app.setSettings(settings)
-			toast(bio ? t('頁面功能打開了，已發布的頁面都回來了') : t('頁面功能關閉了，短網址照常轉址'))
+			toast(bio ? t('頁面回來了，已發布的頁面重新上線') : t('現在只做短網址，短網址照常轉址'))
 		} catch (caught) {
 			setError(errorText(caught, t('儲存失敗，請稍後再試')))
 			setBusy(false)
@@ -54,13 +57,14 @@ export function BioSection() {
 	}
 
 	return (
-		<Section title={t('頁面功能')}>
+		<Section title={t('只做短網址')}>
 			<div className="set-bio-row">
 				<div className="set-bio-text">
-					<p className="hint">{t('關閉後這裡只做短網址：公開頁面下線，短網址照常轉址。')}</p>
-					<p className="hint">{t('不會刪除任何東西，打開後頁面就回來。')}</p>
+					<p className="hint">{t('打開後這裡只做短網址：公開頁面下線，短網址照常轉址。')}</p>
+					<p className="hint">{t('不會刪除任何東西，關掉後頁面就回來。')}</p>
+					{on && !app.pages.length && <p className="hint">{t('還沒有頁面，關掉後會先帶你建立第一個。')}</p>}
 				</div>
-				<Toggle on={going ?? on} label={t('頁面功能')} disabled={busy} onChange={(next) => (next ? void save(true) : setAsking(true))} />
+				<Toggle on={going === null ? on : !going} label={t('只做短網址')} disabled={busy} onChange={(next) => (next ? setAsking(true) : void save(true))} />
 			</div>
 			{!on && (
 				<>
@@ -88,7 +92,7 @@ export function BioSection() {
 			)}
 			<Dialog
 				open={asking}
-				title={t('關閉頁面功能？')}
+				title={t('改成只做短網址？')}
 				onClose={() => {
 					setAsking(false)
 					setError(null)
@@ -99,13 +103,13 @@ export function BioSection() {
 							{t('取消')}
 						</button>
 						<button type="button" className="btn danger" aria-disabled={busy || undefined} onClick={() => void save(false)}>
-							{busy ? t('儲存中…') : t('關閉頁面功能')}
+							{busy ? t('儲存中…') : t('改成只做短網址')}
 						</button>
 					</>
 				}
 			>
 				<p className="set-dialog-text">{published ? t('已發布的 {count} 個頁面會馬上下線，訪客打開只會看到找不到。', { count: published }) : t('訪客不會再看到任何頁面。')}</p>
-				<p className="set-dialog-text">{t('短網址照常轉址，頁面、草稿和數據都留著，打開就回來。')}</p>
+				<p className="set-dialog-text">{t('短網址照常轉址，頁面、草稿和數據都留著，關掉就回來。')}</p>
 				{error && (
 					<p className="form-error" role="alert">
 						{error}
