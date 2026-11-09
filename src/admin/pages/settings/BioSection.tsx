@@ -66,7 +66,7 @@ export function BioSection() {
 				</div>
 				<Toggle on={going === null ? on : !going} label={t('只做短網址')} disabled={busy} onChange={(next) => (next ? setAsking(true) : void save(true))} />
 			</div>
-			{!on && (
+			{on && (
 				<>
 					<div className="set-home-url">
 						<input
