@@ -3,6 +3,8 @@ import { isShippableMediaId, planMediaAssets } from '../src/shared/mediaAssets'
 import { MEDIA_CSP } from '../src/worker/lib/media'
 import headers from '../public/_headers?raw'
 import gitignore from '../.gitignore?raw'
+import config from '../cloudflare.config.ts?raw'
+import { SCOPED_MEDIA_PATH } from '../src/shared/mediaAssetPaths'
 
 // pnpm deploy:images ships the pictures pages use as static files, which visitors load without running the Worker.
 
@@ -33,5 +35,17 @@ describe('a shipped picture', () => {
 
 	it('never goes into git: they are the owner\'s pictures', () => {
 		expect(gitignore.split('\n')).toContain('public/media/')
+	})
+})
+
+describe('scoped pictures', () => {
+	it('run the Worker first, at the path the Worker serves them from', () => {
+		expect(config).toContain(`'${SCOPED_MEDIA_PATH}/*'`)
+	})
+
+	it('keep the Worker’s modules out of cloudflare.config.ts', () => {
+		// The Vite plugin bundles the config, and a module it imports then fails to load in the Worker under `cf dev`
+		// ("Failed to load url"), so `pnpm dev` stops before serving anything. Tests don't load the config, so only this sees it.
+		expect(config).not.toMatch(/from '\.\/src\//)
 	})
 })

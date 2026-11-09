@@ -1,6 +1,5 @@
 import { bindings, defineConfig } from 'cf/config'
 import { listedSites } from './sites.config.ts'
-import { SCOPED_MEDIA_PATH } from './src/shared/mediaAssetPaths.ts'
 
 /**
  * Cloudflare configuration for FluxBio, read by the `cf` CLI and the Vite plugin.
@@ -56,8 +55,9 @@ export default defineConfig(({ mode }) => {
 			},
 			assets: {
 				notFoundHandling: 'none',
-				// Scoped files are only reachable through the selected site's /media route.
-				runWorkerFirst: [`${SCOPED_MEDIA_PATH}/*`, ...(staging || otherSites.length ? ['/media/*'] : [])],
+				// Scoped files are only reachable through the selected site's /media route. The path is SCOPED_MEDIA_PATH, written
+				// out: a module this file imports can't be loaded by the Worker in `cf dev` (tests/media-assets.test.ts).
+				runWorkerFirst: ['/_site-media/*', ...(staging || otherSites.length ? ['/media/*'] : [])],
 			},
 			env: {
 				/** The dashboard password, at least 12 characters. Set it with `cf deploy --secrets-file` (see AGENTS.md). */
