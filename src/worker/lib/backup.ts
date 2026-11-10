@@ -20,7 +20,8 @@ import {
 	upsertLinkStatement,
 	type LinkRow,
 } from './db'
-import { toLinkRecord } from './cache'
+import { NAME_PREFIX, SITE_KEY, toLinkRecord } from './cache'
+import { KV_OPS_AT_ONCE } from './mode'
 import { dropCopies, forgetSite, rebuildCache } from './ops'
 
 export async function exportData(env: Env): Promise<Backup> {
@@ -216,8 +217,11 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
  * Puts the deployment back to a fresh install: every table is dropped and
  * created again by the migrations, and KV is emptied. Only the deployment
  * secret stays, so the owner stays signed in.
+ *
+ * D1 is done in this one call, whatever KV does. KV is emptied as far as one request may (emptyKv), and `keysLeft`
+ * says when there is more: calling again takes the rest, and finds the tables already empty.
  */
-export async function clearAllData(env: Env): Promise<{ keys: number }> {
+export async function clearAllData(env: Env): Promise<{ keys: number; keysLeft: boolean }> {
 	const db = env.DB
 	// D1 keeps its own tables under _cf_; SQLite's are sqlite_*.
 	const { results } = await db
@@ -227,23 +231,51 @@ export async function clearAllData(env: Env): Promise<{ keys: number }> {
 		...results.map(({ name }) => db.prepare(`DROP TABLE IF EXISTS "${name.replace(/"/g, '""')}"`)),
 		db.prepare("DELETE FROM _meta WHERE key != 'secret'"),
 	])
-	// KV first: if the migrations fail (say, racing another isolate), nothing old is left for visitors and a retry finishes.
-	const keys = await deleteKeys(env, () => true)
 	forgetSite()
-	await migrate(db)
-	return { keys }
+	// The tables come straight back, before KV: a copy of the Worker that has checked its schema doesn't check again, so
+	// tables left missing would fail every request it takes. Neither step waits on the other succeeding: if the migrations
+	// fail (say, racing another isolate), KV is still emptied, so nothing old is left for visitors and a retry finishes.
+	let failed: unknown
+	try {
+		await migrate(db)
+	} catch (error) {
+		failed = error
+	}
+	const { keys, left } = await emptyKv(env)
+	if (failed) throw failed
+	return { keys, keysLeft: left }
 }
 
-/** Deletes KV keys matching `keep === false`, a page of 1000 at a time; returns how many went. */
-export async function deleteKeys(env: Env, shouldDelete: (key: KVNamespaceListKey<unknown>) => boolean, max = 5000): Promise<number> {
-	let cursor: string | undefined
-	let deleted = 0
-	do {
-		const page = await env.KV.list({ cursor, limit: 1000 })
-		const doomed = page.keys.filter(shouldDelete).slice(0, max - deleted)
-		await Promise.all(doomed.map((key) => env.KV.delete(key.name)))
-		deleted += doomed.length
-		cursor = page.list_complete ? undefined : page.cursor
-	} while (cursor && deleted < max)
-	return deleted
+/**
+ * Empties KV as far as one request may: KV_OPS_AT_ONCE operations, its lists counted in. What a visitor is answered from
+ * goes first, the names and then the "site" record; pictures and fonts are only reached through those. A list or a delete
+ * that KV refuses, as on a day whose quota is used up, stops it there. `left` says there is more for another call.
+ */
+export async function emptyKv(env: Env): Promise<{ keys: number; left: boolean }> {
+	let budget = KV_OPS_AT_ONCE
+	const gone = new Set<string>()
+	for (const prefix of [NAME_PREFIX, SITE_KEY, undefined]) {
+		let cursor: string | undefined
+		do {
+			// One for the list, one for a key it names.
+			if (budget < 2) return { keys: gone.size, left: true }
+			try {
+				const page = await env.KV.list({ prefix, cursor, limit: Math.min(1000, budget - 1) })
+				// A list can still name a key deleted a moment ago, and the last pass lists the first two again.
+				const doomed = page.keys.map((key) => key.name).filter((name) => !gone.has(name))
+				budget -= 1 + doomed.length
+				const results = await Promise.allSettled(doomed.map((name) => env.KV.delete(name)))
+				results.forEach((result, index) => {
+					if (result.status === 'fulfilled') gone.add(doomed[index]!)
+				})
+				const refused = results.find((result) => result.status === 'rejected')
+				if (refused) throw refused.reason
+				cursor = page.list_complete ? undefined : page.cursor
+			} catch (error) {
+				console.error('KV kept keys during a wipe', error)
+				return { keys: gone.size, left: true }
+			}
+		} while (cursor)
+	}
+	return { keys: gone.size, left: false }
 }

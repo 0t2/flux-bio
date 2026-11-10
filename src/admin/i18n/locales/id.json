@@ -420,6 +420,7 @@
 	"深色底配淺色圖案時，少數舊的掃描 App 讀不到，印之前先用手機試掃一次。": "Latar gelap dengan pola terang tidak terbaca oleh beberapa aplikasi pemindai lama. Coba pindai dengan ponsel sebelum mencetak.",
 	"清除中…": "Menghapus…",
 	"清除失敗，請再試一次": "Gagal menghapus, coba lagi",
+	"資料已經清除，但還有舊的副本沒清完，訪客可能還看得到一些舊頁面或短網址。請稍後再清除一次；免費方案每天能刪除的數量有限，可能要等到明天。": "Data Anda sudah dihapus, tetapi masih ada salinan lama, jadi pengunjung mungkin masih melihat beberapa halaman atau tautan pendek lama. Hapus lagi nanti. Paket gratis membatasi jumlah yang bisa dihapus per hari, jadi mungkin harus menunggu sampai besok.",
 	"清除所有資料": "Hapus semua data",
 	"清除所有資料？": "Hapus semua data?",
 	"清除資料": "Hapus data",

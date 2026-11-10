@@ -49,6 +49,12 @@ const FRAMES = "'self' https://www.youtube-nocookie.com https://player.vimeo.com
 const csp = (ancestors: string, script = "'none'", frames = FRAMES, images = "'self'") =>
 	`default-src 'none'; script-src ${script}; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src ${images}; frame-src ${frames}; form-action 'self'; base-uri 'none'; frame-ancestors ${ancestors}`
 const PAGE_CSP = csp("'none'")
+/**
+ * The password page's form posts to the link itself, and the right password is answered with a redirect to the link's
+ * address, on another site. Chromium holds `form-action` against that redirect too, and the visitor stays on the form.
+ * So this one page goes without it: its only form has no `action`, and nothing on it is markup of the owner's.
+ */
+const PASSWORD_CSP = PAGE_CSP.replace(" form-action 'self';", '')
 
 /**
  * Where a page of links may load pictures from: its own uploads (a tiled background and its own CSS's pictures among
@@ -369,7 +375,7 @@ interface Tap {
 }
 
 /** What a tap on this part of a page counts as and where it goes, or null when there's nothing there to count. */
-function tapOn({ content, handle, pageId }: Snapshot, id: string, part: string): Tap | null {
+function tapOn({ content, handle, pageId, viaShortLink }: Snapshot, id: string, part: string): Tap | null {
 	if (id === 'page' && part === LINE_PART) {
 		const url = content.lineButton?.trim() ? socialHref('line', content.lineButton) : null
 		return url ? { target: `${pageId}.${LINE_PART}`, url, slug: handle } : null
@@ -386,7 +392,12 @@ function tapOn({ content, handle, pageId }: Snapshot, id: string, part: string):
 	}
 	const item = visibleItems(content).find((entry) => entry.id === id)
 	if (!item) return null
-	if (item.kind === 'link') return part === LINK_PART && item.url.trim() ? { target: item.id, url: item.url.trim(), slug: item.slug } : null
+	if (item.kind === 'link') {
+		// A link whose button is its short link (a password, a hidden address, device addresses: linkNeedsWorker) is reached
+		// through that and counted there. Its address is never handed out here, which would be a way round all of them.
+		if (item.hideUrl || viaShortLink.includes(item.id)) return null
+		return part === LINK_PART && item.url.trim() ? { target: item.id, url: item.url.trim(), slug: item.slug } : null
+	}
 	const url = blockTarget(item, part)
 	return url ? { target: `${id}.${part}`, url, slug: handle } : null
 }
@@ -595,7 +606,7 @@ export async function systemPage(
 	})
 	return c.html(html, status, {
 		'cache-control': 'no-store',
-		'content-security-policy': options.nonce ? csp("'none'", `'nonce-${options.nonce}'`) : PAGE_CSP,
+		'content-security-policy': options.nonce ? csp("'none'", `'nonce-${options.nonce}'`) : kind === 'password' ? PASSWORD_CSP : PAGE_CSP,
 		...varyByLanguage(languages.languages),
 	})
 }

@@ -310,6 +310,14 @@ export interface TopTargetJson extends LabelKey {
 	count: number
 }
 
+/** DELETE /api/data */
+export interface WipeResponse {
+	/** KV keys this call deleted. */
+	keys: number
+	/** One request may only delete so many: true when KV still holds some, and the same call again takes more. */
+	keysLeft: boolean
+}
+
 /** POST /api/pages/:id/preview-link */
 export interface PreviewLinkResponse {
 	/** Opens the live draft without signing in. */

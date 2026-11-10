@@ -32,7 +32,7 @@ export function UsageSection() {
 		if (saving || plan === app.settings.plan) return
 		setSaving(true)
 		try {
-			const { settings } = await request<{ settings: Settings }>('/settings', { method: 'PUT', json: { ...app.settings, plan } })
+			const { settings } = await request<{ settings: Settings }>('/settings', { method: 'PUT', json: { plan } })
 			app.setSettings(settings)
 			await refreshUsage()
 		} catch (caught) {

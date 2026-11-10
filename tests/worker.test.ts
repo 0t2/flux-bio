@@ -298,6 +298,11 @@ describe('standalone short links', () => {
 		const gate = await visit(path)
 		expect(gate.status).toBe(401)
 		expect(await gate.text()).toContain('這個連結需要密碼')
+		// The right password is answered with a redirect to another site, which Chromium refuses a form under `form-action 'self'`.
+		const policy = gate.headers.get('content-security-policy') ?? ''
+		expect(policy).not.toContain('form-action')
+		expect(policy).toContain("script-src 'none'")
+		expect(policy).toContain("frame-ancestors 'none'")
 
 		const form = (password: string) =>
 			visit(path, IPHONE, {

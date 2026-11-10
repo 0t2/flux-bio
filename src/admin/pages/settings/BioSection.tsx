@@ -27,7 +27,7 @@ export function BioSection() {
 		setGoing(bio)
 		setError(null)
 		try {
-			const { settings } = await request<{ settings: Settings }>('/settings', { method: 'PUT', json: { ...app.settings, bio } })
+			const { settings } = await request<{ settings: Settings }>('/settings', { method: 'PUT', json: { bio } })
 			setAsking(false)
 			setBusy(false)
 			setGoing(null)

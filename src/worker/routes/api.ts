@@ -23,6 +23,7 @@ import type {
 	TopTargetJson,
 	UnusedMediaResponse,
 	UsageResponse,
+	WipeResponse,
 	PreviewLinkResponse,
 	SiteJson,
 } from '../../shared/api'
@@ -1015,5 +1016,6 @@ api.post('/import', async (c) => c.json(await importData(c.env, await readBody(c
 api.delete('/data', async (c) => {
 	requireOwner(c.get('auth'), msg('清除資料'))
 	await readBody(c, WipeInput)
-	return c.json(await clearAllData(c.env))
+	const body: WipeResponse = await clearAllData(c.env)
+	return c.json(body)
 })

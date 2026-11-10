@@ -40,7 +40,7 @@ function QrDefaults() {
 
 	async function save(id: string, media: string | null) {
 		if (id === SITE) {
-			const { settings } = await request<{ settings: Settings }>('/settings', { method: 'PUT', json: { ...app.settings, qrLogo: media ?? '' } })
+			const { settings } = await request<{ settings: Settings }>('/settings', { method: 'PUT', json: { qrLogo: media ?? '' } })
 			app.setSettings(settings)
 		} else {
 			await request(`/pages/${id}`, { method: 'PATCH', json: { qrLogo: media } })

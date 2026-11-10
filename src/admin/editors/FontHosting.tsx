@@ -27,7 +27,7 @@ export function FontHosting() {
 		setBusy(true)
 		setGoing(hostFonts)
 		try {
-			const { settings } = await request<{ settings: Settings }>('/settings', { method: 'PUT', json: { ...app.settings, hostFonts } })
+			const { settings } = await request<{ settings: Settings }>('/settings', { method: 'PUT', json: { hostFonts } })
 			app.setSettings(settings)
 			toast(hostFonts ? t('已改成從你的網站載入字型，已發布的頁面也一起更新了') : t('已改回從 Google 載入字型'))
 		} catch (error) {
