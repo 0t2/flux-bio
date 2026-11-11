@@ -131,6 +131,10 @@ describe('a link that needs its short link', () => {
 			const hidden = await htmlOf(`/${handle}`)
 			expect(hidden).toContain(`href="/shop-${n}"`)
 			expect(hidden).not.toContain('shop.example')
+			// The address a button without it reports its taps to is no way round it: it sends the visitor back to the page.
+			const round = await visit(`/_c/${handle}/link-${n}/link`)
+			expect(round.status).toBe(302)
+			expect(round.headers.get('location')).toBe(`/${handle}`)
 			await apiJson(`/links/link-${n}`, { method: 'PATCH', json: off })
 			expect(await htmlOf(`/${handle}`)).toContain(`ping="/_c/${handle}/link-${n}/link"`)
 		})
@@ -145,6 +149,16 @@ describe('a link that needs its short link', () => {
 		expect(html).toContain('Renamed')
 		expect(html).not.toContain('shop.example')
 		expect((await visit(`/shop-${n}`)).status).toBe(401)
+		// Its id was in the page before it had a password, as the address its button reported taps to.
+		expect((await visit(`/_c/${handle}/link-${n}/link`)).headers.get('location')).not.toContain('shop.example')
+	})
+
+	it('keeps a hidden address out of the address taps are reported to', async () => {
+		const { handle, n, page } = await makePage((i) => ({ items: [linkItem(i, { hideUrl: true })] }))
+		expect((await visit(`/_c/${handle}/link-${n}/link`)).headers.get('location')).toBe(`/${handle}`)
+		await tap(`/_c/${handle}/link-${n}/link`)
+		// Nothing is counted there either: a click on the short link is what counts.
+		expect((await statsOf(page.id)).totals.clicks).toBe(0)
 	})
 
 	it('is safe in a copy of the page in a shape this version does not write: it gets rebuilt', async () => {

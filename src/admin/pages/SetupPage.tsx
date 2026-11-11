@@ -124,9 +124,10 @@ const USES: { id: Use; label: string; hint: string }[] = [
 ]
 
 /** A new site starts in UTC and English: stats days follow the owner's time zone, built-in text the language of this dashboard. */
-function ownerSettings(settings: Settings): Pick<Settings, 'timezone' | 'locale'> {
+function ownerSettings(settings: Settings): Partial<Pick<Settings, 'timezone' | 'locale'>> {
 	const zone = browserTimeZone()
-	return { timezone: settings.timezone === 'UTC' && zone ? zone : settings.timezone, locale: language() }
+	// Only what the wizard sets: the Worker keeps whatever a save leaves out, and this copy of the rest may be an old one.
+	return { locale: language(), ...(settings.timezone === 'UTC' && zone ? { timezone: zone } : {}) }
 }
 
 function ShortLinksOnly() {
@@ -138,7 +139,7 @@ function ShortLinksOnly() {
 		setBusy(true)
 		setError(null)
 		try {
-			const { settings } = await request<{ settings: Settings }>('/settings', { method: 'PUT', json: { ...app.settings, ...ownerSettings(app.settings), bio: false } })
+			const { settings } = await request<{ settings: Settings }>('/settings', { method: 'PUT', json: { ...ownerSettings(app.settings), bio: false } })
 			// Pages being off sends the owner on to 短網址.
 			app.setSettings(settings)
 		} catch (caught) {
@@ -210,7 +211,7 @@ function FirstPageForm({ onPreview, inlinePreview }: { onPreview: (content: Page
 		}
 		// Opening hours follow the owner's time zone too, and the page's built-in text their language.
 		// `created.settings` already has the new page as home; keep that.
-		await request('/settings', { method: 'PUT', json: { ...created.settings, ...ownerSettings(created.settings) } }).catch(() => {
+		await request('/settings', { method: 'PUT', json: ownerSettings(created.settings) }).catch(() => {
 			// Not worth stopping for: it can be changed on 外觀, or by the owner's AI.
 		})
 		// The page list now has the new page, which sends the owner on to the dashboard.

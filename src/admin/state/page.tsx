@@ -273,8 +273,12 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 			try {
 				const withCard = await refreshShareImage(latest.current, displayUrl)
 				if (withCard) {
-					latest.current = withCard
-					setDraft(withCard)
+					// Only the card goes in. Drawing and uploading it takes a moment, and the draft it was drawn from is
+					// by now an old one: whatever was typed meanwhile stays.
+					const { autoImage, autoImageKey } = withCard.seo
+					const carded = (content: PageContent): PageContent => ({ ...content, seo: { ...content.seo, autoImage, autoImageKey } })
+					latest.current = carded(latest.current)
+					setDraft(carded)
 				}
 			} catch {
 				// Publishing still works without a fresh card; the old one (or the avatar) is used.
@@ -283,28 +287,45 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 				setPublishError(t('草稿還沒儲存成功，請稍後再試一次'))
 				return false
 			}
-			const before = JSON.stringify(latest.current)
-			const result = await request<PublishResponse>(`/pages/${id}/publish`, { method: 'POST', headers: { 'if-match': String(version.current) } })
-			version.current = result.draftUpdatedAt
+			// In line with the saves, like a short link's change: an autosave that starts meanwhile waits for this and sends
+			// the version it returns. Sent beside it, the save would carry the version from before and be refused as a
+			// draft changed elsewhere, by the owner's own publishing.
+			const done = queue.current.then(async () => {
+				// What the Worker has, and so what goes live. An edit made since that save isn't in it.
+				const sent = savedJson.current
+				const result = await request<PublishResponse>(`/pages/${id}/publish`, { method: 'POST', headers: { 'if-match': String(version.current) } })
+				version.current = result.draftUpdatedAt
+				// The server filled in short link slugs, and that is the saved draft now.
+				savedJson.current = JSON.stringify(result.content)
+				return { result, sent }
+			})
+			queue.current = done.then(
+				() => true,
+				() => true,
+			)
+			const { result, sent } = await done
 			setPublished(result.content)
 			setPublishedAt(result.publishedAt)
-			const unchanged = JSON.stringify(latest.current) === before
+			const unchanged = JSON.stringify(latest.current) === sent
 			if (unchanged) {
-				// The server filled in short link slugs; take its version as-is.
-				savedJson.current = JSON.stringify(result.content)
+				// Nothing was typed since: take the server's version as it is.
 				latest.current = result.content
 				setDraft(result.content)
 			} else {
-				// Edits arrived while publishing: keep them, but adopt the new slugs.
+				// Edits arrived while saving or publishing: keep them, but adopt the new slugs.
 				const slugs = new Map(linkItems(result.content).map((link) => [link.id, link.slug]))
-				setDraft((current) => {
+				const withSlugs = (current: PageContent): PageContent => {
 					const next = structuredClone(current)
 					for (const link of linkItems(next)) {
 						const slug = slugs.get(link.id)
 						if (slug && !link.slug.trim()) link.slug = slug
 					}
 					return next
-				})
+				}
+				// Before the next save reads it: one that waited for this is sent as soon as this returns.
+				latest.current = withSlugs(latest.current)
+				setDraft(withSlugs)
+				setSaveStatus('pending')
 				schedule()
 			}
 			// The answer has everything the page's line in the list shows, so the list isn't read again.

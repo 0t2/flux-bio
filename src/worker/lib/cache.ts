@@ -77,8 +77,9 @@ export interface LinkRecord {
 	inApp: boolean
 }
 
-const SITE_KEY = 'site'
-const nameKey = (name: string) => `name:${name}`
+export const SITE_KEY = 'site'
+export const NAME_PREFIX = 'name:'
+const nameKey = (name: string) => `${NAME_PREFIX}${name}`
 export const MEDIA_PREFIX = 'media:'
 export const mediaKey = (id: string) => `${MEDIA_PREFIX}${id}`
 

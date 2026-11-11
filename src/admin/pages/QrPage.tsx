@@ -64,7 +64,7 @@ export function QrPage({ id }: { id: string }) {
 
 	async function setDefault(scope: 'page' | 'site', media: string) {
 		if (scope === 'site') {
-			const { settings } = await request<{ settings: Settings }>('/settings', { method: 'PUT', json: { ...app.settings, qrLogo: media } })
+			const { settings } = await request<{ settings: Settings }>('/settings', { method: 'PUT', json: { qrLogo: media } })
 			app.setSettings(settings)
 		} else if (owner) {
 			await request(`/pages/${owner.id}`, { method: 'PATCH', json: { qrLogo: media } })

@@ -22,7 +22,7 @@ export const PreviewLinkInput = z.object({
 	minutes: z.number().int().min(1).max(10080).optional().describe('How long the link works, 1 to 10080 minutes (7 days). Default 10'),
 })
 
-/** PUT /api/settings: every field of the settings; leaving out `languages`, `hostFonts`, `bio` or `homeUrl` keeps the current value. */
+/** PUT /api/settings: any of the settings. One left out keeps its current value, so a caller sends what it changes and not a copy of the rest, which may be an old one. */
 export const SettingsInput = SettingsSchema.extend({
 	home: SettingsSchema.shape.home.optional(),
 	timezone: SettingsSchema.shape.timezone.optional(),

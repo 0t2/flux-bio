@@ -87,7 +87,7 @@ export function PagesPage() {
 	const toggleHome = (page: PageSummary) =>
 		run(page, async () => {
 			const home = app.settings.home === page.id ? '' : page.id
-			const result = await request<{ settings: Settings }>('/settings', { method: 'PUT', json: { ...app.settings, home } })
+			const result = await request<{ settings: Settings }>('/settings', { method: 'PUT', json: { home } })
 			app.setSettings(result.settings)
 			await app.refresh()
 			return home ? t('已設為首頁：{host}', { host: app.host }) : t('已從首頁移除')

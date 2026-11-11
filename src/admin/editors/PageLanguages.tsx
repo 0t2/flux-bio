@@ -32,7 +32,7 @@ export function PageLanguages() {
 		try {
 			const { settings } = await request<{ settings: Settings }>('/settings', {
 				method: 'PUT',
-				json: { ...app.settings, locale: next, languages: otherLanguages(next, others) },
+				json: { locale: next, languages: otherLanguages(next, others) },
 			})
 			app.setSettings(settings)
 			toast(t('已儲存，立即生效'))
