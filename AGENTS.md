@@ -454,6 +454,8 @@ pnpm deploy:images --site <url>  # deploy with the site's pictures as static fil
 pnpm usage       # today's free KV and D1 quota used and left, and each D1 database's size, on the signed-in Cloudflare account (--date, --days, --json)
 ```
 
+The project itself is developed and tested on the Node version in `.node-version`, and GitHub Actions reads the same file.
+
 Run `pnpm typecheck` and `pnpm test` before finishing any change. GitHub Actions
 (`.github/workflows/deploy.yml`) runs both on every pull request and push, and deploys nothing from a fork or a copy: someone's
 own FluxBio is deployed from their computer (section 1). Only in the project's own repository, `0t2/flux-bio`, does a push to
