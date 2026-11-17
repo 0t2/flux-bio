@@ -33,7 +33,7 @@ const HTML_LANG: Partial<Record<Locale, string>> = { 'zh-TW': 'zh-Hant-TW', 'zh-
 const REPO = 'https://github.com/0t2/flux-bio'
 
 /** The README in that language: README.md is English, the others are in docs/. */
-function readmeUrl(locale: Locale): string {
+export function readmeUrl(locale: Locale): string {
 	return locale === 'en' ? `${REPO}#readme` : `${REPO}/blob/main/docs/README.${locale}.md`
 }
 
@@ -41,12 +41,16 @@ function readmeUrl(locale: Locale): string {
 export const SITE = 'https://fluxbio.link'
 
 /** A language's address. English is also "/", which sends other browsers to their language (languageScript). */
-const pagePath = (code: Locale) => (code === 'en' ? '/' : `/${code}/`)
+export const pagePath = (code: Locale) => (code === 'en' ? '/' : `/${code}/`)
 
-function languageLinks(current: Locale): string {
+/** The changelog in a language. Every language has its own, English too, so "/" needs no special case here. */
+export const changelogPath = (code: Locale) => `/${code}/changelog/`
+
+/** The language menu of a page; `suffix` is the page's own path after the language, like "changelog/". */
+export function languageLinks(current: Locale, suffix = ''): string {
 	// English goes to /en/ from the menu: "/" would send someone who just picked it back to their browser's language.
 	return LOCALES.map(
-		(code) => `<a href="/${code}/" lang="${code}" hreflang="${code}"${code === current ? ' aria-current="true"' : ''}>${NAMES[code]}</a>`,
+		(code) => `<a href="/${code}/${suffix}" lang="${code}" hreflang="${code}"${code === current ? ' aria-current="true"' : ''}>${NAMES[code]}</a>`,
 	).join('')
 }
 
@@ -101,6 +105,7 @@ export function renderLanding(template: string, words: Record<string, string>, l
 		octobot: OCTOBOT,
 		readme: readmeUrl(locale),
 		languages: languageLinks(locale),
+		changelog: changelogPath(locale),
 		languageName: NAMES[locale],
 		...themeParts(locale),
 	}
@@ -146,5 +151,10 @@ export function sitemapXml(): string {
 		`<xhtml:link rel="alternate" hreflang="x-default" href="${SITE}/"/>`,
 	].join('')
 	const urls = LOCALES.map((code) => `<url><loc>${SITE}${pagePath(code)}</loc>${links}</url>`)
+	const changelogLinks = [
+		...LOCALES.map((code) => `<xhtml:link rel="alternate" hreflang="${code}" href="${SITE}${changelogPath(code)}"/>`),
+		`<xhtml:link rel="alternate" hreflang="x-default" href="${SITE}${changelogPath('en')}"/>`,
+	].join('')
+	urls.push(...LOCALES.map((code) => `<url><loc>${SITE}${changelogPath(code)}</loc>${changelogLinks}</url>`))
 	return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls.join('\n')}\n</urlset>\n`
 }

@@ -163,5 +163,9 @@
 	"s199": "Marcar el origen",
 	"s200": "Leer los clics",
 	"s201": "Hacer un gráfico",
-	"s202": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Después lee completo <bdi>~/flux-bio/AGENTS.md</bdi> y sigue su sección 1. Léelo desde esa carpeta, no desde la web. Si la descarga falla, detente y avísame.</span>"
+	"s202": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Después lee completo <bdi>~/flux-bio/AGENTS.md</bdi> y sigue su sección 1. Léelo desde esa carpeta, no desde la web. Si la descarga falla, detente y avísame.</span>",
+	"s210": "Registro de cambios",
+	"s211": "Qué cambió en FluxBio y cuándo, de lo más nuevo a lo más antiguo. Si lo alojas tú, lee primero las entradas marcadas como Action needed.",
+	"s212": "Las entradas están escritas en inglés.",
+	"s213": "Ver CHANGELOG.md en GitHub"
 }

@@ -111,7 +111,7 @@ describe('the site', () => {
 		expect(robotsTxt()).toContain('Disallow: /preview/')
 		expect(robotsTxt()).toContain(`Sitemap: ${SITE}/sitemap.xml`)
 		const xml = sitemapXml()
-		expect(xml.match(/<url>/g)).toHaveLength(LOCALES.length)
+		expect(xml.match(/<url>/g)).toHaveLength(LOCALES.length * 2) // each language's page and its changelog
 		expect(xml).toContain(`<loc>${SITE}/</loc>`)
 		expect(xml).toContain(`<loc>${SITE}/zh-TW/</loc>`)
 		expect(xml).toContain(`hreflang="x-default" href="${SITE}/"`)

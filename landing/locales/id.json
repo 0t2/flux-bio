@@ -163,5 +163,9 @@
 	"s199": "Menandai sumber",
 	"s200": "Membaca klik",
 	"s201": "Membuat grafik",
-	"s202": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Lalu baca seluruh <bdi>~/flux-bio/AGENTS.md</bdi> dan ikuti bagian 1-nya. Baca dari folder itu, bukan dari web. Kalau unduhannya gagal, berhenti dan beri tahu aku.</span>"
+	"s202": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Lalu baca seluruh <bdi>~/flux-bio/AGENTS.md</bdi> dan ikuti bagian 1-nya. Baca dari folder itu, bukan dari web. Kalau unduhannya gagal, berhenti dan beri tahu aku.</span>",
+	"s210": "Catatan perubahan",
+	"s211": "Apa yang berubah di FluxBio dan kapan, dari yang terbaru. Jika Anda menjalankannya sendiri, baca dulu entri bertanda Action needed.",
+	"s212": "Entri ditulis dalam bahasa Inggris.",
+	"s213": "Lihat CHANGELOG.md di GitHub"
 }

@@ -12,7 +12,11 @@ const here = join(root, 'landing')
 const { module: site } = await runnerImport('./landing/render.ts')
 const { module: previews } = await runnerImport('./landing/previews.ts')
 const template = readFileSync(join(here, 'template.html'), 'utf8')
-const keys = site.templateKeys(template)
+// The changelog page is made from CHANGELOG.md alone. A line it can't read stops the build here, with its number.
+const { module: changelog } = await runnerImport('./landing/changelog.ts')
+const changelogTemplate = readFileSync(join(here, 'changelog.html'), 'utf8')
+const days = changelog.parseChangelog(readFileSync(join(root, 'CHANGELOG.md'), 'utf8'))
+const keys = [...new Set([...site.templateKeys(template), ...site.templateKeys(changelogTemplate)])].sort()
 
 const output = join(here, '.cloudflare/output/v0')
 const assets = join(output, 'workers/default/assets')
@@ -82,6 +86,7 @@ for (const file of readdirSync(join(here, 'locales')).filter((name) => name.ends
 		} else chineseFrom = 'Google Fonts (the page has new characters: run pnpm landing:fonts)'
 	}
 	write(`${code}/index.html`, site.renderLanding(template, words, code, { chinese }))
+	write(`${code}/changelog/index.html`, changelog.renderChangelog(changelogTemplate, words, code, days))
 	if (code === 'en') write('index.html', site.renderLanding(template, words, code, { home: true }))
 	for (const { name, theme, starter } of pictures) {
 		write(`preview/${code}/${name}.html`, previews.previewPage(code, theme, starter))
@@ -92,5 +97,5 @@ write('language.js', site.languageScript())
 write('robots.txt', site.robotsTxt())
 write('sitemap.xml', site.sitemapXml())
 write('404.html', '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=/"><title>FluxBio</title><a href="/">FluxBio</a>\n')
-console.log(`landing/.cloudflare/output: 13 pages, ${files} previews. Noto Sans TC on the zh-TW page is from ${chineseFrom}.`)
+console.log(`landing/.cloudflare/output: 13 pages, 13 changelog pages, ${files} previews. Noto Sans TC on the zh-TW page is from ${chineseFrom}.`)
 process.exit(problems ? 1 : 0)

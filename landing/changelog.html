@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="{{@htmlLang}}"{{@dir}}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{s210}} · FluxBio</title>
+<meta name="description" content="{{s211}}">
+<meta name="theme-color" content="#F4F6EE">
+<meta property="og:title" content="{{s210}} · FluxBio">
+<meta property="og:description" content="{{s211}}">
+<meta property="og:type" content="website">
+{{@head}}
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+{{@fonts}}
+<style>
+/* The landing page's palette and type. No script, and nothing from another site: the CSP in public/_headers allows neither. */
+*{box-sizing:border-box}
+:root{--ground:#F4F6EE;--sheet:#FFFFFF;--active:#E9EBE3;--ink:#131416;--muted:#5D5F60;--brand:#CCFF4D;--accent:#4F7000;--line:#E8EAE4;--m:clamp(20px,3vw,40px);--sans:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace}
+html{background:var(--ground);-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+[dir=rtl] *{letter-spacing:0!important}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+svg{flex:none}
+.wrap{max-width:1360px;margin:0 auto;padding-inline:var(--m)}
+.skip{position:absolute;inset-inline-start:16px;top:-120px;z-index:10;display:inline-flex;align-items:center;min-height:44px;padding:0 18px;background:var(--ink);color:var(--sheet);font-weight:500;text-decoration:none}
+.skip:focus{top:16px}
+.site-header{display:flex;align-items:center;padding-block:8px}
+.brand{display:flex;align-items:center;gap:8px;min-height:48px;font-size:17px;font-weight:600;text-decoration:none}
+main{padding-block:clamp(32px,6vw,88px) clamp(48px,8vw,120px)}
+.col{max-width:760px}
+h1,h2,h3{margin:0;font-weight:600;text-wrap:balance}
+h1{font-size:clamp(34px,4.7vw,72px);line-height:1.08;letter-spacing:-.025em}
+h2{font-size:clamp(24px,2.2vw,32px);line-height:1.2;font-family:var(--mono);font-weight:500}
+h3{font-size:14px;line-height:1.3;font-weight:600;letter-spacing:.02em;text-transform:uppercase}
+.lead{margin:20px 0 0;font-size:clamp(17px,1.5vw,20px);line-height:1.55}
+.note{margin:12px 0 0;font-size:14px;line-height:1.55;color:var(--muted)}
+.note a{text-underline-offset:3px}
+.log{margin-top:clamp(40px,6vw,72px)}
+.day{padding-block:clamp(24px,3vw,36px);border-top:1px solid var(--line)}
+.cat{margin-top:20px}
+.cat h3{display:inline-block;padding:2px 8px;border-radius:4px;background:var(--active)}
+.cat.act h3{background:var(--brand)}
+.cat ul{margin:12px 0 0;padding:0;padding-inline-start:1.1em}
+.cat li{margin-top:8px;overflow-wrap:anywhere}
+.cat li::marker{color:var(--muted)}
+.cat a{text-underline-offset:3px}
+code{font-family:var(--mono);font-size:.88em;padding:1px 5px;border-radius:4px;background:var(--active);overflow-wrap:anywhere}
+.site-footer{padding:clamp(24px,3vw,36px) 0;color:var(--muted);font-size:14px}
+.foot-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 28px}
+.foot-brand{display:flex;align-items:center;gap:8px;margin-inline-end:auto;color:var(--ink);font-weight:600}
+.foot-brand svg{width:20px;height:20px}
+.foot-note{margin-inline-start:6px;color:var(--muted);font-weight:400}
+.foot-links{display:flex;flex-wrap:wrap;gap:0 20px}
+.site-footer a{display:inline-flex;align-items:center;min-height:32px;text-decoration:none;transition:color .16s}
+.site-footer a:hover{color:var(--ink)}
+.foot-langs{flex-basis:100%;display:flex;flex-wrap:wrap;gap:0 14px;font-size:13px}
+.foot-langs a[aria-current]{color:var(--ink);font-weight:600}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">{{s087}}</a>
+
+<header class="site-header wrap">
+<a class="brand" href="{{@home}}" aria-label="{{s005}}">{{@logo}}<span>FluxBio</span></a>
+</header>
+
+<main id="main" class="wrap">
+<div class="col">
+<h1>{{s210}}</h1>
+<p class="lead">{{s211}}</p>
+<p class="note">{{s212}} <a href="https://github.com/0t2/flux-bio/blob/main/CHANGELOG.md">{{s213}}</a></p>
+</div>
+<div class="col log" lang="en" dir="ltr">
+{{@days}}
+</div>
+</main>
+
+<footer class="site-footer">
+<div class="wrap foot-row">
+<div class="foot-brand">{{@logo}}<span>FluxBio</span><span class="foot-note">{{s106}}</span></div>
+<nav class="foot-links" aria-label="{{s020}}">
+<a href="https://github.com/0t2/flux-bio">GitHub</a>
+<a href="{{@readme}}">{{s102}}</a>
+<a href="https://github.com/0t2/flux-bio/issues">{{s103}}</a>
+</nav>
+<nav class="foot-langs" aria-label="{{s107}}">{{@languages}}</nav>
+</div>
+</footer>
+</body>
+</html>
