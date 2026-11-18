@@ -19,6 +19,7 @@ pnpm shots             # retakes the dashboard screenshots from the sample pages
 
 - **Pages.** `/` is English, and `language.js` sends a browser that prefers another language to `/<code>/` (`pickLanguage` in `landing/render.ts`, the same rules as
   `matchLanguageTag`). Without JavaScript it stays English. Each is made from `landing/template.html` and `landing/locales/<code>.json`.
+- **Changelog.** `/<code>/changelog/` is made at build time from `CHANGELOG.md` in the repository root and the matching translated entries in `landing/changelog/<code>.md` (`landing/changelog.ts`, `landing/changelog.html`). For a user visible change, add the English entry and its corresponding entry in all 12 translation files in the same pull request. Keep dates, categories, links and inline code aligned; `pnpm landing` checks them before building.
 - **Previews.** `/preview/<code>/<theme>` is the sample page in `landing/fixtures.ts` drawn in that theme, in that language (`landing/sample/<code>.json`), and
   `/preview/<code>/<theme>-<starter>` is someone else's page in it. They are files made from the real renderer in `src/templates/` at build time, always as if on the same
   Wednesday at noon, so a new theme is on the site once it is in `THEME_SAMPLES` (`landing/previews.ts`).

@@ -456,6 +456,12 @@ pnpm usage       # today's free KV and D1 quota used and left, and each D1 datab
 
 The project itself is developed and tested on the Node version in `.node-version`, and GitHub Actions reads the same file.
 
+**The changelog.** A change someone using or hosting FluxBio would notice goes in `CHANGELOG.md` in English and in the matching entry in each of the 12 files under `landing/changelog/`, all in the same pull request, under today's
+`## YYYY-MM-DD` (a new section on top if there is none): a new feature, a fix, a security fix, or something a self-hosting owner has to do (a migration, a
+setting, a redeploy), which goes under "Action needed", only when it is true of an existing site and the diff shows it. Purely internal changes (tests,
+refactors, CI, wording in docs) need none. The English entry is one line, with only `code` and `[links](https://…)` as markup; translate its description in every locale file while preserving dates, categories, links and code. `pnpm landing` builds
+fluxbio.link's update page from these files and checks their structure and protected markup; `tests/changelog.test.ts` holds the format.
+
 Run `pnpm typecheck` and `pnpm test` before finishing any change. GitHub Actions
 (`.github/workflows/deploy.yml`) runs both on every pull request and push, and deploys nothing from a fork or a copy: someone's
 own FluxBio is deployed from their computer (section 1). Only in the project's own repository, `0t2/flux-bio`, does a push to

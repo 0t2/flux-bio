@@ -163,5 +163,13 @@
 	"s199": "标上来源",
 	"s200": "读取点击数",
 	"s201": "整理成图表",
-	"s202": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>然后把 <bdi>~/flux-bio/AGENTS.md</bdi> 完整读一遍，按它的第 1 节来做。要读文件夹里的文件，不要上网读。下载失败就停下来告诉我。</span>"
+	"s202": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>然后把 <bdi>~/flux-bio/AGENTS.md</bdi> 完整读一遍，按它的第 1 节来做。要读文件夹里的文件，不要上网读。下载失败就停下来告诉我。</span>",
+	"s210": "更新记录",
+	"s211": "FluxBio 在哪一天改了什么，新的在上面。自己搭建的人，请先看标着 需要处理 的条目。",
+	"s213": "在 GitHub 查看 CHANGELOG.md",
+	"s214": "需要处理",
+	"s215": "安全",
+	"s216": "新增",
+	"s217": "变更",
+	"s218": "修复"
 }

@@ -163,5 +163,13 @@
 	"s199": "Gắn nguồn",
 	"s200": "Đọc lượt nhấp",
 	"s201": "Vẽ biểu đồ",
-	"s202": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Sau đó đọc toàn bộ <bdi>~/flux-bio/AGENTS.md</bdi> và làm theo mục 1 của nó. Hãy đọc tệp trong thư mục đó, đừng đọc trên web. Nếu tải về thất bại, hãy dừng lại và báo cho tôi.</span>"
+	"s202": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Sau đó đọc toàn bộ <bdi>~/flux-bio/AGENTS.md</bdi> và làm theo mục 1 của nó. Hãy đọc tệp trong thư mục đó, đừng đọc trên web. Nếu tải về thất bại, hãy dừng lại và báo cho tôi.</span>",
+	"s210": "Nhật ký thay đổi",
+	"s211": "FluxBio đã thay đổi gì và khi nào, mới nhất ở trên. Nếu bạn tự lưu trữ, hãy đọc trước các mục được đánh dấu Cần thực hiện.",
+	"s213": "Xem CHANGELOG.md trên GitHub",
+	"s214": "Cần thực hiện",
+	"s215": "Bảo mật",
+	"s216": "Mới",
+	"s217": "Đã thay đổi",
+	"s218": "Đã sửa"
 }

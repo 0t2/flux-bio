@@ -12,7 +12,34 @@ const here = join(root, 'landing')
 const { module: site } = await runnerImport('./landing/render.ts')
 const { module: previews } = await runnerImport('./landing/previews.ts')
 const template = readFileSync(join(here, 'template.html'), 'utf8')
-const keys = site.templateKeys(template)
+// The changelog page is made from CHANGELOG.md alone. A line it can't read stops the build here, with its number.
+const { module: changelog } = await runnerImport('./landing/changelog.ts')
+const changelogTemplate = readFileSync(join(here, 'changelog.html'), 'utf8')
+if (!existsSync(join(root, 'CHANGELOG.md'))) throw new Error('en: missing required source file CHANGELOG.md')
+const english = readFileSync(join(root, 'CHANGELOG.md'), 'utf8')
+let days
+try { days = changelog.parseChangelog(english) }
+catch (error) { throw new Error(`en: ${error instanceof Error ? error.message : String(error)}`) }
+const localeFiles = readdirSync(join(here, 'locales')).filter((name) => name.endsWith('.json'))
+const localeWords = new Map()
+for (const code of changelog.LOCALES) {
+	const file = join(here, 'locales', `${code}.json`)
+	if (!existsSync(file)) throw new Error(`${code}: missing required locale file landing/locales/${code}.json`)
+	try { localeWords.set(code, JSON.parse(readFileSync(file, 'utf8'))) }
+	catch (error) { throw new Error(`${code}: cannot read landing/locales/${code}.json: ${error instanceof Error ? error.message : String(error)}`) }
+}
+const labelsFor = changelog.categoryLabels
+const translations = {}
+for (const code of changelog.LOCALES) {
+	if (code === 'en') continue
+	const file = join(here, 'changelog', `${code}.md`)
+	if (!existsSync(file)) throw new Error(`${code}: missing required translation file landing/changelog/${code}.md`)
+	translations[code] = { source: readFileSync(file, 'utf8'), labels: labelsFor(localeWords.get(code)) }
+}
+changelog.validateTranslations(english, translations)
+const localizedDays = new Map([["en", days]])
+for (const [code, value] of Object.entries(translations)) localizedDays.set(code, changelog.parseChangelog(value.source, value.labels, `landing/changelog/${code}.md`))
+const keys = [...new Set([...site.templateKeys(template), ...site.templateKeys(changelogTemplate)])].sort()
 
 const output = join(here, '.cloudflare/output/v0')
 const assets = join(output, 'workers/default/assets')
@@ -43,7 +70,7 @@ for (const icon of ['favicon.svg', 'favicon.ico', 'apple-touch-icon.png']) cpSyn
 // The dashboard screenshots are not in git: a checkout without them builds pages that ask for pictures it doesn't
 // have. A deploy fetches them first (scripts/landing-pictures.mjs), so this only says so.
 const screens = [...new Set([...template.matchAll(/\/dash-([\w-]+)\.webp/g)].map((match) => match[1]))]
-const absent = readdirSync(join(here, 'locales')).filter((name) => name.endsWith('.json')).flatMap((name) => screens.filter((screen) => !existsSync(join(assets, name.replace('.json', ''), `dash-${screen}.webp`))))
+const absent = localeFiles.flatMap((name) => screens.filter((screen) => !existsSync(join(assets, name.replace('.json', ''), `dash-${screen}.webp`))))
 if (absent.length) console.log(`${absent.length} dashboard screenshots are not here: pnpm landing:pictures fetches them from fluxbio.link.`)
 
 // The pages' own fonts come from this site (fonts.ts). IBM Plex is in public/fonts/ and went out with the copy above.
@@ -62,9 +89,9 @@ let chineseFrom = 'Google Fonts (run pnpm landing:fonts to serve it from this si
 let problems = 0
 let files = 0
 const pictures = previews.previewsIn(template)
-for (const file of readdirSync(join(here, 'locales')).filter((name) => name.endsWith('.json')).sort()) {
+for (const file of localeFiles.sort()) {
 	const code = file.replace('.json', '')
-	const words = JSON.parse(readFileSync(join(here, 'locales', file), 'utf8'))
+	const words = localeWords.get(code)
 	const missing = keys.filter((key) => !words[key])
 	if (missing.length) {
 		problems += missing.length
@@ -82,6 +109,7 @@ for (const file of readdirSync(join(here, 'locales')).filter((name) => name.ends
 		} else chineseFrom = 'Google Fonts (the page has new characters: run pnpm landing:fonts)'
 	}
 	write(`${code}/index.html`, site.renderLanding(template, words, code, { chinese }))
+	write(`${code}/changelog/index.html`, changelog.renderChangelog(changelogTemplate, words, code, localizedDays.get(code), labelsFor(words)))
 	if (code === 'en') write('index.html', site.renderLanding(template, words, code, { home: true }))
 	for (const { name, theme, starter } of pictures) {
 		write(`preview/${code}/${name}.html`, previews.previewPage(code, theme, starter))
@@ -92,5 +120,5 @@ write('language.js', site.languageScript())
 write('robots.txt', site.robotsTxt())
 write('sitemap.xml', site.sitemapXml())
 write('404.html', '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=/"><title>FluxBio</title><a href="/">FluxBio</a>\n')
-console.log(`landing/.cloudflare/output: 13 pages, ${files} previews. Noto Sans TC on the zh-TW page is from ${chineseFrom}.`)
+console.log(`landing/.cloudflare/output: 13 pages, 13 changelog pages, ${files} previews. Noto Sans TC on the zh-TW page is from ${chineseFrom}.`)
 process.exit(problems ? 1 : 0)
