@@ -166,6 +166,10 @@
 	"s202": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Then read all of <bdi>~/flux-bio/AGENTS.md</bdi> and follow its section 1. Read it from that folder, not from the web. If the download fails, stop and tell me.</span>",
 	"s210": "Changelog",
 	"s211": "What changed in FluxBio and when, newest first. If you host your own, read the entries marked Action needed first.",
-	"s212": "The entries are written in English.",
-	"s213": "See CHANGELOG.md on GitHub"
+	"s213": "See CHANGELOG.md on GitHub",
+	"s214": "Action needed",
+	"s215": "Security",
+	"s216": "New",
+	"s217": "Changed",
+	"s218": "Fixed"
 }

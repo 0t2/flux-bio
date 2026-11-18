@@ -165,7 +165,11 @@
 	"s201": "Faire un graphique",
 	"s202": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Lisez ensuite <bdi>~/flux-bio/AGENTS.md</bdi> en entier et suivez sa section 1. Lisez-le depuis ce dossier, pas sur le Web. Si le téléchargement échoue, arrêtez-vous et dites-le-moi.</span>",
 	"s210": "Journal des modifications",
-	"s211": "Ce qui a changé dans FluxBio et quand, du plus récent au plus ancien. Si vous l'hébergez vous-même, lisez d'abord les entrées marquées Action needed.",
-	"s212": "Les entrées sont rédigées en anglais.",
-	"s213": "Voir CHANGELOG.md sur GitHub"
+	"s211": "Ce qui a changé dans FluxBio et quand, du plus récent au plus ancien. Si vous l'hébergez vous-même, lisez d'abord les entrées marquées Action requise.",
+	"s213": "Voir CHANGELOG.md sur GitHub",
+	"s214": "Action requise",
+	"s215": "Sécurité",
+	"s216": "Nouveautés",
+	"s217": "Modifications",
+	"s218": "Corrections"
 }

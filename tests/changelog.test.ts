@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { describe, expect, it } from 'vitest'
 import { LOCALES } from '../src/shared/content'
-import { CATEGORIES, inlineHtml, parseChangelog, renderChangelog } from '../landing/changelog'
+import { CATEGORIES, categoryLabels, inlineHtml, parseChangelog, renderChangelog, validateTranslations } from '../landing/changelog'
 import { changelogPath, renderLanding, sitemapXml, SITE, templateKeys } from '../landing/render'
 import changelog from '../CHANGELOG.md?raw'
 import changelogTemplate from '../landing/changelog.html?raw'
@@ -10,7 +10,9 @@ import landingHeaders from '../landing/public/_headers?raw'
 import landingBuild from '../landing/build.mjs?raw'
 
 const words = import.meta.glob<Record<string, string>>('../landing/locales/*.json', { import: 'default', eager: true })
+const translations = import.meta.glob<string>('../landing/changelog/*.md', { query: '?raw', import: 'default', eager: true })
 const of = (code: string) => words[`../landing/locales/${code}.json`]!
+const translation = (code: string) => translations[`../landing/changelog/${code}.md`]!
 
 describe('CHANGELOG.md', () => {
 	it('is read by the build: days newest first, each category once, in order, with entries', () => {
@@ -22,6 +24,41 @@ describe('CHANGELOG.md', () => {
 			const ranks = day.sections.map((section) => CATEGORIES.indexOf(section.category))
 			expect(ranks, day.date).toEqual([...ranks].sort((a, b) => a - b))
 			for (const section of day.sections) expect(section.items.length, `${day.date} ${section.category}`).toBeGreaterThan(0)
+		}
+	})
+})
+
+describe('localized changelogs', () => {
+	it('checks every real translation against the English source', () => {
+		const input = Object.fromEntries(LOCALES.filter((code) => code !== 'en').map((code) => [code, { source: translation(code), labels: categoryLabels(of(code)) }]))
+		expect(Object.keys(input)).toHaveLength(12)
+		expect(() => validateTranslations(changelog, input)).not.toThrow()
+		const english = parseChangelog(changelog)
+		const prose = (text: string) => text.replace(/`[^`]+`|\[[^\]]+\]\(https:\/\/[^)]+\)/g, '').trim()
+		for (const code of LOCALES.filter((locale) => locale !== 'en')) {
+			const localized = parseChangelog(translation(code), categoryLabels(of(code)), `landing/changelog/${code}.md`)
+			for (let d = 0; d < english.length; d++) for (let s = 0; s < english[d]!.sections.length; s++) {
+				for (let i = 0; i < english[d]!.sections[s]!.items.length; i++) {
+					expect(prose(localized[d]!.sections[s]!.items[i]!.source), `${code} ${english[d]!.date} entry ${i + 1}`).not.toBe(prose(english[d]!.sections[s]!.items[i]!.source))
+				}
+			}
+		}
+	})
+
+	it.each([
+		['a missing entry', (text: string) => text.replace(/^- .+\n/m, '')],
+		['an extra entry', (text: string) => text.replace(/(^- .+\n)/m, '$1$1')],
+		['a mismatched date', (text: string) => text.replace('## 2026-11-17', '## 2026-11-16')],
+		['a mismatched category', (text: string) => text.replace(/^### (.+)$/m, '### Unknown category')],
+		['a changed link', (text: string) => text.replace('https://fluxbio.link/en/changelog/', 'https://example.com/')],
+		['changed inline code', (text: string) => text.replace('`/_c/<handle>/<id>/link`', '`/changed`')],
+	])('%s names its locale and source line', (_name, change) => {
+		const source = change(translation('zh-TW'))
+		try {
+			validateTranslations(changelog, { 'zh-TW': { source, labels: categoryLabels(of('zh-TW')) } })
+			expect.fail('expected a translation mismatch')
+		} catch (error) {
+			expect(String(error)).toMatch(/zh-TW: landing\/changelog\/zh-TW\.md line \d+/)
 		}
 	})
 })
@@ -64,20 +101,25 @@ describe('the changelog page', () => {
 			expect(of(code)[key], `${code} ${key}`).not.toMatch(/[<>]/)
 		}
 	})
-	it('is one page a language, in its own language and direction, with the entries in English', () => {
+	it('is one page a language, with localized entries and the right direction', () => {
 		for (const code of LOCALES) {
-			const page = renderChangelog(changelogTemplate, of(code), code, days)
+			const labels = categoryLabels(of(code))
+			const localized = code === 'en' ? days : parseChangelog(translation(code), labels, `landing/changelog/${code}.md`)
+			const page = renderChangelog(changelogTemplate, of(code), code, localized, labels)
 			expect(page, code).toContain(`<link rel="canonical" href="${SITE}${changelogPath(code)}">`)
 			expect(page, code).toContain(`<a href="${changelogPath(code)}" lang="${code}" hreflang="${code}" aria-current="true">`)
-			expect(page, code).toContain('<div class="col log" lang="en" dir="ltr">')
+			expect(page, code).toContain(`<div class="col log" lang="${code}"${code === 'ar' ? ' dir="rtl"' : ''}>`)
+			for (const label of Object.values(labels)) expect(page, code).toContain(`<h3>${label}</h3>`)
 			expect(page, code).toContain(code === 'ar' ? 'dir="rtl"' : '<html')
 			expect(page, code).not.toMatch(/\{\{/)
 		}
-		expect(renderChangelog(changelogTemplate, of('ar'), 'ar', days)).toMatch(/<html lang="ar" dir="rtl">/)
+		expect(renderChangelog(changelogTemplate, of('ar'), 'ar', parseChangelog(translation('ar'), categoryLabels(of('ar')), 'landing/changelog/ar.md'), categoryLabels(of('ar')))).toMatch(/<html lang="ar" dir="rtl">/)
 	})
 	it('has no script and asks nobody else for anything, in any language', () => {
 		for (const code of LOCALES) {
-			const page = renderChangelog(changelogTemplate, of(code), code, days)
+			const labels = categoryLabels(of(code))
+			const localized = code === 'en' ? days : parseChangelog(translation(code), labels, `landing/changelog/${code}.md`)
+			const page = renderChangelog(changelogTemplate, of(code), code, localized, labels)
 			expect(page, code).not.toMatch(/<script|<iframe|<img|<link rel="(stylesheet|preconnect)"/)
 			expect(page, code).not.toMatch(/googleapis|gstatic/)
 			expect([...page.matchAll(/(?:src|url\()=?["']?(https?:)?\/\/[^"')\s>]+/g)], code).toEqual([])

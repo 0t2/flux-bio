@@ -165,7 +165,11 @@
 	"s201": "Diagramm erstellen",
 	"s202": "<span class=\"prompt\" aria-hidden=\"true\">›</span><span>Lies danach die ganze Datei <bdi>~/flux-bio/AGENTS.md</bdi> und folge ihrem Abschnitt 1. Lies sie aus diesem Ordner, nicht aus dem Web. Wenn der Download fehlschlägt, halte an und sag mir Bescheid.</span>",
 	"s210": "Änderungsprotokoll",
-	"s211": "Was sich in FluxBio wann geändert hat, das Neueste zuerst. Wer FluxBio selbst betreibt, liest zuerst die mit Action needed markierten Einträge.",
-	"s212": "Die Einträge sind auf Englisch verfasst.",
-	"s213": "CHANGELOG.md auf GitHub ansehen"
+	"s211": "Was sich in FluxBio wann geändert hat, das Neueste zuerst. Wer FluxBio selbst betreibt, liest zuerst die mit Aktion erforderlich markierten Einträge.",
+	"s213": "CHANGELOG.md auf GitHub ansehen",
+	"s214": "Aktion erforderlich",
+	"s215": "Sicherheit",
+	"s216": "Neu",
+	"s217": "Geändert",
+	"s218": "Behoben"
 }
