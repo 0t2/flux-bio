@@ -1,9 +1,14 @@
 # Changelog
 
-What changed in FluxBio, a day at a time, newest first. fluxbio.link shows this file at `/en/changelog/` and is made from it.
-There are no version numbers: if you host your own, you take `main`, so read the days since you last updated and look for "Action needed".
+What changed in FluxBio, a release at a time, newest first. fluxbio.link shows this file at `/en/changelog/` and is made from it.
+If you host your own, you take `main`. Your site says which version it runs, in `version` of `GET /api/state` and at the top of `/llms.txt`, so after updating read the releases above that one. The number says what updating takes: a release that changes the middle number (0.3.4 to 0.4.0) has an "Action needed", and one that changes only the last (0.3.4 to 0.3.5) needs nothing but the deploy.
 
-The format is narrow because a script reads it: `## YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. Add an entry in the same pull request as any change someone using FluxBio would see; leave purely internal work out. The date is the day the change reaches `main`.
+The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
+
+## 0.3.0 - 2026-11-19
+
+### 新增
+- 每次发布都有版本号了。站点运行的版本写在 `GET /api/state` 的 `version` 和 `/llms.txt` 的开头，这里每个标题就是一个版本。看数字就知道更新要做什么：中间的数字变了（0.3.4 到 0.4.0）表示有“需要处理”的事项，只有最后一个数字变的话，重新部署即可。仍显示 0.2.1 的站点早于这一版，请按上次更新的日期往上读。
 
 ## 2026-11-17
 

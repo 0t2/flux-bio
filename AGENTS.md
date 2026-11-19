@@ -456,11 +456,20 @@ pnpm usage       # today's free KV and D1 quota used and left, and each D1 datab
 
 The project itself is developed and tested on the Node version in `.node-version`, and GitHub Actions reads the same file.
 
-**The changelog.** A change someone using or hosting FluxBio would notice goes in `CHANGELOG.md` in English and in the matching entry in each of the 12 files under `landing/changelog/`, all in the same pull request, under today's
-`## YYYY-MM-DD` (a new section on top if there is none): a new feature, a fix, a security fix, or something a self-hosting owner has to do (a migration, a
-setting, a redeploy), which goes under "Action needed", only when it is true of an existing site and the diff shows it. Purely internal changes (tests,
-refactors, CI, wording in docs) need none. The English entry is one line, with only `code` and `[links](https://…)` as markup; translate its description in every locale file while preserving dates, categories, links and code. `pnpm landing` builds
+**The changelog and the version.** A change someone using or hosting FluxBio would notice is a release: a new section on top of `CHANGELOG.md` in English, `## <version> - YYYY-MM-DD` with today's
+date, and the matching section in each of the 12 files under `landing/changelog/`, all in the same pull request. That covers a new feature, a fix, a security fix, or something a
+self-hosting owner has to do (a migration, a setting, a redeploy), which goes under "Action needed", only when it is true of an existing site and the diff shows it. Purely internal changes
+(tests, refactors, CI, wording in docs) need none, and no new version. The English entry is one line, with only `code` and `[links](https://…)` as markup; translate its description in every locale file while preserving headings, categories, links and code. `pnpm landing` builds
 fluxbio.link's update page from these files and checks their structure and protected markup; `tests/changelog.test.ts` holds the format.
+
+- **Which version.** One above the section below it: the next minor if the release has an "Action needed" (0.3.4 → 0.4.0), else the next patch (0.3.4 → 0.3.5). So the number says whether updating
+  takes more than a deploy, and the guide's `update` topic has an owner's AI read the releases between the version a site runs and the new one. A change that takes away or renames something in
+  the API an agent or an integration may be using is an "Action needed" too. A new major is the maintainer's call.
+- **Where it is written.** In `package.json`, the same pull request. `src/worker/lib/version.ts` reads it from there, and the site says it in `version` of `GET /api/state`, in `/llms.txt` and in
+  `/api/openapi.json`. The tests fail when it isn't the newest heading in `CHANGELOG.md`.
+- **Another release merged first.** Then yours is the next one after it: put your section above it, take the next number and change `package.json` to match.
+- **The tag.** A push to `main` whose version has no tag yet gets `v<version>` and a GitHub release with that section as its notes (`.github/workflows/deploy.yml`). Nobody pushes tags by hand.
+- The sections below 0.3.0 are days without a version, from when every site called itself 0.2.1. No new one is written that way.
 
 Run `pnpm typecheck` and `pnpm test` before finishing any change. GitHub Actions
 (`.github/workflows/deploy.yml`) runs both on every pull request and push, and deploys nothing from a fork or a copy: someone's

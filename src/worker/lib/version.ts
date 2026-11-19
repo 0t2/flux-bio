@@ -1,2 +1,5 @@
-/** The FluxBio release this Worker runs. Bump it with package.json. */
-export const VERSION = '0.2.1'
+/**
+ * The FluxBio release this Worker runs: `version` in package.json, which is the newest heading in CHANGELOG.md
+ * (tests/changelog.test.ts holds the two together). Only that one field is bundled.
+ */
+export { version as VERSION } from '../../../package.json'

@@ -1,7 +1,9 @@
 /// <reference types="vite/client" />
 import { describe, expect, it } from 'vitest'
 import { LOCALES } from '../src/shared/content'
-import { CATEGORIES, categoryLabels, inlineHtml, parseChangelog, renderChangelog, validateTranslations } from '../landing/changelog'
+import { CATEGORIES, categoryLabels, inlineHtml, nextVersion, parseChangelog, renderChangelog, validateTranslations } from '../landing/changelog'
+import { VERSION } from '../src/worker/lib/version'
+import { version as packageVersion } from '../package.json'
 import { changelogPath, renderLanding, sitemapXml, SITE, templateKeys } from '../landing/render'
 import changelog from '../CHANGELOG.md?raw'
 import changelogTemplate from '../landing/changelog.html?raw'
@@ -15,16 +17,32 @@ const of = (code: string) => words[`../landing/locales/${code}.json`]!
 const translation = (code: string) => translations[`../landing/changelog/${code}.md`]!
 
 describe('CHANGELOG.md', () => {
-	it('is read by the build: days newest first, each category once, in order, with entries', () => {
-		const days = parseChangelog(changelog)
-		expect(days.length).toBeGreaterThan(3)
-		expect(days.at(-1)!.date).toBe('2026-11-05')
-		for (const day of days) {
-			expect(day.sections.length, day.date).toBeGreaterThan(0)
-			const ranks = day.sections.map((section) => CATEGORIES.indexOf(section.category))
-			expect(ranks, day.date).toEqual([...ranks].sort((a, b) => a - b))
-			for (const section of day.sections) expect(section.items.length, `${day.date} ${section.category}`).toBeGreaterThan(0)
+	it('is read by the build: releases newest first, each category once, in order, with entries', () => {
+		const releases = parseChangelog(changelog)
+		expect(releases.length).toBeGreaterThan(3)
+		expect(releases.at(-1)!.date).toBe('2026-11-05')
+		for (const release of releases) {
+			expect(release.sections.length, release.date).toBeGreaterThan(0)
+			const ranks = release.sections.map((section) => CATEGORIES.indexOf(section.category))
+			expect(ranks, release.date).toEqual([...ranks].sort((a, b) => a - b))
+			for (const section of release.sections) expect(section.items.length, `${release.date} ${section.category}`).toBeGreaterThan(0)
 		}
+	})
+
+	// A site says which version it runs, and its owner's AI reads the releases above that one after an update. That only
+	// works while the code, package.json and the newest heading agree, which is why a release and its number go in together.
+	it('has the version the code calls itself as its newest heading', () => {
+		const releases = parseChangelog(changelog)
+		expect(releases[0]!.version, 'the newest heading in CHANGELOG.md is the version in package.json').toBe(packageVersion)
+		expect(VERSION).toBe(packageVersion)
+	})
+
+	it('has a version on every release since 0.3.0, and only days before it', () => {
+		const releases = parseChangelog(changelog)
+		const versioned = releases.filter((release) => release.version)
+		expect(versioned.at(-1)!.version).toBe('0.3.0')
+		// Every day from before versions is already in the file: a new heading without one is a mistake.
+		expect(releases.filter((release) => !release.version).map((release) => release.date)).toEqual(['2026-11-17', '2026-11-11', '2026-11-09', '2026-11-07', '2026-11-06', '2026-11-05'])
 	})
 })
 
@@ -37,9 +55,9 @@ describe('localized changelogs', () => {
 		const prose = (text: string) => text.replace(/`[^`]+`|\[[^\]]+\]\(https:\/\/[^)]+\)/g, '').trim()
 		for (const code of LOCALES.filter((locale) => locale !== 'en')) {
 			const localized = parseChangelog(translation(code), categoryLabels(of(code)), `landing/changelog/${code}.md`)
-			for (let d = 0; d < english.length; d++) for (let s = 0; s < english[d]!.sections.length; s++) {
-				for (let i = 0; i < english[d]!.sections[s]!.items.length; i++) {
-					expect(prose(localized[d]!.sections[s]!.items[i]!.source), `${code} ${english[d]!.date} entry ${i + 1}`).not.toBe(prose(english[d]!.sections[s]!.items[i]!.source))
+			for (let r = 0; r < english.length; r++) for (let s = 0; s < english[r]!.sections.length; s++) {
+				for (let i = 0; i < english[r]!.sections[s]!.items.length; i++) {
+					expect(prose(localized[r]!.sections[s]!.items[i]!.source), `${code} ${english[r]!.date} entry ${i + 1}`).not.toBe(prose(english[r]!.sections[s]!.items[i]!.source))
 				}
 			}
 		}
@@ -49,6 +67,8 @@ describe('localized changelogs', () => {
 		['a missing entry', (text: string) => text.replace(/^- .+\n/m, '')],
 		['an extra entry', (text: string) => text.replace(/(^- .+\n)/m, '$1$1')],
 		['a mismatched date', (text: string) => text.replace('## 2026-11-17', '## 2026-11-16')],
+		['a mismatched version', (text: string) => text.replace('## 0.3.0 - ', '## 0.2.2 - ')],
+		['a missing version', (text: string) => text.replace('## 0.3.0 - ', '## ')],
 		['a mismatched category', (text: string) => text.replace(/^### (.+)$/m, '### Unknown category')],
 		['a changed link', (text: string) => text.replace('https://fluxbio.link/en/changelog/', 'https://example.com/')],
 		['changed inline code', (text: string) => text.replace('`/_c/<handle>/<id>/link`', '`/changed`')],
@@ -81,9 +101,42 @@ describe('a CHANGELOG.md that is written wrong stops the build, naming the line'
 		['a line it cannot read', day('2026-11-05', '### New\nplain words\n- x'), /line 4: can't read/],
 		['a link that is not https', day('2026-11-05', '### New\n- [a](http://example.com)'), /line 4: .*bracket/],
 		['code that is never closed', day('2026-11-05', '### New\n- `oops'), /line 4: .*backtick/],
-		['nothing at all', '# Changelog\n', /no days/],
+		['nothing at all', '# Changelog\n', /no releases/],
+		['a version that is not three numbers', day('0.3 - 2026-11-20'), /line 1: .*not a version and a date/],
+		['a version with a letter in front', day('v0.3.1 - 2026-11-20'), /line 1: .*not a version and a date/],
+		['a version after its date', day('2026-11-20 - 0.3.1'), /line 1: .*not a version and a date/],
+		['a version below a day from before versions', `${day('2026-11-20')}\n${day('0.3.0 - 2026-11-19')}`, /line 6: 0\.3\.0 is below 2026-11-20/],
+		['a newer release below an older one', `${day('0.3.1 - 2026-11-19')}\n${day('0.3.0 - 2026-11-20')}`, /line 6: .*comes after/],
+		['the same version twice', `${day('0.3.1 - 2026-11-20')}\n${day('0.3.1 - 2026-11-20')}`, /line 1: 0\.3\.1 can't follow 0\.3\.1/],
+		['a version that skips one', `${day('0.3.2 - 2026-11-20')}\n${day('0.3.0 - 2026-11-19')}`, /line 1: 0\.3\.2 can't follow 0\.3\.0\. .*next patch: 0\.3\.1/],
+		['a patch with something for the owner to do', `${day('0.3.1 - 2026-11-20', '### Action needed\n- Redeploy.')}\n${day('0.3.0 - 2026-11-19')}`, /line 1: 0\.3\.1 can't follow 0\.3\.0\. It has "Action needed", so it is the next minor: 0\.4\.0/],
+		['a minor with nothing for the owner to do', `${day('0.4.0 - 2026-11-20')}\n${day('0.3.0 - 2026-11-19')}`, /line 1: 0\.4\.0 can't follow 0\.3\.0\. It has no "Action needed", so it is the next patch: 0\.3\.1/],
+		['a minor that keeps its patch', `${day('0.4.1 - 2026-11-20', '### Action needed\n- Redeploy.')}\n${day('0.3.5 - 2026-11-19')}`, /line 1: .*next minor: 0\.4\.0/],
 	])('%s', (_name, source, message) => {
 		expect(() => parseChangelog(source)).toThrow(message)
+	})
+
+	it('reads versions that follow each other, two on one day, a new major, and the days from before versions below', () => {
+		const releases = parseChangelog(
+			[
+				day('1.0.0 - 2026-11-22'),
+				day('0.4.1 - 2026-11-21'),
+				day('0.4.0 - 2026-11-21', '### Action needed\n- Redeploy.\n### Fixed\n- An entry.'),
+				day('0.3.10 - 2026-11-20'),
+				day('0.3.9 - 2026-11-19'),
+				day('2026-11-19'),
+				day('2026-11-17'),
+			].join('\n'),
+		)
+		expect(releases.map((release) => release.version)).toEqual(['1.0.0', '0.4.1', '0.4.0', '0.3.10', '0.3.9', null, null])
+		expect(releases[2]!.line).toBe(11)
+	})
+
+	it('names the next version by what the release asks of an owner', () => {
+		expect(nextVersion('0.3.4', false)).toBe('0.3.5')
+		expect(nextVersion('0.3.4', true)).toBe('0.4.0')
+		expect(nextVersion('0.9.9', true)).toBe('0.10.0')
+		expect(nextVersion('1.2.3', false)).toBe('1.2.4')
 	})
 
 	it('allows only `code` and https links as markup, and escapes the rest', () => {
@@ -94,7 +147,7 @@ describe('a CHANGELOG.md that is written wrong stops the build, naming the line'
 })
 
 describe('the changelog page', () => {
-	const days = parseChangelog(changelog)
+	const releases = parseChangelog(changelog)
 	it('has every text in every language, with no markup of its own in them', () => {
 		for (const code of LOCALES) for (const key of templateKeys(changelogTemplate)) {
 			expect(of(code)[key], `${code} ${key}`).toBeTruthy()
@@ -104,12 +157,15 @@ describe('the changelog page', () => {
 	it('is one page a language, with localized entries and the right direction', () => {
 		for (const code of LOCALES) {
 			const labels = categoryLabels(of(code))
-			const localized = code === 'en' ? days : parseChangelog(translation(code), labels, `landing/changelog/${code}.md`)
+			const localized = code === 'en' ? releases : parseChangelog(translation(code), labels, `landing/changelog/${code}.md`)
 			const page = renderChangelog(changelogTemplate, of(code), code, localized, labels)
 			expect(page, code).toContain(`<link rel="canonical" href="${SITE}${changelogPath(code)}">`)
 			expect(page, code).toContain(`<a href="${changelogPath(code)}" lang="${code}" hreflang="${code}" aria-current="true">`)
 			expect(page, code).toContain(`<div class="col log" lang="${code}"${code === 'ar' ? ' dir="rtl"' : ''}>`)
 			for (const label of Object.values(labels)) expect(page, code).toContain(`<h3>${label}</h3>`)
+			// A release is found by its version, a day from before versions by its date.
+			expect(page, code).toContain('<section class="rel" id="v0.3.0">\n<h2><span class="ver">0.3.0</span> <time datetime=')
+			expect(page, code).toContain('<section class="rel" id="2026-11-17">\n<h2><time datetime="2026-11-17">2026-11-17</time></h2>')
 			expect(page, code).toContain(code === 'ar' ? 'dir="rtl"' : '<html')
 			expect(page, code).not.toMatch(/\{\{/)
 		}
@@ -118,7 +174,7 @@ describe('the changelog page', () => {
 	it('has no script and asks nobody else for anything, in any language', () => {
 		for (const code of LOCALES) {
 			const labels = categoryLabels(of(code))
-			const localized = code === 'en' ? days : parseChangelog(translation(code), labels, `landing/changelog/${code}.md`)
+			const localized = code === 'en' ? releases : parseChangelog(translation(code), labels, `landing/changelog/${code}.md`)
 			const page = renderChangelog(changelogTemplate, of(code), code, localized, labels)
 			expect(page, code).not.toMatch(/<script|<iframe|<img|<link rel="(stylesheet|preconnect)"/)
 			expect(page, code).not.toMatch(/googleapis|gstatic/)

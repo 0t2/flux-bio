@@ -147,7 +147,7 @@ describe('the agent guide', () => {
 		const remove = await (await call('/api/guide/remove')).text()
 		for (const part of ['they can leave it', 'workers delete flux-bio-test --force', 'flux-bio-test-kv', 'clear yes']) expect(remove).toContain(part)
 		const update = await (await call('/api/guide/update')).text()
-		for (const part of ['leaves them alone', 'archive/refs/heads/main.tar.gz', 'pnpm run deploy', '/skill.md']) expect(update).toContain(part)
+		for (const part of ['leaves them alone', 'archive/refs/heads/main.tar.gz', 'pnpm run deploy', '/skill.md', `This site runs FluxBio ${VERSION}`, `\`CHANGELOG.md\` in the new code from the top down to ${VERSION}`, 'Action needed']) expect(update).toContain(part)
 	})
 
 	it('is also an Agent Skill, whose description says when to use it', async () => {
