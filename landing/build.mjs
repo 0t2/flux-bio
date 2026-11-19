@@ -17,9 +17,12 @@ const { module: changelog } = await runnerImport('./landing/changelog.ts')
 const changelogTemplate = readFileSync(join(here, 'changelog.html'), 'utf8')
 if (!existsSync(join(root, 'CHANGELOG.md'))) throw new Error('en: missing required source file CHANGELOG.md')
 const english = readFileSync(join(root, 'CHANGELOG.md'), 'utf8')
-let days
-try { days = changelog.parseChangelog(english) }
+let releases
+try { releases = changelog.parseChangelog(english) }
 catch (error) { throw new Error(`en: ${error instanceof Error ? error.message : String(error)}`) }
+// The newest heading is the version the code calls itself, so a site can find its place in the file.
+const { version } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
+if (releases[0].version !== version) throw new Error(`en: CHANGELOG.md line ${releases[0].line}: the newest heading is ${changelog.releaseName(releases[0])}, and package.json says ${version}. They change together.`)
 const localeFiles = readdirSync(join(here, 'locales')).filter((name) => name.endsWith('.json'))
 const localeWords = new Map()
 for (const code of changelog.LOCALES) {
@@ -37,8 +40,8 @@ for (const code of changelog.LOCALES) {
 	translations[code] = { source: readFileSync(file, 'utf8'), labels: labelsFor(localeWords.get(code)) }
 }
 changelog.validateTranslations(english, translations)
-const localizedDays = new Map([["en", days]])
-for (const [code, value] of Object.entries(translations)) localizedDays.set(code, changelog.parseChangelog(value.source, value.labels, `landing/changelog/${code}.md`))
+const localizedReleases = new Map([['en', releases]])
+for (const [code, value] of Object.entries(translations)) localizedReleases.set(code, changelog.parseChangelog(value.source, value.labels, `landing/changelog/${code}.md`))
 const keys = [...new Set([...site.templateKeys(template), ...site.templateKeys(changelogTemplate)])].sort()
 
 const output = join(here, '.cloudflare/output/v0')
@@ -109,7 +112,7 @@ for (const file of localeFiles.sort()) {
 		} else chineseFrom = 'Google Fonts (the page has new characters: run pnpm landing:fonts)'
 	}
 	write(`${code}/index.html`, site.renderLanding(template, words, code, { chinese }))
-	write(`${code}/changelog/index.html`, changelog.renderChangelog(changelogTemplate, words, code, localizedDays.get(code), labelsFor(words)))
+	write(`${code}/changelog/index.html`, changelog.renderChangelog(changelogTemplate, words, code, localizedReleases.get(code), labelsFor(words)))
 	if (code === 'en') write('index.html', site.renderLanding(template, words, code, { home: true }))
 	for (const { name, theme, starter } of pictures) {
 		write(`preview/${code}/${name}.html`, previews.previewPage(code, theme, starter))

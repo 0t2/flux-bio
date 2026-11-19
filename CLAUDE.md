@@ -12,8 +12,9 @@ Cloudflare account and what is on it are theirs to decide about.
   (claude.ai/code), where `.claude/hooks/session-start.sh` installs the dependencies first.
 - Hand changes back as a pull request. Merging into `main` deploys the landing page (`.github/workflows/deploy.yml`).
   No FluxBio site is deployed from this repository: that only happens when it names one in its `FLUXBIO_SITE` variable,
-  and it names none. The maintainer manages Cloudflare secrets and pushes release
-  tags from their own machine; cloud sessions can't sign in to Cloudflare or push tags.
+  and it names none. It also tags the release, when the merge brought a new version (AGENTS.md, "The changelog and the
+  version"): never push a tag yourself. The maintainer manages Cloudflare secrets from their own machine; cloud sessions
+  can't sign in to Cloudflare.
 - After changing how the dashboard looks, its screenshots on fluxbio.link need retaking: see `landing/AGENTS.md`. It needs
   the maintainer's computer, so a cloud session only says that they need retaking.
 - Ask the maintainer before deleting Cloudflare resources or secrets.

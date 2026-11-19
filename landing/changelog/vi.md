@@ -1,9 +1,14 @@
 # Changelog
 
-What changed in FluxBio, a day at a time, newest first. fluxbio.link shows this file at `/en/changelog/` and is made from it.
-There are no version numbers: if you host your own, you take `main`, so read the days since you last updated and look for "Action needed".
+What changed in FluxBio, a release at a time, newest first. fluxbio.link shows this file at `/en/changelog/` and is made from it.
+If you host your own, you take `main`. Your site says which version it runs, in `version` of `GET /api/state` and at the top of `/llms.txt`, so after updating read the releases above that one. The number says what updating takes: a release that changes the middle number (0.3.4 to 0.4.0) has an "Action needed", and one that changes only the last (0.3.4 to 0.3.5) needs nothing but the deploy.
 
-The format is narrow because a script reads it: `## YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. Add an entry in the same pull request as any change someone using FluxBio would see; leave purely internal work out. The date is the day the change reaches `main`.
+The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
+
+## 0.3.0 - 2026-11-19
+
+### Mới
+- Mỗi bản phát hành giờ đã có số phiên bản. Trang web cho biết phiên bản đang chạy trong `version` của `GET /api/state` và ở đầu `/llms.txt`, và mỗi tiêu đề trên trang này là một phiên bản. Con số cho biết việc cập nhật cần gì: khi số ở giữa thay đổi (0.3.4 lên 0.4.0) thì có mục “Cần thực hiện”, còn khi chỉ số cuối thay đổi thì chỉ cần triển khai lại. Trang web vẫn hiện 0.2.1 là từ trước bản phát hành này, nên hãy dựa vào ngày cập nhật gần nhất của trang. [#41](https://github.com/0t2/flux-bio/pull/41)
 
 ## 2026-11-17
 

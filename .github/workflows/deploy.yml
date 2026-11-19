@@ -6,14 +6,17 @@ name: Test and deploy
 # themes. A FluxBio site goes out too only when the repository names one in its
 # FLUXBIO_SITE variable, and then only when something it is built from or deployed
 # with changed: not for the landing page, the docs, the tests or the scripts that
-# only help develop it.
+# only help develop it. A push that brought a new version (package.json, which the
+# tests hold to the newest heading in CHANGELOG.md) is then tagged v<version>, with
+# that section of the changelog as the notes of its GitHub release.
 
 on:
   pull_request:
   push:
     branches: [main]
 
-# Deploying uses the Cloudflare token, not GitHub's: this workflow only ever reads the repository.
+# Deploying uses the Cloudflare token, not GitHub's: the workflow only reads the repository, except the
+# release job, which may write to it so that it can make the tag.
 permissions:
   contents: read
 
@@ -67,3 +70,27 @@ jobs:
           # The other sites the Worker holds, as sites.json would list them: a checkout has no such file, and a deploy
           # without the list would unbind them (cloudflare.config.ts).
           FLUXBIO_SITES: ${{ vars.FLUXBIO_SITES }}
+
+  # After the tests and the deploy, so a version that never worked gets no tag. A push without a new version, which
+  # is any change that needed no changelog entry, finds its tag already there and does nothing.
+  release:
+    needs: test-and-deploy
+    if: github.event_name == 'push' && github.repository == '0t2/flux-bio'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - run: |
+          version=$(sed -nE 's/^[[:space:]]*"version": "([0-9]+\.[0-9]+\.[0-9]+)",?$/\1/p' package.json | head -n 1)
+          [ -n "$version" ] || { echo "package.json has no version written as three numbers."; exit 1; }
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" > /dev/null; then
+            echo "v$version is already tagged."
+            exit 0
+          fi
+          awk -v version="$version" '/^## / { on = ($2 == version); next } on' CHANGELOG.md > notes.md
+          grep -q '^- ' notes.md || { echo "CHANGELOG.md has no entries under $version."; exit 1; }
+          printf '\n[All releases](https://fluxbio.link/en/changelog/#v%s)\n' "$version" >> notes.md
+          gh release create "v$version" --target "$GITHUB_SHA" --title "v$version" --notes-file notes.md
+        env:
+          GH_TOKEN: ${{ github.token }}

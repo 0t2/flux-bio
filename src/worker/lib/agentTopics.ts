@@ -8,6 +8,7 @@ import { AVATAR_RADIUS, COLORFUL, ICON_RADIUS, PALETTE, RADIUS, resolveAppearanc
 import type { GuideNames } from './agent'
 import { KV_OPS_AT_ONCE, VERSIONS_KEPT } from './mode'
 import { OPERATIONS } from './openapi'
+import { VERSION } from './version'
 
 // The parts of the guide an agent reads only when it needs them, served at
 // /api/guide/<topic>. The main guide (/llms.txt, agent.ts) is loaded in every
@@ -278,11 +279,12 @@ The picture doesn't follow the page, so take a new one when the look or the top 
 
 **QR code pictures.** A link's \`qr.logo\` of \`default\`, which is what a link with no saved style has, shows its page's picture, else the site's, else nothing. Upload with \`POST /api/media\`, then set a page's with \`PATCH /api/pages/{id}\` and \`qrLogo\`, or the site's with \`qrLogo\` in \`PUT /api/settings\`. Every code following it changes in the dashboard and in new downloads, but printed ones and files already saved don't, so say that. Codes with their own picture, or set to none, don't follow it.`,
 		update: `**Update FluxBio.** When the owner asks, or a problem they reported has been fixed. Their pages, links and stats are on Cloudflare, and updating leaves them alone. The code is in their FluxBio folder (\`$FLUXBIO_DIR\`).
-1. Back up (see "Back up"). If the site has visitors, ask whether to try it on a test site first (see "Test site").
+1. Back up (see "Back up"). If the site has visitors, ask whether to try it on a test site first (see "Test site"). This site runs FluxBio ${VERSION}: keep that number for step 3.
 2. If the folder has \`.git\`, run \`git pull\`. If not, download the new code next to it and swap the folders: \`mkdir ../flux-bio.new && curl -fsSL https://github.com/0t2/flux-bio/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 -C ../flux-bio.new\`, copy over any \`.secrets*\` files, \`.dev.vars\` and \`sites.json\` (without it, the other sites this Worker holds go offline: see "More sites"), and move the old folder aside until it works. If the old \`cloudflare.config.ts\` has another \`WORKER_NAME\`, set the same one.
-3. Run \`pnpm install\`, then \`pnpm deploy:images --site ${origin}\`, which deploys and bundles the pictures (see "How much free quota is left"). Use \`pnpm run deploy\` if you do not need to refresh the bundle.
-4. Check that the site answers, read \`/llms.txt\` again, and save the new guide over the old skill: \`curl -fsSL ${origin}/skill.md -o ~/.claude/skills/${skill}/SKILL.md\`.${otherSites.length ? ' Do the same for the skill of each other site this Worker holds, from its own address.' : ''}
-5. Say in a line what changed. Then delete the old folder.`,
+3. Before deploying, read \`CHANGELOG.md\` in the new code from the top down to ${VERSION}: those are the releases this update brings, each under its version, newest first. Do what every "Action needed" among them says, when it says to, and ask the owner first where it is theirs to decide. There is one whenever the middle number changed (0.3.4 to 0.4.0); if only the last did, deploying is all it takes. The headings below 0.3.0 are days, not versions, and every site of those days called itself 0.2.1: if that is this site's number, ask the owner when they installed or last updated, and go by the days since.
+4. Run \`pnpm install\`, then \`pnpm deploy:images --site ${origin}\`, which deploys and bundles the pictures (see "How much free quota is left"). Use \`pnpm run deploy\` if you do not need to refresh the bundle.
+5. Check that the site answers and that \`version\` in \`GET /api/state\` is the newest in \`CHANGELOG.md\`, read \`/llms.txt\` again, and save the new guide over the old skill: \`curl -fsSL ${origin}/skill.md -o ~/.claude/skills/${skill}/SKILL.md\`.${otherSites.length ? ' Do the same for the skill of each other site this Worker holds, from its own address.' : ''}
+6. Say in a line or two what changed for them, from the releases you read, in their words and not the file's. Then delete the old folder.`,
 		remove: `**Remove FluxBio.** Say first that they can leave it as it is, since it costs nothing. If they still want it gone:
 1. Offer a backup (see "Back up"), and say what goes: pages, short links, stats and pictures. Every short link and printed QR code stops working, and this can't be undone, apart from the database within 7 days.
 2. Wait for a clear yes to this, in this conversation.
