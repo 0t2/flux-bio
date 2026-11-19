@@ -8,7 +8,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.3.1 - 2026-11-19
 
 ### Nouveautés
-- `GET /api/update` indique si une version plus récente de FluxBio est sortie : combien de versions votre site a de retard, et si l’une d’elles corrige un problème de sécurité ou comporte une « Action requise ». Ce journal des modifications n’est lu sur GitHub que lorsqu’on le demande. Votre IA le consulte une fois par conversation et vous prévient en premier lorsqu’un correctif de sécurité attend.
+- `GET /api/update` indique si une version plus récente de FluxBio est sortie : combien de versions votre site a de retard, et si l’une d’elles corrige un problème de sécurité ou comporte une « Action requise ». Ce journal des modifications n’est lu sur GitHub que lorsqu’on le demande. Votre IA le consulte une fois par conversation et vous prévient en premier lorsqu’un correctif de sécurité attend. [#43](https://github.com/0t2/flux-bio/pull/43)
 
 ## 0.3.0 - 2026-11-19
 

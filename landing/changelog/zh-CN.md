@@ -8,7 +8,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.3.1 - 2026-11-19
 
 ### 新增
-- `GET /api/update` 会告诉你 FluxBio 有没有新版本：你的站点落后几个版本，其中有没有安全修复或“需要处理”的事项。它只在被询问时才从 GitHub 读取这份更新日志。你的 AI 每次对话会问一次，有安全修复在等待时会先告诉你。
+- `GET /api/update` 会告诉你 FluxBio 有没有新版本：你的站点落后几个版本，其中有没有安全修复或“需要处理”的事项。它只在被询问时才从 GitHub 读取这份更新日志。你的 AI 每次对话会问一次，有安全修复在等待时会先告诉你。 [#43](https://github.com/0t2/flux-bio/pull/43)
 
 ## 0.3.0 - 2026-11-19
 

@@ -8,7 +8,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.3.1 - 2026-11-19
 
 ### New
-- `GET /api/update` says whether a newer FluxBio is out: how many releases your site is behind, and whether one of them fixes a security problem or has an Action needed. It reads this changelog from GitHub, and only when asked. Your AI asks once a conversation, and tells you first when a security fix is waiting.
+- `GET /api/update` says whether a newer FluxBio is out: how many releases your site is behind, and whether one of them fixes a security problem or has an Action needed. It reads this changelog from GitHub, and only when asked. Your AI asks once a conversation, and tells you first when a security fix is waiting. [#43](https://github.com/0t2/flux-bio/pull/43)
 
 ## 0.3.0 - 2026-11-19
 
