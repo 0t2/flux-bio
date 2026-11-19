@@ -125,6 +125,31 @@ export interface SiteJson {
 	current: boolean
 }
 
+/** One release of FluxBio, as its section of CHANGELOG.md has it. */
+export interface ReleaseJson {
+	version: string
+	/** The day it reached the project's main branch, YYYY-MM-DD. */
+	date: string
+	/** In the file's order: Action needed, Security, New, Changed, Fixed. Entries are in English, with `code` and [links](https://…). */
+	changes: { category: string; entries: string[] }[]
+}
+
+/** Whether a newer FluxBio is out, from the project's changelog on GitHub. */
+export interface UpdateResponse {
+	/** The release this site runs. */
+	version: string
+	/** The newest release, or null when GitHub couldn't be read: then nothing is known, which isn't being up to date. */
+	latest: string | null
+	/** How many releases this site is behind. */
+	behind: number
+	/** One of them fixes a security problem. */
+	security: boolean
+	/** One of them has an "Action needed": updating takes more than a deploy. */
+	actionNeeded: boolean
+	/** The releases it is behind, newest first, at most 40. */
+	releases: ReleaseJson[]
+}
+
 export interface StateResponse {
 	version: string
 	origin: string

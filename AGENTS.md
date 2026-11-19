@@ -424,6 +424,11 @@ Rules worth knowing:
   example `?s=ig` or `?s=qr`. In-app browsers (Instagram, Threads, Facebook, LINE, X, TikTok,
   WeChat, Weibo, KakaoTalk, NAVER, Zalo, Snapchat, Pinterest, LinkedIn) and referrers are detected
   automatically (`src/shared/source.ts`); WhatsApp, Telegram, email and print arrive as direct.
+- **Newer versions.** A site is its owner's copy of the code, so nothing tells it when the project moves on. `GET /api/update` reads
+  `CHANGELOG.md` from the project's repository on GitHub (`CHANGELOG_URL` in `src/worker/lib/update.ts`) and answers with the releases
+  the site is behind, newest first, and whether one is a security fix (`security`) or has an "Action needed" (`actionNeeded`). `latest`
+  is null when GitHub can't be read, which isn't being up to date. Only an agent asking makes that request, never a visitor or the
+  dashboard, and the guide has an agent ask once a conversation and say a waiting security fix first.
 - **UTM tags.** A short link's `utm` (`source`, `medium`, `campaign`, `content`) is added to its
   destination. A page URL can carry `utm_*` too; the page's links pass them on with `?s=`, so a
   click counts under the place the visitor came from. `content` tells apart places on one
@@ -501,6 +506,7 @@ src/worker/             Hono app
   lib/ops.ts            pages, publish, settings, short links (they keep D1 and KV in sync)
   lib/stats.ts          counting views and clicks, D1 stats queries
   lib/statsHistory.ts   old stats: days into months, the download, clearing old months
+  lib/update.ts         whether a newer FluxBio is out: reads the project's changelog from GitHub when an agent asks
   lib/analytics.ts      Analytics Engine events and SQL
   lib/backup.ts         export, import, wipe
   lib/seo.ts            robots.txt, sitemap.xml and the addresses of a page in each language

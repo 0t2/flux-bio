@@ -22,6 +22,7 @@ import type {
 	StatsResponse,
 	TopTargetJson,
 	UnusedMediaResponse,
+	UpdateResponse,
 	UsageResponse,
 	WipeResponse,
 	PreviewLinkResponse,
@@ -135,6 +136,7 @@ import {
 	WipeInput,
 } from '../lib/schemas'
 import { clearStats, DATABASE_LIMIT, databaseBytes, EXPORT_COLUMNS, exportStats, statsHistory, tidyStats } from '../lib/statsHistory'
+import { checkUpdate } from '../lib/update'
 import { VERSION } from '../lib/version'
 import { clicksByPage, emptyLinkStats, linkStats, overview, targetOverview, type LinkStats } from '../lib/stats'
 import { ApiError, type AppEnv, type Auth } from '../types'
@@ -430,6 +432,9 @@ const FREE_DAILY: NonNullable<UsageResponse['dailyLimits']> = {
 	d1: D1_DAILY_LIMITS,
 	databases: { count: D1_STORAGE.databases, bytes: D1_STORAGE.account },
 }
+
+// The owner's AI asks this, the dashboard and visitors never: it is the one route that reads from GitHub by itself.
+api.get('/update', async (c) => c.json<UpdateResponse>(await checkUpdate()))
 
 api.get('/usage', async (c) => {
 	const db = c.env.DB
