@@ -38,6 +38,24 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm landing
+      # A release is dated the day it reaches main: today in Taipei, where the project is kept, or by UTC, which is
+      # what a cloud session's clock says. This runs when the pull request is pushed to, so one that waits overnight
+      # still has to have its date changed before it is merged.
+      - if: github.event_name == 'pull_request'
+        run: |
+          number='s/^[[:space:]]*"version": "([0-9]+\.[0-9]+\.[0-9]+)",?$/\1/p'
+          version=$(sed -nE "$number" package.json | head -n 1)
+          before=$(git show "$BASE:package.json" | sed -nE "$number" | head -n 1)
+          [ "$version" != "$before" ] || exit 0
+          dated=$(awk -v version="$version" '/^## / && $2 == version { print $4 }' CHANGELOG.md)
+          utc=$(date -u +%F)
+          taipei=$(TZ=Asia/Taipei date +%F)
+          if [ "$dated" != "$utc" ] && [ "$dated" != "$taipei" ]; then
+            echo "::error file=CHANGELOG.md::$version is dated $dated, and today is $taipei. Change the date in CHANGELOG.md and in the 12 files under landing/changelog/."
+            exit 1
+          fi
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
       # The Workers keep their own secrets, so deploys don't pass a secrets file. The token
       # reaches one account only, so cf needs no account id.
       # Without the FLUXBIO_SITE variable no FluxBio site is deployed: `cf deploy` would make a new

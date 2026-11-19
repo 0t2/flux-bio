@@ -448,6 +448,7 @@ pnpm test        # Node deployment-script checks, then Vitest inside the Workers
 pnpm typecheck   # generates .cloudflare/types, then type-checks the Worker, dashboard and config
 pnpm build       # builds into .cloudflare/output
 pnpm i18n check  # lists dashboard text that isn't translated yet
+pnpm api:surface # rewrites tests/api-surface.json, the names the API promises, after a route, a body or a response changed
 pnpm landing     # builds the landing page, the project's own site; its other commands are in landing/AGENTS.md
 pnpm brand       # remakes the favicon, app icons and the landing page's logo pictures from LOGO_PATH in src/templates/icons.ts
 pnpm deploy:images --site <url>  # deploy with the site's pictures as static files (--no-deploy, --mode staging)
@@ -464,10 +465,12 @@ fluxbio.link's update page from these files and checks their structure and prote
 
 - **Which version.** One above the section below it: the next minor if the release has an "Action needed" (0.3.4 → 0.4.0), else the next patch (0.3.4 → 0.3.5). So the number says whether updating
   takes more than a deploy, and the guide's `update` topic has an owner's AI read the releases between the version a site runs and the new one. A change that takes away or renames something in
-  the API an agent or an integration may be using is an "Action needed" too. A new major is the maintainer's call.
+  the API an agent or an integration may be using is an "Action needed" too, and `tests/api-surface.test.mjs` fails without one. A new major is the maintainer's call.
 - **Where it is written.** In `package.json`, the same pull request. `src/worker/lib/version.ts` reads it from there, and the site says it in `version` of `GET /api/state`, in `/llms.txt` and in
   `/api/openapi.json`. The tests fail when it isn't the newest heading in `CHANGELOG.md`.
 - **Another release merged first.** Then yours is the next one after it: put your section above it, take the next number and change `package.json` to match.
+- **The date** is the day the release reaches `main`. A pull request's checks fail when its new release is dated another day, but they only run when it is pushed to: before merging one that has
+  waited overnight, change the date, in all 13 files.
 - **The tag.** A push to `main` whose version has no tag yet gets `v<version>` and a GitHub release with that section as its notes (`.github/workflows/deploy.yml`). Nobody pushes tags by hand.
 - The sections below 0.3.0 are days without a version, from when every site called itself 0.2.1. No new one is written that way.
 
@@ -532,6 +535,14 @@ tests/                  Vitest tests (run in workerd)
   suggestions. A new topic also goes in the `/api/guide/{topic}` description in `openapi.ts`. Turning zod
   schemas into JSON Schema costs too much CPU for a request, so `vite.openapi.ts` does it at
   build time.
+- **What the API promises is written down.** `tests/api-surface.json` lists every name an agent or an integration can
+  depend on: each route and who may call it, its parameters and their values, the fields of each request body and of a
+  page's content, and the fields of each response, read from the interfaces in `src/shared/api.ts`. After changing any of
+  those, run `pnpm api:surface` and commit the file: `tests/api-surface.test.mjs` fails until it matches. Adding a name is
+  free. A name that goes, which a rename is too, breaks whoever used it, so the test also compares with the list where the
+  branch left `main` and fails unless the change is a release with an "Action needed" saying what to use instead. Keeping
+  the old name working beside the new one needs none. A field's type and whether it is required are not in the list, so
+  changing those is still on you to call out.
 - **D1 is the source of truth.** It holds `pages`, `page_versions`, `links`, `stats` and
   `api_tokens`, which the Worker creates and upgrades on first use. To change the schema, append a
   migration to `MIGRATIONS` in `src/worker/lib/db.ts`. Never edit an existing migration.
