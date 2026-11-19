@@ -8,7 +8,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.3.0 - 2026-11-19
 
 ### Mới
-- Mỗi bản phát hành giờ đã có số phiên bản. Trang web cho biết phiên bản đang chạy trong `version` của `GET /api/state` và ở đầu `/llms.txt`, và mỗi tiêu đề trên trang này là một phiên bản. Con số cho biết việc cập nhật cần gì: khi số ở giữa thay đổi (0.3.4 lên 0.4.0) thì có mục “Cần thực hiện”, còn khi chỉ số cuối thay đổi thì chỉ cần triển khai lại. Trang web vẫn hiện 0.2.1 là từ trước bản phát hành này, nên hãy dựa vào ngày cập nhật gần nhất của trang.
+- Mỗi bản phát hành giờ đã có số phiên bản. Trang web cho biết phiên bản đang chạy trong `version` của `GET /api/state` và ở đầu `/llms.txt`, và mỗi tiêu đề trên trang này là một phiên bản. Con số cho biết việc cập nhật cần gì: khi số ở giữa thay đổi (0.3.4 lên 0.4.0) thì có mục “Cần thực hiện”, còn khi chỉ số cuối thay đổi thì chỉ cần triển khai lại. Trang web vẫn hiện 0.2.1 là từ trước bản phát hành này, nên hãy dựa vào ngày cập nhật gần nhất của trang. [#41](https://github.com/0t2/flux-bio/pull/41)
 
 ## 2026-11-17
 

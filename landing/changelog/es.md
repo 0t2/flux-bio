@@ -8,7 +8,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.3.0 - 2026-11-19
 
 ### Novedades
-- Las versiones ya tienen número. Un sitio dice cuál ejecuta en `version` de `GET /api/state` y al principio de `/llms.txt`, y cada título de esta página es una versión. El número indica qué hace falta para actualizar: cuando cambia el número del medio (de 0.3.4 a 0.4.0) hay una «Acción necesaria», y cuando solo cambia el último basta con desplegar. Un sitio que todavía dice 0.2.1 es anterior a esta versión, así que guíate por el día en que se actualizó por última vez.
+- Las versiones ya tienen número. Un sitio dice cuál ejecuta en `version` de `GET /api/state` y al principio de `/llms.txt`, y cada título de esta página es una versión. El número indica qué hace falta para actualizar: cuando cambia el número del medio (de 0.3.4 a 0.4.0) hay una «Acción necesaria», y cuando solo cambia el último basta con desplegar. Un sitio que todavía dice 0.2.1 es anterior a esta versión, así que guíate por el día en que se actualizó por última vez. [#41](https://github.com/0t2/flux-bio/pull/41)
 
 ## 2026-11-17
 

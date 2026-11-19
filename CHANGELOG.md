@@ -8,7 +8,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.3.0 - 2026-11-19
 
 ### New
-- Releases have version numbers. A site says which one it runs in `version` of `GET /api/state` and at the top of `/llms.txt`, and each heading here is one. The number says what updating takes: when the middle number changes (0.3.4 to 0.4.0) there is an Action needed, and when only the last one does, deploying is enough. A site that still says 0.2.1 is from before this release, so go by the day it was last updated.
+- Releases have version numbers. A site says which one it runs in `version` of `GET /api/state` and at the top of `/llms.txt`, and each heading here is one. The number says what updating takes: when the middle number changes (0.3.4 to 0.4.0) there is an Action needed, and when only the last one does, deploying is enough. A site that still says 0.2.1 is from before this release, so go by the day it was last updated. [#41](https://github.com/0t2/flux-bio/pull/41)
 
 ## 2026-11-17
 

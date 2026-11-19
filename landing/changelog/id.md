@@ -8,7 +8,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.3.0 - 2026-11-19
 
 ### Baru
-- Setiap rilis kini punya nomor versi. Situs menyebutkan versi yang dijalankannya di `version` pada `GET /api/state` dan di awal `/llms.txt`, dan setiap judul di halaman ini adalah satu versi. Nomornya menunjukkan apa yang diperlukan saat memperbarui: jika angka tengah berubah (0.3.4 ke 0.4.0), ada “Perlu tindakan”, dan jika hanya angka terakhir yang berubah, cukup deploy. Situs yang masih menampilkan 0.2.1 berasal dari sebelum rilis ini, jadi gunakan tanggal terakhir situs itu diperbarui sebagai patokan.
+- Setiap rilis kini punya nomor versi. Situs menyebutkan versi yang dijalankannya di `version` pada `GET /api/state` dan di awal `/llms.txt`, dan setiap judul di halaman ini adalah satu versi. Nomornya menunjukkan apa yang diperlukan saat memperbarui: jika angka tengah berubah (0.3.4 ke 0.4.0), ada “Perlu tindakan”, dan jika hanya angka terakhir yang berubah, cukup deploy. Situs yang masih menampilkan 0.2.1 berasal dari sebelum rilis ini, jadi gunakan tanggal terakhir situs itu diperbarui sebagai patokan. [#41](https://github.com/0t2/flux-bio/pull/41)
 
 ## 2026-11-17
 
