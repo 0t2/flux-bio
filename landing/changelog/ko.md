@@ -5,7 +5,7 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
-## 0.3.1 - 2026-11-19
+## 0.3.1 - 2026-11-20
 
 ### 새 기능
 - `GET /api/update`로 FluxBio의 새 버전이 나왔는지 알 수 있습니다. 사이트가 몇 릴리스 뒤처져 있는지, 그중에 보안 수정이나 ‘조치 필요’ 항목이 있는지 알려 줍니다. 이 변경 기록은 요청이 있을 때만 GitHub에서 읽습니다. 사용 중인 AI가 대화마다 한 번 확인하고, 보안 수정이 기다리고 있으면 가장 먼저 알려 줍니다. [#43](https://github.com/0t2/flux-bio/pull/43)
