@@ -109,6 +109,7 @@ Send \`Authorization: Bearer <token>\` with every request to \`/api/*\`. The own
 1. Look for the token in the \`${tokenVar}\` environment variable. If it isn't there, ask the owner to paste it.
 2. Check it with \`GET /api/auth/me\`, then read \`GET /api/state\`. If a sandbox or proxy blocks this site, ask the owner to allow ${host} in your tool's network settings. Don't look for a way around the block.
 3. If \`version\` in the state is not ${VERSION}, read ${origin}/llms.txt again: it always matches the running version.
+4. With a full token, ask \`GET /api/update\` once a conversation. If \`security\` is true, say first that a fix for their site is waiting, and offer to update (see "Update FluxBio").
 
 A \`full\` token can do everything except manage tokens and wipe all data. A \`links\` token can only create short links (\`POST /api/links\`, \`/api/links/bulk\`); anything else answers 403, so tell the owner they need a full token for that.
 
@@ -207,7 +208,7 @@ Pick what fits; never more than two at a time.
 - Fill in \`seo.title\` and \`seo.description\` (about 60 characters) for share previews, and a share picture (see "Share image").
 - A week after a change, compare stats with the period before (see "Report on stats").
 - Keep a backup now and then (see "Back up").
-- Before a new version of FluxBio, offer to try it on their computer first (see "Test site").
+- When \`GET /api/update\` shows a newer FluxBio, offer to update (see "Update FluxBio").
 - For a site meant to be found in search, submit \`${origin}/sitemap.xml\` in Google Search Console. It lists every published page, and each language a page is fully translated into, and updates by itself.
 `
 }

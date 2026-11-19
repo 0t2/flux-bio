@@ -301,6 +301,14 @@ export const OPERATIONS: Operation[] = [
 		summary: "How close the site is to its plan's limits",
 		description: "Database size, today's views and clicks with what they cost, and how old numbers are kept. Estimates: pictures, bots and other Workers on the account aren't counted.",
 	},
+	{
+		method: 'get',
+		path: '/api/update',
+		id: 'checkUpdate',
+		tag: 'Account',
+		summary: 'Whether a newer FluxBio is out',
+		description: "The releases this site is behind, from FluxBio's changelog on GitHub, and whether one fixes a security problem or has an Action needed. `latest` is null when GitHub can't be read, which isn't being up to date.",
+	},
 	{ method: 'get', path: '/api/themes', id: 'listThemes', tag: 'Themes', summary: 'Saved looks' },
 	{
 		method: 'post',
