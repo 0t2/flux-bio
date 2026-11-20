@@ -5,6 +5,14 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.8 - 2026-11-20
+
+### 修正
+- 已發布頁面超過約 800 個的網站，關閉頁面時一定會失敗。現在每次請求讓幾百個頁面下線，並自動繼續到全部完成。 [#57](https://github.com/0t2/flux-bio/pull/57)
+- 頁面加短網址超過約 400 個的網站，還原備份可能失敗，或留下舊網址繼續回應。現在每次請求清掉幾百個。 [#57](https://github.com/0t2/flux-bio/pull/57)
+- 頁面很多的網站關閉「從你的網站載入字型」時，大部分字型檔會留著沒刪，也可能失敗。現在每次請求刪掉幾百個。 [#57](https://github.com/0t2/flux-bio/pull/57)
+- 大型網站變更設定時，可能一次做超過單一請求允許的工作量而失敗。 [#57](https://github.com/0t2/flux-bio/pull/57)
+
 ## 0.4.7 - 2026-11-20
 
 ### 安全性

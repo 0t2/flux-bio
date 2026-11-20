@@ -5,6 +5,14 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.8 - 2026-11-20
+
+### Correções
+- Desativar as páginas em um site com mais de umas 800 páginas publicadas sempre falhava. Agora ele as tira do ar algumas centenas por requisição e continua sozinho até terminar. [#57](https://github.com/0t2/flux-bio/pull/57)
+- Restaurar um backup em um site com mais de umas 400 páginas e links curtos podia falhar ou deixar endereços antigos respondendo. Agora eles são limpos algumas centenas por requisição. [#57](https://github.com/0t2/flux-bio/pull/57)
+- Desativar o carregamento de fontes do seu próprio site deixava a maioria dos arquivos de fonte para trás em um site com muitas páginas, e podia falhar. Agora eles são excluídos algumas centenas por requisição. [#57](https://github.com/0t2/flux-bio/pull/57)
+- Uma alteração de configuração em um site grande podia iniciar mais trabalho do que uma requisição permite, e falhar. [#57](https://github.com/0t2/flux-bio/pull/57)
+
 ## 0.4.7 - 2026-11-20
 
 ### Segurança

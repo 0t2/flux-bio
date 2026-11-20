@@ -1,6 +1,7 @@
-import type { ApiErrorBody } from '../shared/api'
+import type { ApiErrorBody, SettingsResponse } from '../shared/api'
+import type { Settings } from '../shared/content'
 import type { Problem } from '../shared/validate'
-import { t, tMessage } from './i18n'
+import { msg, t, tMessage } from './i18n'
 
 export class ApiError extends Error {
 	constructor(
@@ -64,3 +65,29 @@ export async function request<T>(path: string, options: { method?: string; json?
 export function requestIfNewer<T>(path: string, version: number): Promise<T | null> {
 	return request<T | null>(path, { headers: { 'if-none-match': `"${version}"` } })
 }
+
+/** How many more times a save goes on by itself: each takes a large site's next few hundred pages. */
+const MORE_SAVES = 30
+
+/**
+ * Saves settings, and goes on while the site says there is more to tell KV than one request may (`copiesLeft`): a
+ * site with many pages has their copies dropped a few hundred a request, and until then some show the old settings,
+ * or stay public after pages were switched off. `unfinished` says it still isn't done, as on a day whose KV writes
+ * are used up: the change itself is saved either way, and the site goes on when settings are next saved.
+ */
+export async function saveSettings(json: object): Promise<{ settings: Settings; unfinished: boolean }> {
+	let answer = await request<SettingsResponse>('/settings', { method: 'PUT', json })
+	for (let more = 0; answer.copiesLeft && more < MORE_SAVES; more++) {
+		try {
+			answer = await request<SettingsResponse>('/settings', { method: 'PUT', json: {} })
+		} catch {
+			return { settings: answer.settings, unfinished: true }
+		}
+	}
+	return { settings: answer.settings, unfinished: Boolean(answer.copiesLeft) }
+}
+
+/** What to say when a save is `unfinished`. */
+export const UNFINISHED = msg('已經儲存。網站的頁面很多，還有一些沒更新完，請稍後再儲存一次。')
+/** And when it was pages being switched off: the ones not reached yet are still public, which is not "not up to date". */
+export const UNFINISHED_OFF = msg('已經儲存。網站的頁面很多，還有一些頁面還沒下線，重新整理這一頁會繼續。')

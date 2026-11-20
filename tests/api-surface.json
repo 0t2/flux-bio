@@ -1821,6 +1821,8 @@
 	"type GoogleFont.weights",
 	"type GoogleFont.weights always",
 	"type GoogleFont.weights: number[]",
+	"type ImportResponse.copiesLeft",
+	"type ImportResponse.copiesLeft: true",
 	"type ImportResponse.pages",
 	"type ImportResponse.pages always",
 	"type ImportResponse.pages: number",

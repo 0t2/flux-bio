@@ -5,6 +5,14 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.8 - 2026-11-20
+
+### 수정
+- 게시된 페이지가 약 800개를 넘는 사이트에서는 페이지 끄기가 항상 실패했습니다. 이제 요청 한 번에 수백 개씩 내리고 모두 끝날 때까지 자동으로 이어집니다. [#57](https://github.com/0t2/flux-bio/pull/57)
+- 페이지와 단축 링크가 합쳐 약 400개를 넘는 사이트에서는 백업 복원이 실패하거나 예전 주소가 계속 응답할 수 있었습니다. 이제 요청 한 번에 수백 개씩 지웁니다. [#57](https://github.com/0t2/flux-bio/pull/57)
+- 페이지가 많은 사이트에서 내 사이트에서 글꼴 불러오기를 끄면 글꼴 파일 대부분이 남았고 실패할 수도 있었습니다. 이제 요청 한 번에 수백 개씩 삭제합니다. [#57](https://github.com/0t2/flux-bio/pull/57)
+- 큰 사이트에서 설정을 바꾸면 요청 하나에 허용된 것보다 많은 작업을 시작해 실패할 수 있었습니다. [#57](https://github.com/0t2/flux-bio/pull/57)
+
 ## 0.4.7 - 2026-11-20
 
 ### 보안

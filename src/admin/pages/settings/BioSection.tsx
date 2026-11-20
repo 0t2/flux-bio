@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Settings } from '../../../shared/content'
-import { request } from '../../api'
+import { request, saveSettings, UNFINISHED, UNFINISHED_OFF } from '../../api'
 import { Dialog, Section, toast, Toggle } from '../../components/ui'
 import { t } from '../../i18n'
 import { useApp } from '../../state/app'
@@ -27,13 +27,13 @@ export function BioSection() {
 		setGoing(bio)
 		setError(null)
 		try {
-			const { settings } = await request<{ settings: Settings }>('/settings', { method: 'PUT', json: { bio } })
+			const { settings, unfinished } = await saveSettings({ bio })
 			setAsking(false)
 			setBusy(false)
 			setGoing(null)
 			// The dashboard rebuilds itself around this: with pages off, no page is loaded.
 			app.setSettings(settings)
-			toast(bio ? t('頁面回來了，已發布的頁面重新上線') : t('現在只做短網址，短網址照常轉址'))
+			toast(unfinished ? t(bio ? UNFINISHED : UNFINISHED_OFF) : bio ? t('頁面回來了，已發布的頁面重新上線') : t('現在只做短網址，短網址照常轉址'))
 		} catch (caught) {
 			setError(errorText(caught, t('儲存失敗，請稍後再試')))
 			setBusy(false)

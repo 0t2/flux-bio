@@ -108,11 +108,15 @@ async function hostFamily(env: Env, pageId: string, web: WebFont, chars: readonl
 	const faces = parseFaces(await (await fetchOk(`${CSS_URL}?${query}`)).text())
 	if (!faces.length) throw new Error(`no faces for ${web.family}`)
 	const files = new Map<string, string>()
+	// Each copy has names of its own. The same text copied again would otherwise be written under the names an
+	// older list has, and that list may be waiting for its files to be deleted (setFontsAside in lib/ops.ts): the
+	// delete could land after this copy's write, and the page would name a file that is gone, for good.
+	const copy = Date.now().toString(36)
 	for (const face of faces) {
 		if (files.has(face.src)) continue
 		const bytes = await (await fetchOk(face.src)).arrayBuffer()
 		if (!bytes.byteLength || bytes.byteLength > MAX_FILE_BYTES) throw new Error(`${web.family} file is ${bytes.byteLength} bytes`)
-		const file = `${pageId}-${key}-${files.size}`
+		const file = `${pageId}-${key}-${copy}-${files.size}`
 		await env.KV.put(fontKey(file), bytes)
 		files.set(face.src, file)
 	}
