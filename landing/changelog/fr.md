@@ -8,12 +8,12 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.9 - 2026-11-20
 
 ### Sécurité
-- L’identifiant journalier d’un visiteur dans les statistiques détaillées est désormais salé avec une valeur aléatoire remplacée chaque jour, et non avec le mot de passe d’administration. Une fois la journée passée, personne ne peut vérifier si une adresse donnée est venue, pas même le propriétaire. Le nombre de visiteurs du jour est trop élevé le jour de cette mise à jour. [#58](https://github.com/0t2/flux-bio/pull/58)
+- L’identifiant journalier d’un visiteur dans les statistiques détaillées est désormais salé avec une valeur aléatoire remplacée chaque jour, et non avec le mot de passe d’administration. Connaître le mot de passe ne permet plus de vérifier si une adresse donnée est venue. Le nombre de visiteurs du jour est trop élevé le jour de cette mise à jour. [#58](https://github.com/0t2/flux-bio/pull/58)
 
 ### Corrections
 - Publier pendant que quelqu’un d’autre enregistre le brouillon répond désormais avec la vraie version du brouillon et indique que le brouillon a été conservé (`draftKept`) ; le tableau de bord prend ce brouillon ou demande lequel garder. [#58](https://github.com/0t2/flux-bio/pull/58)
 - Une page publiée au moment même où elle est déplacée, où l’un de ses liens reçoit une autre adresse courte ou où un changement de réglages copie ses polices ne garde plus une ancienne copie, une adresse courte orpheline ou de mauvais fichiers de police. [#58](https://github.com/0t2/flux-bio/pull/58)
-- Le téléchargement des statistiques suspend la fusion des anciens jours en mois jusqu’à sa fin : aucun décompte ne peut tomber entre deux pages du téléchargement. [#58](https://github.com/0t2/flux-bio/pull/58)
+- Télécharger les statistiques pendant que d’anciens jours sont fusionnés en mois ne laisse plus de décomptes hors du fichier : le téléchargement en est averti et recommence. [#58](https://github.com/0t2/flux-bio/pull/58)
 
 ## 0.4.8 - 2026-11-20
 

@@ -168,6 +168,7 @@ export const ENGLISH: Record<string, string> = {
 	"聯絡方式": "Contact",
 	"自訂 HTML 還是空的": "The custom HTML is still empty",
 	"至少要留一個頁面": "You need to keep at least one page",
+	"舊的點擊數據在下載途中被整理過，請從頭再下載一次": "Old numbers were tidied while they were being downloaded. Start the download again.",
 	"螢光綠": "Neon green",
 	"認識我們": "About us",
 	"請先登入": "Please sign in first",

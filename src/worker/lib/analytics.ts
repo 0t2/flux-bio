@@ -86,8 +86,12 @@ const salts = perSite<Map<string, { day: string; salt: Promise<string> }>>()
  *
  * The row only ever moves on to a later day. Asked for a day before the one it holds, as for a visit counted a
  * moment after midnight, the answer is the salt it holds: going back would give that later day a second salt the
- * next time it is asked for, and its visitors would be counted twice from then on. If D1 can't be asked, the salt
- * lasts as long as this copy of the Worker.
+ * next time it is asked for, and its visitors would be counted twice from then on. If D1 can't be asked, that one
+ * visit gets a salt of its own.
+ *
+ * "Gone" is as far as this code goes. D1 can be taken back to any minute of the last 30 days (7 on the free plan)
+ * by whoever has the Cloudflare account, and a salt read out of that is the day's salt: past those days it is gone
+ * for them too.
  */
 export function daySalt(env: Env, day: string, key = 'visitor-salt'): Promise<string> {
 	const site = siteId(env)
@@ -105,7 +109,9 @@ export function daySalt(env: Env, day: string, key = 'visitor-salt'): Promise<st
 		if (typeof stored?.salt !== 'string') throw new Error('The day has no salt')
 		return stored.salt
 	})().catch((error: unknown) => {
+		// Not remembered: the next visit asks D1 again, and the day goes on with the salt it has there.
 		console.error('Could not read the day\'s salt', error)
+		if (mine.get(key)?.salt === salt) mine.delete(key)
 		return randomString(32)
 	})
 	mine.set(key, { day, salt })

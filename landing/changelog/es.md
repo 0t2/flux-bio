@@ -8,12 +8,12 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.9 - 2026-11-20
 
 ### Seguridad
-- El identificador diario de un visitante en las estadísticas detalladas ahora lleva como sal un valor aleatorio que se reemplaza cada día, no la contraseña de administración. Pasado el día, nadie puede comprobar si una dirección concreta visitó el sitio, ni siquiera el propietario. El recuento de visitantes del día sale demasiado alto el día de esta actualización. [#58](https://github.com/0t2/flux-bio/pull/58)
+- El identificador diario de un visitante en las estadísticas detalladas ahora lleva como sal un valor aleatorio que se reemplaza cada día, no la contraseña de administración. Conocer la contraseña ya no sirve para comprobar si una dirección concreta visitó el sitio. El recuento de visitantes del día sale demasiado alto el día de esta actualización. [#58](https://github.com/0t2/flux-bio/pull/58)
 
 ### Correcciones
 - Publicar mientras otra persona guarda el borrador ahora responde con la versión real del borrador y dice que el borrador se conservó (`draftKept`); el panel toma ese borrador o pregunta cuál conservar. [#58](https://github.com/0t2/flux-bio/pull/58)
 - Una página publicada en el mismo instante en que se mueve, en que uno de sus enlaces recibe otra dirección corta o en que un cambio de ajustes copia sus fuentes ya no conserva una copia antigua, una dirección corta suelta ni archivos de fuentes equivocados. [#58](https://github.com/0t2/flux-bio/pull/58)
-- Descargar las estadísticas detiene la fusión de días antiguos en meses hasta que termina, así que ningún recuento puede caer entre dos páginas de la descarga. [#58](https://github.com/0t2/flux-bio/pull/58)
+- Descargar las estadísticas mientras los días antiguos se fusionan en meses ya no deja recuentos fuera del archivo: la descarga recibe el aviso y vuelve a empezar. [#58](https://github.com/0t2/flux-bio/pull/58)
 
 ## 0.4.8 - 2026-11-20
 

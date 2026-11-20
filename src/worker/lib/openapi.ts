@@ -282,7 +282,7 @@ export const OPERATIONS: Operation[] = [
 		tag: 'Stats',
 		summary: 'Every view and click count, oldest first, 1000 at a time',
 		description:
-			'Rows of [day, kind, target, page, slug, title, source, count]. day is "YYYY-MM-DD", or "YYYY-MM" for a month kept as one number. If nextCursor is not null, ask again with ?cursor=<nextCursor>. Read-only.',
+			'Rows of [day, kind, target, page, slug, title, source, count]. day is "YYYY-MM-DD", or "YYYY-MM" for a month kept as one number. If nextCursor is not null, ask again with ?cursor=<nextCursor>. 409 stats-changed: old days were merged meanwhile, start again without a cursor. Read-only.',
 		query: [
 			{ name: 'cursor', description: 'nextCursor from the page before' },
 			{ name: 'before', description: 'Only numbers from before this month, "YYYY-MM"' },
