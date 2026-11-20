@@ -245,6 +245,13 @@ the password is in `.secrets.env` and the tokens in `.tokens.env`, to hand over 
 picked, set the secret itself, with the Worker's name:
 `pnpm exec cf workers secrets update ADMIN_PASSWORD --worker <name> --type secret_text --text '<new password>'`.
 
+**Update FluxBio.** `pnpm update:code` brings the code in the folder to the newest release, and deploys nothing. It shows the
+releases between the folder's version and the new one, stops if one of FluxBio's files was changed in the folder (`--overwrite`
+goes on and keeps a copy of each in `changed-before-<version>/`), replaces FluxBio's files and installs. It knows what the files
+were from the release's tag, and where a folder was downloaded from `main` a few commits after a release, it finds that commit.
+The owner's files, which are in no release, stay: `worker.json`, `sites.json`, `.secrets*.env`, `.dev.vars`, pictures. A git
+checkout is updated with `git pull` instead. Then deploy, as the guide's `update` topic says, with a backup first.
+
 **Use a custom domain.** The domain's zone must be on the same Cloudflare account. Either:
 
 - in the dashboard, open Workers & Pages → the Worker → Settings → Domains & Routes → Add →
@@ -485,6 +492,7 @@ pnpm brand       # remakes the favicon, app icons and the landing page's logo pi
 pnpm run deploy  # checks what is running on Cloudflare, then cf deploy (--dry-run, --mode staging; 1.5)
 pnpm deploy:images --site <url>  # deploy with the site's pictures as static files (--no-deploy, --mode staging)
 pnpm reset-password --site <url> # a new admin password, and a new token for each site (1.8)
+pnpm update:code # brings this folder's code to the newest release, deploying nothing (--check, --to, --overwrite; 1.8)
 pnpm usage       # today's free KV and D1 quota used and left, and each D1 database's size, on the signed-in Cloudflare account (--date, --days, --json)
 ```
 

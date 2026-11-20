@@ -5,6 +5,11 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.3 - 2026-11-20
+
+### 새 기능
+- `pnpm update:code`로 FluxBio 폴더의 코드를 최신 릴리스로 올릴 수 있습니다. 업데이트로 무엇이 바뀌는지 보여 주고, 폴더에서 FluxBio 파일이 수정된 경우 멈추며, 내 파일은 그대로 둡니다. 배포는 여전히 별도의 단계입니다. [#50](https://github.com/0t2/flux-bio/pull/50)
+
 ## 0.4.2 - 2026-11-20
 
 ### 새 기능
