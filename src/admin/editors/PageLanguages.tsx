@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { LOCALES, type Locale, type Settings } from '../../shared/content'
+import { LOCALES, type Locale } from '../../shared/content'
 import { otherLanguages } from '../../shared/locale'
 import { untranslated } from '../../shared/translations'
-import { ApiError, request } from '../api'
+import { ApiError, saveSettings, UNFINISHED } from '../api'
 import { AskAi } from '../components/AskAi'
 import { Section, toast } from '../components/ui'
 import { LANGUAGES, t } from '../i18n'
@@ -30,12 +30,9 @@ export function PageLanguages() {
 		if (busy) return
 		setBusy(true)
 		try {
-			const { settings } = await request<{ settings: Settings }>('/settings', {
-				method: 'PUT',
-				json: { locale: next, languages: otherLanguages(next, others) },
-			})
+			const { settings, unfinished } = await saveSettings({ locale: next, languages: otherLanguages(next, others) })
 			app.setSettings(settings)
-			toast(t('已儲存，立即生效'))
+			toast(unfinished ? t(UNFINISHED) : t('已儲存，立即生效'))
 		} catch (error) {
 			toast(error instanceof ApiError ? error.message : t('儲存失敗，請稍後再試'))
 		} finally {

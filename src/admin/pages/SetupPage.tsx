@@ -4,7 +4,7 @@ import type { PageJson } from '../../shared/api'
 import { emptyContent, type PageContent, type Settings, type ThemeId } from '../../shared/content'
 import { STARTER_IDS, STARTER_LABELS, starterContent, starterPreview, type StarterId } from '../../shared/starters'
 import type { IconName } from '../../templates/icons'
-import { ApiError, request } from '../api'
+import { ApiError, request, saveSettings } from '../api'
 import { Icon, Logo } from '../components/Icon'
 import { useMedia } from '../components/ui'
 import { LanguageSelect } from '../components/LanguageSelect'
@@ -139,7 +139,7 @@ function ShortLinksOnly() {
 		setBusy(true)
 		setError(null)
 		try {
-			const { settings } = await request<{ settings: Settings }>('/settings', { method: 'PUT', json: { ...ownerSettings(app.settings), bio: false } })
+			const { settings } = await saveSettings({ ...ownerSettings(app.settings), bio: false })
 			// Pages being off sends the owner on to 短網址.
 			app.setSettings(settings)
 		} catch (caught) {

@@ -184,8 +184,18 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 	// nothing changes if it is refusing, and after D1 has the backup KV's own list of names is gone through from the
 	// start, a slice here and the rest by the calls that follow. Until then a name not reached yet answers as before.
 	const large = dropped.length > KV_OPS_AT_ONCE / 2
-	if (large) await noteEveryCopyOld(db)
-	await dropCopies(env, large ? [] : dropped, [], { home: true })
+	if (large) {
+		await noteEveryCopyOld(db)
+		// The one thing: the "site" record goes, which "/" then asks D1 for until it is written again below. Taking
+		// the home page's copy out of it (dropCopies) asks KV for nothing when there is no such copy.
+		try {
+			await env.KV.delete(SITE_KEY)
+			forgetSite()
+		} catch (error) {
+			console.error('KV refused a delete', error)
+			throw new ApiError(503, 'kv', msg('Cloudflare KV 暫時寫不進去，這次的修改沒有儲存，請稍後再試。'))
+		}
+	} else await dropCopies(env, dropped, [], { home: true })
 	// The pages' font files go with the pages: nothing lists them afterwards.
 	const { results: listed } = await db.prepare('SELECT fonts FROM pages WHERE fonts IS NOT NULL').all<{ fonts: string }>()
 	const oldFonts = listed.flatMap((row) => unusedFontFiles(parseHostedFonts(row.fonts), null))

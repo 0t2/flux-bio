@@ -5,6 +5,14 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.8 - 2026-11-20
+
+### 修正
+- 公開済みのページが約 800 を超えるサイトでは、ページをオフにする操作が必ず失敗していました。1 回のリクエストで数百ページずつオフラインにし、すべて終わるまで自動で続けるようになりました。 [#57](https://github.com/0t2/flux-bio/pull/57)
+- ページと短縮リンクの合計が約 400 を超えるサイトでは、バックアップの復元が失敗したり、古いアドレスが応答し続けたりすることがありました。1 回のリクエストで数百ずつ消去するようになりました。 [#57](https://github.com/0t2/flux-bio/pull/57)
+- ページの多いサイトで、自分のサイトからフォントを読み込む設定をオフにすると、ほとんどのフォントファイルが残り、失敗することもありました。1 回のリクエストで数百ずつ削除するようになりました。 [#57](https://github.com/0t2/flux-bio/pull/57)
+- 大きなサイトで設定を変更すると、1 回のリクエストに許される以上の処理を始めて失敗することがありました。 [#57](https://github.com/0t2/flux-bio/pull/57)
+
 ## 0.4.7 - 2026-11-20
 
 ### セキュリティ

@@ -5,6 +5,14 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.8 - 2026-11-20
+
+### إصلاحات
+- كان إيقاف الصفحات في موقع يضم أكثر من نحو 800 صفحة منشورة يفشل دائمًا. صار يُخرج بضع مئات منها من الخدمة في كل طلب ويواصل تلقائيًا حتى ينتهي. [#57](https://github.com/0t2/flux-bio/pull/57)
+- كانت استعادة نسخة احتياطية في موقع يضم أكثر من نحو 400 صفحة ورابط قصير قد تفشل أو تترك عناوين قديمة تستجيب. صارت تُمسح بضع مئات في كل طلب. [#57](https://github.com/0t2/flux-bio/pull/57)
+- كان إيقاف تحميل الخطوط من موقعك يترك معظم ملفات الخطوط في موقع كثير الصفحات، وقد يفشل. صارت تُحذف بضع مئات في كل طلب. [#57](https://github.com/0t2/flux-bio/pull/57)
+- كان تغيير الإعدادات في موقع كبير قد يبدأ عملًا أكثر مما يُسمح به لطلب واحد فيفشل. [#57](https://github.com/0t2/flux-bio/pull/57)
+
 ## 0.4.7 - 2026-11-20
 
 ### الأمان

@@ -1007,5 +1007,6 @@
 	"已是最新版": "À jour",
 	"第 {n} 項和第 {m} 項的 id 一樣，請改掉其中一個": "Les éléments {m} et {n} ont le même id : modifiez l’un des deux",
 	"已經儲存，但 Cloudflare KV 暫時寫不進去，訪客還看不到這次的修改。請稍後再儲存一次。": "Enregistré, mais Cloudflare KV n’accepte pas d’écritures pour le moment : les visiteurs ne voient pas encore ce changement. Enregistrez de nouveau plus tard.",
-	"這一頁的內容有 {size} KB，不能超過 {limit} KB。最佔空間的是翻譯和自訂的 HTML。": "Le contenu de cette page fait {size} Ko, et la limite est de {limit} Ko. Ce sont les traductions et le HTML personnalisé qui prennent le plus de place."
+	"這一頁的內容有 {size} KB，不能超過 {limit} KB。最佔空間的是翻譯和自訂的 HTML。": "Le contenu de cette page fait {size} Ko, et la limite est de {limit} Ko. Ce sont les traductions et le HTML personnalisé qui prennent le plus de place.",
+	"已經儲存。網站的頁面很多，還有一些沒更新完，請稍後再儲存一次。": "Enregistré. Ce site compte beaucoup de pages et certaines ne sont pas encore à jour. Enregistrez de nouveau dans un moment."
 }

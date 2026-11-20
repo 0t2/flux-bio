@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import type { Settings } from '../../shared/content'
-import { ApiError, request } from '../api'
+import { ApiError, saveSettings, UNFINISHED } from '../api'
 import { Icon } from '../components/Icon'
 import { CopyButton, Dialog, Toggle, toast } from '../components/ui'
 import { t, tr } from '../i18n'
@@ -27,9 +26,9 @@ export function FontHosting() {
 		setBusy(true)
 		setGoing(hostFonts)
 		try {
-			const { settings } = await request<{ settings: Settings }>('/settings', { method: 'PUT', json: { hostFonts } })
+			const { settings, unfinished } = await saveSettings({ hostFonts })
 			app.setSettings(settings)
-			toast(hostFonts ? t('已改成從你的網站載入字型，已發布的頁面也一起更新了') : t('已改回從 Google 載入字型'))
+			toast(unfinished ? t(UNFINISHED) : hostFonts ? t('已改成從你的網站載入字型，已發布的頁面也一起更新了') : t('已改回從 Google 載入字型'))
 		} catch (error) {
 			toast(error instanceof ApiError ? error.message : t('儲存失敗，請稍後再試'))
 		} finally {
