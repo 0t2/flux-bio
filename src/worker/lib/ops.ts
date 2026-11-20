@@ -1,4 +1,7 @@
 import {
+	CONTENT_BYTES_LIMIT,
+	contentBytes,
+	contentPastLimit,
 	emptyContent,
 	isHttpUrl,
 	linkItems,
@@ -14,7 +17,7 @@ import { normalizeSlug, SLUG_PROBLEM_TEXT, slugFromText, slugFromUrl, slugProble
 import { duplicateContent, starterContent, starterWords, type StarterId } from '../../shared/starters'
 import { isValidTimeZone } from '../../shared/time'
 import { untranslated, usedTranslations } from '../../shared/translations'
-import { problemMessage, publishProblems, type Problem } from '../../shared/validate'
+import { problemMessage, publishProblems, TOO_LARGE, type Problem } from '../../shared/validate'
 import { fill, msg } from '../../templates/msg'
 import { ApiError } from '../types'
 import { deleteFontFiles, hostFonts, parseHostedFonts, unusedFontFiles } from './fonts'
@@ -34,6 +37,7 @@ import {
 } from './cache'
 import {
 	ensureSchema,
+	firstPublishedHandles,
 	firstPublishedPages,
 	forgetPublicNames,
 	getLink,
@@ -214,6 +218,46 @@ function owedFrom(stored: unknown): Owed {
 	if (!stored || typeof stored !== 'object') return NOTHING_OWED
 	const { site, pages, after } = stored as Partial<Record<keyof Owed, unknown>>
 	return { site: site === true, pages: Array.isArray(pages) ? pages.filter((id): id is string => typeof id === 'string').sort() : [], after: typeof after === 'string' ? after : null }
+}
+
+/** The settings, and whether a change to them still owes KV something a look at the site's state should send (see Owed). */
+export async function settingsAndOwed(db: D1Database): Promise<{ settings: Settings; owed: boolean }> {
+	const { settings, other } = await loadSettingsWith(db, COPIES_OWED)
+	let noted: Owed = NOTHING_OWED
+	try {
+		noted = owedFrom(other === null ? null : JSON.parse(other))
+	} catch {
+		// A note that can't be read owes nothing, and the next settings call takes it out.
+	}
+	// A page's copy can't be sent while pages are off, so that alone is nothing to try: it would be tried at every look.
+	return { settings, owed: noted.after === null && (noted.site || (settings.bio && noted.pages.length > 0)) }
+}
+
+/** Refuses a page's content that D1 could keep as a draft and never as draft and published both. */
+export function refuseTooLarge(content: PageContent, more?: PageContent | null): void {
+	// A draft and what is published share the row: a backup's page is held to both together, since a site's own
+	// backup may hold a large draft from before there was a limit, beside something small that is published.
+	const limit = more ? CONTENT_BYTES_LIMIT * 2 : CONTENT_BYTES_LIMIT
+	const bytes = more ? contentBytes(content) + contentBytes(more) : (contentPastLimit(content) ?? 0)
+	if (bytes > limit) throw new ApiError(413, 'too-large', { key: TOO_LARGE, params: { size: Math.ceil(bytes / 1000), limit: limit / 1000 } })
+}
+
+/**
+ * The "site" record lists a few published pages, for "/" to offer when no page is the home page. It is written when
+ * the home page or the settings change, so with no home page a page that was deleted or moved stayed offered there,
+ * and one just published wasn't. One KV read; with no home page one D1 query too, and a write only when the list is wrong.
+ */
+async function relist(env: Env): Promise<void> {
+	try {
+		const site = await getSite(env)
+		// With a home page, or pages off, the list is shown to nobody; whatever takes the home page away rewrites it.
+		if (!site || site.home || !site.bio) return
+		const now = await firstPublishedHandles(env.DB, SITE_RECORD_PAGES)
+		// Made again from D1 and checked against it afterwards, as a visit that found no record would.
+		if (now.join('\n') !== site.published.join('\n')) await siteFromDb(env)
+	} catch (error) {
+		console.error('Could not bring the list of pages at "/" up to date', error)
+	}
 }
 
 /** Something to be done after the response has left: `waitUntil`, where there is a request to hang it on. */
@@ -489,6 +533,9 @@ export async function publishPage(env: Env, pageId: string, { by = null, seen }:
 	const translations = usedTranslations(content)
 	if (translations) content.translations = translations
 	else delete content.translations
+	// What is about to be stored, twice, as the draft and as what is published: a draft saved before there was a
+	// limit may be larger than that, and one whose translations were of texts no longer on the page no longer is.
+	refuseTooLarge(content)
 
 	// Before anything changes, so the page's new font files are in KV by the time its copy points at them.
 	const fonts = await hostFonts(env, { id: pageId, handle: page.handle, published: content, fonts: page.fonts }, settings)
@@ -565,6 +612,7 @@ export async function publishPage(env: Env, pageId: string, { by = null, seen }:
 		...freshLinks.map((row) => putLinkRecord(env, row.slug, toLinkRecord(row))),
 		settings.home === pageId ? writeSite(env, settings) : null,
 	])
+	if (!page.published && settings.home !== pageId) await relist(env)
 	await deleteFontFiles(env, unusedFontFiles(page.fonts, fonts))
 	return { publishedAt: now, content, draftUpdatedAt, untranslated: untranslated(content, settings.languages) }
 }
@@ -642,6 +690,7 @@ export async function renamePage(env: Env, id: string, input: string): Promise<P
 	const renamed = { ...page, handle }
 	const snapshot = await snapshotOf(env.DB, renamed, settings)
 	await putCopies([snapshot ? putSnapshot(env, snapshot) : null, settings.home === id ? writeSite(env, settings) : null])
+	if (page.published && settings.home !== id) await relist(env)
 	return renamed
 }
 
@@ -677,6 +726,7 @@ export async function deletePage(env: Env, id: string): Promise<void> {
 	// page since, and "/" would go on showing it.
 	const wasHome = settings.home === id || (done[0]?.meta.changes ?? 0) > 0
 	await putCopies([wasHome ? writeSite(env, await loadSettings(db)) : null])
+	if (page.published && !wasHome) await relist(env)
 	await deleteFontFiles(env, unusedFontFiles(page.fonts, null))
 }
 
@@ -739,44 +789,7 @@ export async function updateSettings(env: Env, patch: SettingsPatch): Promise<{ 
 	let copiesLeft = false
 	let refused: unknown
 	try {
-		// Twice at most: once for what is owed, and once more if someone else saved while KV was being told, since
-		// what this request wrote may then have landed on top of theirs. Past that it stays noted.
-		for (let pass = 0; pass < 2 && !owesNothing(owed) && !refused; pass++) {
-			// From the settings as they are by now, which another request may have changed again.
-			const current = await loadSettings(db)
-			// With pages off KV holds no page, so there is nothing to do for one. It stays noted all the same:
-			// the switch may be someone else's that is yet to be refused and put back, and one that holds settles it.
-			if (current.bio && owed.after !== null) {
-				const handles = await publishedHandlesAfter(db, owed.after, KV_OPS_AT_ONCE + 1)
-				const now = handles.slice(0, KV_OPS_AT_ONCE)
-				const failed = (await Promise.allSettled(now.map((handle) => deleteNamed(env, handle)))).find((result) => result.status === 'rejected')
-				// One refused: the same slice again next time. More than a slice: on from the last one dropped.
-				if (failed) refused = failed.reason
-				else if (handles.length > now.length) {
-					owed = { ...owed, after: now[now.length - 1]! }
-					copiesLeft = true
-				} else owed = { ...owed, after: null }
-			}
-			if (current.bio && owed.pages.length) {
-				const pages = await getPagesByIds(db, owed.pages)
-				const snapshots = await Promise.all(pages.map((page) => snapshotOf(db, page, current)))
-				const failed = (await Promise.allSettled(snapshots.map((snapshot) => snapshot && putSnapshot(env, snapshot)))).find((result) => result.status === 'rejected')
-				if (failed) refused = failed.reason
-				else owed = { ...owed, pages: [] }
-			}
-			if (owed.site) {
-				const site = await siteRecord(db, current, await sitePages(db, current))
-				await storeSite(env, site).then(
-					() => (owed = { ...owed, site: false }),
-					(error: unknown) => (refused = error),
-				)
-			}
-			// What a save since that read owes is owed again by now, whoever told KV last.
-			const since = owedBy(current, await loadSettings(db))
-			if (owesNothing(since)) break
-			copiesLeft = false
-			owed = owedTogether(owed, since)
-		}
+		;({ owed, copiesLeft, refused } = await tellKv(env, owed))
 	} finally {
 		// If this can't be saved, what was noted before KV was told still stands, and says at least as much.
 		await note.keep(owed, true).catch((error: unknown) => console.error('Could not note what KV is owed', error))
@@ -789,6 +802,70 @@ export async function updateSettings(env: Env, patch: SettingsPatch): Promise<{ 
 		throw new ApiError(503, 'kv', msg('已經儲存，但 Cloudflare KV 暫時寫不進去，訪客還看不到這次的修改。請稍後再儲存一次。'))
 	}
 	return { settings: next, copiesLeft }
+}
+
+/**
+ * Tells KV what it is owed, from the settings as they are now, and answers with what is still owed after that: where
+ * the dropping of a large site's pages got to (`copiesLeft`), or all that KV refused (`refused`).
+ */
+async function tellKv(env: Env, owed: Owed): Promise<{ owed: Owed; copiesLeft: boolean; refused: unknown }> {
+	const db = env.DB
+	let copiesLeft = false
+	let refused: unknown
+	// Twice at most: once for what is owed, and once more if someone else saved while KV was being told, since
+	// what this request wrote may then have landed on top of theirs. Past that it stays noted.
+	for (let pass = 0; pass < 2 && !owesNothing(owed) && !refused; pass++) {
+		// From the settings as they are by now, which another request may have changed again.
+		const current = await loadSettings(db)
+		// With pages off KV holds no page, so there is nothing to do for one. It stays noted all the same:
+		// the switch may be someone else's that is yet to be refused and put back, and one that holds settles it.
+		if (current.bio && owed.after !== null) {
+			const handles = await publishedHandlesAfter(db, owed.after, KV_OPS_AT_ONCE + 1)
+			const now = handles.slice(0, KV_OPS_AT_ONCE)
+			const failed = (await Promise.allSettled(now.map((handle) => deleteNamed(env, handle)))).find((result) => result.status === 'rejected')
+			// One refused: the same slice again next time. More than a slice: on from the last one dropped.
+			if (failed) refused = failed.reason
+			else if (handles.length > now.length) {
+				owed = { ...owed, after: now[now.length - 1]! }
+				copiesLeft = true
+			} else owed = { ...owed, after: null }
+		}
+		if (current.bio && owed.pages.length) {
+			const pages = await getPagesByIds(db, owed.pages)
+			const snapshots = await Promise.all(pages.map((page) => snapshotOf(db, page, current)))
+			const failed = (await Promise.allSettled(snapshots.map((snapshot) => snapshot && putSnapshot(env, snapshot)))).find((result) => result.status === 'rejected')
+			if (failed) refused = failed.reason
+			else owed = { ...owed, pages: [] }
+		}
+		if (owed.site) {
+			const site = await siteRecord(db, current, await sitePages(db, current))
+			await storeSite(env, site).then(
+				() => (owed = { ...owed, site: false }),
+				(error: unknown) => (refused = error),
+			)
+		}
+		// What a save since that read owes is owed again by now, whoever told KV last.
+		const since = owedBy(current, await loadSettings(db))
+		if (owesNothing(since)) break
+		copiesLeft = false
+		owed = owedTogether(owed, since)
+	}
+	return { owed, copiesLeft, refused }
+}
+
+/**
+ * Sends what a settings change still owes KV, without changing the settings: for a look at the site's state, so that
+ * opening the dashboard finishes a change KV refused. The dropping of a large site's pages is left to settings
+ * calls, a slice a call (settingsAndOwed).
+ */
+export async function sendOwed(env: Env): Promise<void> {
+	const row = await env.DB.prepare('SELECT value FROM _meta WHERE key = ?1').bind(COPIES_OWED).first<{ value: string }>()
+	const note = owedNote(env.DB, row?.value ?? null)
+	const owed = note.owed()
+	if (owesNothing(owed) || owed.after !== null) return
+	const told = await tellKv(env, owed)
+	await note.keep(told.owed, true)
+	if (told.refused) console.error('KV kept a copy after a settings change', told.refused)
 }
 
 /** What one change to the settings owes KV. */
@@ -1058,6 +1135,8 @@ export async function setPageLinkSlug(
 	}
 	const draft = withSlug(page.draft)
 	const published = page.published && withSlug(page.published)
+	// A longer slug must not take a draft past what can be saved again.
+	if (JSON.stringify(draft).length > JSON.stringify(page.draft).length) refuseTooLarge(draft)
 	const draftUpdatedAt = Math.max(now, page.draftUpdatedAt + 1)
 
 	// A button that hides its address points at the old slug until the page's copy is rewritten.

@@ -133,6 +133,9 @@ import {
 	setPageQrLogo,
 	setPageLinkSlug,
 	updateLink,
+	refuseTooLarge,
+	sendOwed,
+	settingsAndOwed,
 	updateSettings,
 } from '../lib/ops'
 import {
@@ -413,6 +416,8 @@ api.use('*', async (c, next) => {
 		}
 	} else if (bearer) {
 		if (await secretsMatch(bearer, secret)) auth = { role: 'admin' }
+		// A wrong password waits here as it does at the sign-in form, or this would be the quicker place to guess at.
+		else await scheduler.wait(800)
 	} else {
 		if (await verifySession(await sessionKeyOf(c.env), getCookie(c, SESSION_COOKIE))) auth = { role: 'admin' }
 	}
@@ -431,7 +436,7 @@ api.get('/auth/me', (c) => c.json<AuthResponse>({ ok: true, role: c.get('auth').
 
 api.get('/state', async (c) => {
 	const db = c.env.DB
-	const settings = await loadSettings(db)
+	const { settings, owed } = await settingsAndOwed(db)
 	const body: StateResponse = {
 		version: VERSION,
 		origin: publicOrigin(c, settings),
@@ -444,6 +449,9 @@ api.get('/state', async (c) => {
 	}
 	// Old numbers are merged, or deleted as asked, a slice per dashboard visit, after it has its answer.
 	c.executionCtx.waitUntil(tidyStats(db, settings).catch((error: unknown) => console.error('Could not tidy old stats', error)))
+	// A settings change that D1 has and KV refused is sent again when the dashboard is next opened: nobody has to
+	// know to save twice. Not the dropping of a large site's pages, which goes on with settings calls only.
+	if (owed) c.executionCtx.waitUntil(sendOwed(c.env).catch((error: unknown) => console.error('Could not send what KV is owed', error)))
 	return c.json(body)
 })
 
@@ -551,6 +559,7 @@ const needsDraftVersion = (): ApiError => new ApiError(428, 'draft-version-requi
 /** Saves over a draft only if it is still the one the caller read; anything else would lose someone's work. */
 async function replaceDraft(c: Context<AppEnv>, seen: number, draft: PageContent): Promise<number> {
 	const id = c.req.param('id') ?? ''
+	refuseTooLarge(draft)
 	const draftUpdatedAt = await saveDraft(c.env.DB, id, draft, seen)
 	if (draftUpdatedAt !== null) return draftUpdatedAt
 	if (!(await getPage(c.env.DB, id))) throw new ApiError(404, 'not-found', msg('找不到這個頁面'))

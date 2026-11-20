@@ -21,6 +21,9 @@ export const problemMessage = (problem: Problem): Message => ({ key: problem.key
  * Checks a draft before it goes public. Empty link cards (no URL) are allowed
  * and simply left out; anything half-filled is reported.
  */
+/** A page's content over CONTENT_BYTES_LIMIT, in KB. */
+export const TOO_LARGE = msg('這一頁的內容有 {size} KB，不能超過 {limit} KB。最佔空間的是翻譯和自訂的 HTML。')
+
 /** Two items with one id. An import lets it by: the page was published that way, and a site's own backup has to go back in. */
 export const SAME_ID = msg('第 {n} 項和第 {m} 項的 id 一樣，請改掉其中一個')
 

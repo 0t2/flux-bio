@@ -5,6 +5,16 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.7 - 2026-11-20
+
+### ความปลอดภัย
+- รหัสผ่านผู้ดูแลที่ผิดซึ่งส่งมาเป็น bearer token ของ API จะหน่วงเวลาเช่นเดียวกับแบบฟอร์มเข้าสู่ระบบ การเดารหัสผ่านผ่าน API จึงไม่เร็วกว่า [#56](https://github.com/0t2/flux-bio/pull/56)
+
+### แก้ไข
+- หน้าที่มีเนื้อหาใหญ่เกินกว่าจะเผยแพร่ได้จะถูกปฏิเสธตั้งแต่ตอนบันทึก พร้อมแสดงขนาดและขีดจำกัด 950 KB ก่อนหน้านี้บันทึกได้แต่เผยแพร่ไม่สำเร็จ และข้อความแจ้งข้อผิดพลาดไม่บอกสาเหตุ [#56](https://github.com/0t2/flux-bio/pull/56)
+- เมื่อไม่มีหน้าแรก ที่อยู่ของเว็บไซต์เคยแสดงหน้าที่ลบหรือย้ายไปแล้ว และไม่แสดงหน้าที่เพิ่งเผยแพร่ [#56](https://github.com/0t2/flux-bio/pull/56)
+- การเปลี่ยนการตั้งค่าที่บันทึกแล้วแต่ยังไปไม่ถึงผู้เข้าชม จะถูกส่งเมื่อเปิดแดชบอร์ดครั้งถัดไป โดยไม่ต้องบันทึกซ้ำ [#56](https://github.com/0t2/flux-bio/pull/56)
+
 ## 0.4.6 - 2026-11-20
 
 ### ความปลอดภัย

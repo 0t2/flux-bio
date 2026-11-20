@@ -5,6 +5,16 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.7 - 2026-11-20
+
+### Security
+- A wrong admin password sent as an API bearer token now waits as the sign-in form does, so the API is no quicker a place to guess at it. [#56](https://github.com/0t2/flux-bio/pull/56)
+
+### Fixed
+- A page whose content is too large to publish is refused when it is saved, with its size and the limit of 950 KB. It used to save and then fail to publish with an error that said nothing. [#56](https://github.com/0t2/flux-bio/pull/56)
+- With no home page, the site's address offered a page that had been deleted or moved, and not one just published. [#56](https://github.com/0t2/flux-bio/pull/56)
+- A settings change that was saved but didn't reach visitors is sent when the dashboard is next opened, without saving again. [#56](https://github.com/0t2/flux-bio/pull/56)
+
 ## 0.4.6 - 2026-11-20
 
 ### Security

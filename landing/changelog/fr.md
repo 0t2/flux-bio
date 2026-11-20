@@ -5,6 +5,16 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.7 - 2026-11-20
+
+### Sécurité
+- Un mot de passe d’administration erroné envoyé comme bearer token de l’API attend désormais comme le formulaire de connexion : l’API n’est plus un endroit plus rapide pour le deviner. [#56](https://github.com/0t2/flux-bio/pull/56)
+
+### Corrections
+- Une page dont le contenu est trop volumineux pour être publié est refusée à l’enregistrement, avec sa taille et la limite de 950 Ko. Auparavant, elle s’enregistrait puis échouait à la publication avec une erreur qui ne disait rien. [#56](https://github.com/0t2/flux-bio/pull/56)
+- Sans page d’accueil, l’adresse du site proposait une page supprimée ou déplacée, et pas celle qui venait d’être publiée. [#56](https://github.com/0t2/flux-bio/pull/56)
+- Un changement de réglages enregistré mais non parvenu aux visiteurs est envoyé à la prochaine ouverture du tableau de bord, sans enregistrer de nouveau. [#56](https://github.com/0t2/flux-bio/pull/56)
+
 ## 0.4.6 - 2026-11-20
 
 ### Sécurité

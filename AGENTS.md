@@ -444,6 +444,9 @@ Rules worth knowing:
   suggestions, `/robots.txt` and `/sitemap.xml` list no pages, and a short link's own system pages don't point
   back to its page. Every short link keeps redirecting and counting, `/media/` stays public, and pages can
   still be edited and published through the API. A page's handle stays taken, so switching back on can't clash.
+- **How large a page may be.** A page's content is at most 950 KB as JSON (`CONTENT_BYTES_LIMIT`), checked when a draft is
+  saved and, as it will be stored, at publishing: D1 takes 2 MB in a row, and a page's row holds the draft and what is
+  published. A backup's page is held to the two together, so a draft from before the limit still goes back in.
 - **Bio links vs. standalone links.** Bio links are the links on a page. Their URL, title and
   schedule change only through the draft and publish; `PATCH /api/links/:id` refuses those fields
   for bio links. A slug is different, like a page's own address: `PATCH` or `PUT /api/pages/:id/links/:itemId/short` changes it at once, in the draft and what's published too, and the second also makes the short link of a link that hasn't been published yet. Renaming a live one is two KV writes and three deletes: the page's copy changes too, and the old slug is deleted before D1 changes and once more after. Removing a link from the page archives its short link.
@@ -663,7 +666,9 @@ tests/                  Vitest tests (run in workerd)
   pages than one request may drop, is finished by the next settings call, a slice of pages at a time from where the last
   stopped. The note is saved only over what the request last saw there (`owedNote`), so two requests keep each other's, and what goes to KV is made from the settings as they are by then, with a look
   afterwards for a save that came in meanwhile.
-  KV refusing is still an error, 503 `kv`, that says the change is saved and visitors don't see it yet. KV copies aren't parsed when read, so one written by an older
+  KV refusing is still an error, 503 `kv`, that says the change is saved and visitors don't see it yet, and
+  `GET /api/state` sends what is owed after it, the dropping of a large site's pages excepted, so opening the
+  dashboard is enough. KV copies aren't parsed when read, so one written by an older
   version lacks any field added since: anything that changes what a copy holds, a new page content field included, raises
   `COPY_VERSION` in `lib/cache.ts`, which makes older copies count as missing (`tests/copy-version.test.ts` notices new
   content fields). The first visit to each page after such a deploy costs a D1 read and a KV write.

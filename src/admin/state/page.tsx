@@ -132,6 +132,8 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 	const publishingRef = useRef(false)
 	const latest = useRef(draft)
 	latest.current = draft
+	/** Why the last save was refused, when it is something trying again can't change. */
+	const refused = useRef<string | null>(null)
 	const statusRef = useRef(saveStatus)
 	statusRef.current = saveStatus
 	const savedJson = useRef(JSON.stringify(initial.draft))
@@ -162,6 +164,7 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 				})
 				version.current = saved.draftUpdatedAt
 				savedJson.current = json
+				refused.current = null
 				setSaveStatus(JSON.stringify(latest.current) === json ? 'saved' : 'pending')
 				return true
 			} catch (error) {
@@ -169,6 +172,9 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 					inConflict.current = true
 					setConflict(true)
 				}
+				// Trying again won't help a page that is too large: say so, with its size, where a publish says what is wrong.
+				refused.current = error instanceof ApiError && error.code === 'too-large' ? error.message : null
+				if (refused.current) setPublishError(refused.current)
 				setSaveStatus('error')
 				return false
 			}
@@ -284,7 +290,7 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 				// Publishing still works without a fresh card; the old one (or the avatar) is used.
 			}
 			if (!(await save())) {
-				setPublishError(t('草稿還沒儲存成功，請稍後再試一次'))
+				setPublishError(refused.current ?? t('草稿還沒儲存成功，請稍後再試一次'))
 				return false
 			}
 			// In line with the saves, like a short link's change: an autosave that starts meanwhile waits for this and sends
