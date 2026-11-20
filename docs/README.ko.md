@@ -292,6 +292,13 @@ AI에게 말하면 돼요. “도메인을 links.example.com으로 바꿔 주세
 </details>
 
 <details>
+<summary><b>새 버전은 어떻게 받나요?</b></summary>
+
+사이트는 스스로 업데이트되지 않습니다. 배포한 코드 그대로 실행되다가 다시 배포해야 바뀝니다. AI에게 “FluxBio 새 버전 있어?”라고 물으면 무엇이 바뀌었는지 알려 주고 업데이트해 줍니다. 묻지 않아도 소식을 받고 싶다면 [GitHub의 프로젝트](https://github.com/0t2/flux-bio)에서 Watch → Custom → Releases를 선택하세요. 릴리스가 나올 때마다 GitHub가 이메일을 보냅니다. 버전별 변경 내용은 [변경 기록](https://fluxbio.link/ko/changelog/)에 있습니다.
+
+</details>
+
+<details>
 <summary><b>방문자를 추적하나요?</b></summary>
 
 FluxBio는 쿠키를 쓰지 않고, IP 주소와 브라우저 User-Agent 전체 문자열도 저장하지 않아요. 방문할 때마다 시각, 유입 경로, 기기, 브라우저, 언어, 네트워크, 대략적인 위치(가장 정확해야 약 10km)를 90일 동안 보관하고, 매일 바뀌는 단방향 해시를 함께 붙여요. 합계는 계속 남아요. 알려진 봇과 링크 미리보기는 집계하지 않아요. Google에 연결되는 경우가 두 가지 있어요. 글꼴은 ‘디자인’에서 끄지 않으면 Google Fonts에서 불러오고, YouTube 영상이 있는 페이지는 썸네일도 거기서 불러와요.

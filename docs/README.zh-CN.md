@@ -292,6 +292,13 @@ FluxBio 免费、开源，运行在你自己的 Cloudflare 账号上。Cloudflar
 </details>
 
 <details>
+<summary><b>怎么获取新版本？</b></summary>
+
+你的站点不会自己更新：部署了哪一版就一直运行那一版，直到你再部署一次。问你的 AI“FluxBio 有新版本吗？”，它会告诉你改了什么，并帮你更新。想不用问也能收到通知，可以到 [GitHub 上的项目](https://github.com/0t2/flux-bio) 点 Watch → Custom → Releases，每次发布 GitHub 都会给你发邮件。每个版本改了什么都写在[更新日志](https://fluxbio.link/zh-CN/changelog/)里。
+
+</details>
+
+<details>
 <summary><b>会追踪访客吗？</b></summary>
 
 FluxBio 不用 cookie，也不存 IP 和完整的 User-Agent 字符串。每次访问会留下时间、来源、设备、浏览器、语言、网络和大致位置（最细约 10 公里），保留 90 天，并附上每天更换的单向哈希；汇总的次数则会一直留着。已知的机器人和链接预览不计入。有两件事会连到 Google：字体默认从 Google Fonts 加载，可以在“外观”里关掉；有 YouTube 视频的页面，缩略图也从那里加载。

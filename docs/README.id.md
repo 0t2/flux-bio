@@ -292,6 +292,13 @@ Cukup bilang ke AI: “Ganti domain ke links.example.com”, “Ganti kata sandi
 </details>
 
 <details>
+<summary><b>Bagaimana cara mendapatkan versi baru?</b></summary>
+
+Situs Anda tidak memperbarui dirinya sendiri: ia menjalankan kode yang Anda deploy sampai Anda men-deploy lagi. Tanyakan kepada AI Anda “Apakah ada FluxBio yang lebih baru?”, dan ia akan memberi tahu apa yang berubah lalu memperbaruinya untuk Anda. Agar mendapat kabar tanpa bertanya, buka [proyeknya di GitHub](https://github.com/0t2/flux-bio), tekan Watch → Custom → Releases, dan GitHub akan mengirim email setiap ada rilis. Semua versi dan perubahannya ada di [catatan perubahan](https://fluxbio.link/id/changelog/).
+
+</details>
+
+<details>
 <summary><b>Apakah pengunjung dilacak?</b></summary>
 
 FluxBio tidak memakai cookie dan tidak menyimpan alamat IP atau string user agent lengkap. Untuk setiap kunjungan, FluxBio menyimpan selama 90 hari waktu, asal pengunjung, perangkat, browser, bahasa, jaringan, dan perkiraan lokasi (paling akurat sekitar 10 km), disertai hash satu arah yang berganti setiap hari. Total disimpan selamanya. Bot yang dikenal dan pratinjau tautan tidak dihitung. Dua hal memang menjangkau Google: font dimuat dari Google Fonts kecuali kamu mematikannya di Tampilan, dan halaman dengan video YouTube memuat gambar mini dari sana.

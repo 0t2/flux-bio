@@ -293,6 +293,13 @@ Just ask your AI: "Switch the domain to links.example.com", "Change my dashboard
 </details>
 
 <details>
+<summary><b>How do I get new versions?</b></summary>
+
+Your site doesn’t update by itself: it runs the code you deployed until you deploy again. Ask your AI “Is there a newer FluxBio?” and it tells you what changed and updates for you. To hear about new versions without asking, open [the project on GitHub](https://github.com/0t2/flux-bio), press Watch → Custom → Releases, and GitHub emails you each one. Every version and what it changed is in [the changelog](https://fluxbio.link/en/changelog/).
+
+</details>
+
+<details>
 <summary><b>Does it track visitors?</b></summary>
 
 FluxBio uses no cookies and stores no IP addresses or full user-agent strings. For each visit it keeps the time, where the visitor came from, their device, browser, language, network and rough location (about 10 km at best) for 90 days, with a one-way hash that changes every day. Totals are kept for good. Known bots and link previews don’t count. Two things do reach Google: fonts load from Google Fonts unless you turn that off under Appearance, and a page with a YouTube video loads its thumbnail from there.

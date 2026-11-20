@@ -292,6 +292,13 @@ Sag es einfach deiner KI: „Stell die Domain auf links.example.com um“, „Ä
 </details>
 
 <details>
+<summary><b>Wie bekomme ich neue Versionen?</b></summary>
+
+Ihre Website aktualisiert sich nicht von selbst: Sie läuft mit dem Code, den Sie bereitgestellt haben, bis Sie erneut bereitstellen. Fragen Sie Ihre KI „Gibt es eine neuere Version von FluxBio?“, dann sagt sie Ihnen, was sich geändert hat, und aktualisiert für Sie. Wenn Sie ohne Nachfragen informiert werden möchten, öffnen Sie [das Projekt auf GitHub](https://github.com/0t2/flux-bio), klicken Sie auf Watch → Custom → Releases, und GitHub schickt Ihnen bei jeder Version eine E-Mail. Alle Versionen und ihre Änderungen stehen im [Änderungsprotokoll](https://fluxbio.link/de/changelog/).
+
+</details>
+
+<details>
 <summary><b>Werden Besucher getrackt?</b></summary>
 
 FluxBio verwendet keine Cookies und speichert weder IP-Adressen noch vollständige User-Agent-Strings. Zu jedem Besuch werden 90 Tage lang Uhrzeit, Herkunft, Gerät, Browser, Sprache, Netzwerk und ungefährer Standort (bestenfalls etwa 10 km genau) gespeichert, dazu ein Einweg-Hash, der sich täglich ändert. Die Summen bleiben dauerhaft erhalten. Bekannte Bots und Linkvorschauen zählen nicht mit. Zwei Dinge erreichen Google: Schriften werden von Google Fonts geladen, solange du das unter Design nicht ausschaltest, und eine Seite mit einem YouTube-Video lädt dessen Vorschaubild von dort.

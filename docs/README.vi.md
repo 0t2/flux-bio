@@ -292,6 +292,13 @@ Cứ nói thẳng với AI: “Đổi tên miền thành links.example.com”, �
 </details>
 
 <details>
+<summary><b>Làm sao để nhận phiên bản mới?</b></summary>
+
+Trang web của bạn không tự cập nhật: nó chạy mã bạn đã triển khai cho đến khi bạn triển khai lại. Hãy hỏi AI của bạn “Có bản FluxBio mới hơn không?”, nó sẽ cho biết có gì thay đổi và cập nhật giúp bạn. Để nhận tin mà không cần hỏi, hãy mở [dự án trên GitHub](https://github.com/0t2/flux-bio), nhấn Watch → Custom → Releases, và GitHub sẽ gửi email cho bạn mỗi khi có bản phát hành. Mọi phiên bản và thay đổi của nó đều có trong [nhật ký thay đổi](https://fluxbio.link/vi/changelog/).
+
+</details>
+
+<details>
 <summary><b>Có theo dõi khách truy cập không?</b></summary>
 
 FluxBio không dùng cookie và không lưu IP hay chuỗi User-Agent đầy đủ. Với mỗi lượt truy cập, nó lưu trong 90 ngày thời gian, nguồn truy cập, thiết bị, trình duyệt, ngôn ngữ, mạng và vị trí gần đúng (chi tiết nhất khoảng 10 km), kèm một mã băm một chiều đổi mới mỗi ngày. Số tổng được giữ vĩnh viễn. Bot đã biết và trình xem trước liên kết không được tính. Có hai thứ chạm tới Google: phông chữ tải từ Google Fonts trừ khi bạn tắt trong Giao diện, và trang có video YouTube tải ảnh thu nhỏ từ đó.

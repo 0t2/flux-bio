@@ -887,7 +887,10 @@ Chinese, Japanese and Korean fonts are megabytes each and would need subsetting 
 ## 5. Gotchas
 
 - **`cf` is in beta.** Find commands with `pnpm exec cf cli search "<what you want to do>"`, then
-  read `<command> --help`. Keep search queries free of names, domains and IDs.
+  read `<command> --help`. Keep search queries free of names, domains and IDs. A command or an option it renames would leave
+  this file and the guide telling agents to run something that is gone, so `tests/cf-commands.test.mjs` looks up every `cf`
+  command written in them, and every one a script runs, in the installed `cf`'s own help: it fails after an update of `cf`
+  that moved one, and says which.
 - **Compatibility date and flags.** `cloudflare.config.ts` and `vitest.config.ts` both set them. Keep them in
   sync. `global_fetch_strictly_public` is what lets the custom domain check reach the Worker's own domain: without it, a
   request to a hostname on the Worker's zone goes to the zone's origin and a custom domain answers 522.

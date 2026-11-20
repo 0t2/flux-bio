@@ -292,6 +292,13 @@ Para fazer o deploy: recomendamos o Claude Code no seu próprio computador, mas 
 </details>
 
 <details>
+<summary><b>Como recebo as novas versões?</b></summary>
+
+Seu site não se atualiza sozinho: ele roda o código que você publicou até você fazer um novo deploy. Pergunte à sua IA “Tem uma versão mais nova do FluxBio?” e ela conta o que mudou e atualiza para você. Para ficar sabendo sem perguntar, abra [o projeto no GitHub](https://github.com/0t2/flux-bio), clique em Watch → Custom → Releases e o GitHub envia um e-mail a cada versão. Todas as versões e o que mudou estão no [registro de alterações](https://fluxbio.link/pt-BR/changelog/).
+
+</details>
+
+<details>
 <summary><b>Ele rastreia os visitantes?</b></summary>
 
 O FluxBio não usa cookies e não guarda endereços IP nem o user agent completo. De cada visita, guarda por 90 dias o horário, de onde o visitante veio, o dispositivo, o navegador, o idioma, a rede e a localização aproximada (cerca de 10 km, no melhor caso), com um hash de mão única que muda todo dia. Os totais são mantidos para sempre. Bots conhecidos e prévias de links não contam. Duas coisas chegam ao Google: as fontes são carregadas do Google Fonts, a menos que você desative em Aparência, e uma página com vídeo do YouTube carrega a miniatura de lá.
