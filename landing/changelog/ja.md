@@ -40,7 +40,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.0 - 2026-11-20
 
 ### 要対応
-- `cloudflare.config.ts` を変更していた場合（`WORKER_NAME` を変えた、カスタムドメインを追加した、`ANALYTICS` を外したなど）は、このバージョンをデプロイする前に、その設定を FluxBio フォルダーの `worker.json` に書いてください。例: `{ "name": "my-links" }`。このファイルはコードの一部ではないため、今後の更新で上書きされません。書き忘れた場合は、デプロイが止まり、書くべき名前を知らせます。 [#45](https://github.com/0t2/flux-bio/pull/45)
+- `cloudflare.config.ts` を変更していた場合（`WORKER_NAME` を変えた、カスタムドメインを追加した、`ANALYTICS` を外したなど）は、このバージョンをデプロイする前に、その設定を FluxBio フォルダーの `worker.json` に書いてください。例: `{ "name": "my-links", "domains": ["links.example.com"], "analytics": false }`。このファイルはコードの一部ではないため、今後の更新で上書きされません。書き忘れた場合は、デプロイが止まり、書くべき名前を知らせます。 [#45](https://github.com/0t2/flux-bio/pull/45)
 
 ### 新機能
 - `pnpm run deploy` は、アップロードの前に Cloudflare で何が動いているかを確認し、空のサイトをもう 1 つ作る、サイトの 1 つをオフラインにする、別の Worker を置き換える、パスワードを置き換える、といったデプロイを止めます。`cf deploy` の代わりに使ってください。 [#45](https://github.com/0t2/flux-bio/pull/45)

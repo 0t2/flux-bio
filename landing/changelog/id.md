@@ -40,7 +40,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.0 - 2026-11-20
 
 ### Perlu tindakan
-- Jika Anda pernah mengubah `cloudflare.config.ts` (`WORKER_NAME` lain, domain kustom, atau `ANALYTICS` dihapus), tuliskan itu di `worker.json` dalam folder FluxBio Anda sebelum men-deploy versi ini, misalnya `{ "name": "my-links" }`. File itu bukan bagian dari kode, jadi pembaruan tidak lagi menyentuhnya. Jika lupa, deploy berhenti dan memberi tahu nama yang harus ditulis. [#45](https://github.com/0t2/flux-bio/pull/45)
+- Jika Anda pernah mengubah `cloudflare.config.ts` (`WORKER_NAME` lain, domain kustom, atau `ANALYTICS` dihapus), tuliskan itu di `worker.json` dalam folder FluxBio Anda sebelum men-deploy versi ini, misalnya `{ "name": "my-links", "domains": ["links.example.com"], "analytics": false }`. File itu bukan bagian dari kode, jadi pembaruan tidak lagi menyentuhnya. Jika lupa, deploy berhenti dan memberi tahu nama yang harus ditulis. [#45](https://github.com/0t2/flux-bio/pull/45)
 
 ### Baru
 - `pnpm run deploy` menanyakan kepada Cloudflare apa yang sedang berjalan sebelum mengunggah apa pun, dan menghentikan deploy yang akan membuat situs kedua yang kosong, membuat salah satu situs Anda offline, menimpa Worker lain, atau mengganti kata sandi Anda. Gunakan perintah ini sebagai pengganti `cf deploy`. [#45](https://github.com/0t2/flux-bio/pull/45)

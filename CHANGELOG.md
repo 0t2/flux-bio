@@ -40,7 +40,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.0 - 2026-11-20
 
 ### Action needed
-- If you changed `cloudflare.config.ts` (another `WORKER_NAME`, a custom domain, or `ANALYTICS` taken out), put that in `worker.json` in your FluxBio folder before you deploy this version, for example `{ "name": "my-links" }`. That file isn't part of the code, so updates leave it alone from now on. If you forget, the deploy stops and tells you the name to write. [#45](https://github.com/0t2/flux-bio/pull/45)
+- If you changed `cloudflare.config.ts` (another `WORKER_NAME`, a custom domain, or `ANALYTICS` taken out), put that in `worker.json` in your FluxBio folder before you deploy this version, for example `{ "name": "my-links", "domains": ["links.example.com"], "analytics": false }`. That file isn't part of the code, so updates leave it alone from now on. If you forget, the deploy stops and tells you the name to write. [#45](https://github.com/0t2/flux-bio/pull/45)
 
 ### New
 - `pnpm run deploy` asks Cloudflare what is running before it uploads anything, and stops a deploy that would make a second, empty site, take one of your sites offline, replace another Worker or replace your password. Use it in place of `cf deploy`. [#45](https://github.com/0t2/flux-bio/pull/45)

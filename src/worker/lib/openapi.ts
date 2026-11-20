@@ -378,8 +378,9 @@ export const OPERATIONS: Operation[] = [
 export const UNDOCUMENTED_ROUTES = ['POST /api/auth/login', 'POST /api/auth/logout', 'GET /api/auth/info', 'GET /api/openapi.json']
 
 /** A zod schema as JSON Schema. Exported for scripts/api-surface.mjs, which lists the fields of the types made from one. */
-export function jsonSchema(schema: z.ZodType): Record<string, unknown> {
-	const { $schema: _, ...rest } = z.toJSONSchema(schema, { io: 'input', unrepresentable: 'any' }) as Record<string, unknown>
+export function jsonSchema(schema: z.ZodType, io: 'input' | 'output' = 'input'): Record<string, unknown> {
+	// As a request takes it, where a field with a default may be left out; or as a response gives it, where it is there.
+	const { $schema: _, ...rest } = z.toJSONSchema(schema, { io, unrepresentable: 'any' }) as Record<string, unknown>
 	return rest
 }
 

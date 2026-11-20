@@ -66,7 +66,7 @@ function acceptedTypes(schema, known = new Map(), rootSchema = schema, open = ne
  * may be left out and the kinds of value it takes. `known` names schemas that have lines of their own, by their JSON:
  * where one turns up inside another, as a page's content does in a backup, it is named there and not unfolded again.
  */
-export function schemaNames(schema, prefix, out = new Set(), known = new Map(), rootSchema = schema, open = new Set()) {
+export function schemaNames(schema, prefix, out = new Set(), known = new Map(), rootSchema = schema, open = new Set(), given = false) {
 	if (!schema || typeof schema !== 'object') return out
 	if (schema !== rootSchema && known.size && schema.properties) {
 		const name = known.get(JSON.stringify(schema))
@@ -80,7 +80,7 @@ export function schemaNames(schema, prefix, out = new Set(), known = new Map(), 
 		if (!schema.$ref.startsWith('#/$defs/') && !schema.$ref.startsWith('#/definitions/')) return out.add(`${prefix}=${schema.$ref.split('/').at(-1)}`)
 		if (open.has(schema.$ref)) return out
 		open.add(schema.$ref)
-		schemaNames(resolveRef(rootSchema, schema.$ref), prefix, out, known, rootSchema, open)
+		schemaNames(resolveRef(rootSchema, schema.$ref), prefix, out, known, rootSchema, open, given)
 		open.delete(schema.$ref)
 		return out
 	}
@@ -89,21 +89,24 @@ export function schemaNames(schema, prefix, out = new Set(), known = new Map(), 
 	for (const [name, property] of Object.entries(schema.properties ?? {})) {
 		out.add(`${prefix}.${name}`)
 		if (!schema.required?.includes(name)) out.add(`${prefix}.${name} optional`)
+		// Of a type a response gives: a field that is always there says so, as an interface's does, and the line
+		// goes when it may be missing.
+		else if (given) out.add(`${prefix}.${name} always`)
 		types(property, `${prefix}.${name}`)
-		schemaNames(property, `${prefix}.${name}`, out, known, rootSchema, open)
+		schemaNames(property, `${prefix}.${name}`, out, known, rootSchema, open, given)
 	}
 	if (schema.items) {
 		types(schema.items, `${prefix}[]`)
-		schemaNames(schema.items, `${prefix}[]`, out, known, rootSchema, open)
+		schemaNames(schema.items, `${prefix}[]`, out, known, rootSchema, open, given)
 	}
 	if (schema.additionalProperties && typeof schema.additionalProperties === 'object') {
 		types(schema.additionalProperties, `${prefix}.*`)
-		schemaNames(schema.additionalProperties, `${prefix}.*`, out, known, rootSchema, open)
+		schemaNames(schema.additionalProperties, `${prefix}.*`, out, known, rootSchema, open, given)
 	}
 	for (const key of ['anyOf', 'oneOf', 'allOf']) {
 		for (const member of schema[key] ?? []) {
 			const resolved = typeof member?.$ref === 'string' && member.$ref.startsWith('#/$defs/') ? resolveRef(rootSchema, member.$ref) : member
-			schemaNames(member, `${prefix}${memberTag(resolved)}`, out, known, rootSchema, open)
+			schemaNames(member, `${prefix}${memberTag(resolved)}`, out, known, rootSchema, open, given)
 		}
 	}
 	return out
@@ -272,11 +275,16 @@ export async function surface() {
 	for (const name of responseNames(readFileSync(join(root, 'src/shared/api.ts'), 'utf8'))) out.add(name)
 	// The types a response names that are written in another file, which api.ts only imports.
 	for (const [file, names] of Object.entries(TYPES_ELSEWHERE)) for (const name of responseNames(readFileSync(join(root, file), 'utf8'), names)) out.add(name)
-	// And those made from a zod schema, read from the schema. Their lines are a request's (`optional`, a line for each
-	// kind of value), so a field renamed or removed is seen, though not one that may now be missing from a response.
+	// And those made from a zod schema, read from the schema as a response gives it: a field with a default is there,
+	// and has its `always` line, which goes when it may be missing. Their types are a request's lines, one for each
+	// kind of value, so a type that takes in more is not seen there as it is in an interface.
+	// A page's content has lines of its own, and is named where it turns up inside another type. As a response gives
+	// it, it is written a little differently from how a request takes it, so that form is known by the same name.
+	const { module: content } = await runnerImport(join(root, 'src/shared/content.ts'))
+	const given = new Map([...known, [JSON.stringify(openapi.jsonSchema(content.PageContentSchema, 'output')), 'PageContent']])
 	for (const [file, schemas] of Object.entries(SCHEMAS_ELSEWHERE)) {
 		const { module } = await runnerImport(join(root, file))
-		for (const [name, schema] of Object.entries(schemas)) schemaNames(openapi.jsonSchema(module[schema]), `type ${name}`, out, known)
+		for (const [name, schema] of Object.entries(schemas)) schemaNames(openapi.jsonSchema(module[schema], 'output'), `type ${name}`, out, given, undefined, undefined, true)
 	}
 	const names = [...out]
 	// A route that says it answers with a type the list has no lines for says nothing.

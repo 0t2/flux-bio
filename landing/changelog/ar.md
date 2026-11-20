@@ -40,7 +40,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.0 - 2026-11-20
 
 ### إجراء مطلوب
-- إذا كنت قد عدّلت `cloudflare.config.ts` (قيمة أخرى لـ `WORKER_NAME`، أو نطاق مخصص، أو حذف `ANALYTICS`)، فضع ذلك في `worker.json` داخل مجلد FluxBio قبل نشر هذا الإصدار، مثل `{ "name": "my-links" }`. هذا الملف ليس جزءًا من الشيفرة، لذا لن تمسّه التحديثات بعد الآن. وإن نسيت، يتوقف النشر ويخبرك بالاسم الذي عليك كتابته. [#45](https://github.com/0t2/flux-bio/pull/45)
+- إذا كنت قد عدّلت `cloudflare.config.ts` (قيمة أخرى لـ `WORKER_NAME`، أو نطاق مخصص، أو حذف `ANALYTICS`)، فضع ذلك في `worker.json` داخل مجلد FluxBio قبل نشر هذا الإصدار، مثل `{ "name": "my-links", "domains": ["links.example.com"], "analytics": false }`. هذا الملف ليس جزءًا من الشيفرة، لذا لن تمسّه التحديثات بعد الآن. وإن نسيت، يتوقف النشر ويخبرك بالاسم الذي عليك كتابته. [#45](https://github.com/0t2/flux-bio/pull/45)
 
 ### جديد
 - يسأل `pnpm run deploy` خدمة Cloudflare عمّا يعمل الآن قبل رفع أي شيء، ويوقف أي نشر من شأنه إنشاء موقع ثانٍ فارغ، أو إيقاف أحد مواقعك، أو استبدال Worker آخر، أو استبدال كلمة مرورك. استخدمه بدلًا من `cf deploy`. [#45](https://github.com/0t2/flux-bio/pull/45)

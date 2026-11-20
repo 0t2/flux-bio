@@ -617,7 +617,9 @@ tests/                  Vitest tests (run in workerd)
     always carries a field of a page's content: that is listed the way a request takes it. Every route that answers with JSON names its type in
     `OPERATIONS` (`returns`) and answers with it (`c.json<Type>(…)`), which a test holds, so a response built in place is not
     possible unnoticed: give a new route an interface in `src/shared/api.ts`. Types made from a zod schema (`Settings`,
-    `SavedTheme`, `Backup`) are listed as a request takes them, so a field of theirs that may now be missing isn't seen.
+    `SavedTheme`, `Backup`) are read from the schema: a field of theirs has its `always` line too, but its type is listed as a
+    request's, a line for each kind of value, so one that takes in more isn't seen. Who may call a route is held to the code by
+    `tests/who-may-call.test.ts`, which calls every route as nobody, with a links token and with a full token.
   A removal passes only in a release newer than the one before, whose "Action needed" names in `code` something that went.
 - **D1 is the source of truth.** It holds `pages`, `page_versions`, `links`, `stats` and
   `api_tokens`, which the Worker creates and upgrades on first use. To change the schema, append a
