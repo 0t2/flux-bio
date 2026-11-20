@@ -252,6 +252,7 @@ describe('a backup that has a link archived', () => {
 
 describe('settings', () => {
 	const settings = async () => (await apiJson<StateResponse>('/state')).settings
+	const owedNoted = async () => Boolean(await env.DB.prepare("SELECT 1 FROM _meta WHERE key = 'copies-owed'").first())
 
 	it('keep a change someone else saved while a page was being deleted', async () => {
 		await page('rd-stays')
@@ -282,7 +283,7 @@ describe('settings', () => {
 			},
 		})
 		// The change is saved, and the answer says visitors don't have it yet.
-		expect(await updateSettings({ ...env, KV } as Env, { home: second })).toMatchObject({ copiesLeft: true })
+		await expect(updateSettings({ ...env, KV } as Env, { home: second })).rejects.toMatchObject({ status: 503, code: 'kv' })
 		expect((await settings()).home).toBe(second)
 		expect(await (await visit('/')).text()).toContain('rd-a-1')
 		// The next day the owner's AI says the same thing again. D1 already has it, and KV still has to be told.
@@ -300,7 +301,16 @@ describe('settings', () => {
 		const before = await env.KV.get(`${NAME_PREFIX}rd-languages`)
 		expect(JSON.parse(before!).page.languages).toEqual([])
 		try {
-			expect(await updateSettings(full(), { languages: ['ja'] })).toMatchObject({ copiesLeft: true })
+			// What is owed is noted before KV is asked for anything: a request that ends there has still left the note.
+			const notes: boolean[] = []
+			const noted = async () => void notes.push(Boolean(await env.DB.prepare("SELECT 1 FROM _meta WHERE key = 'copies-owed'").first()))
+			const refusing = kv({
+				put: async () => (await noted(), Promise.reject(new Error('KV PUT failed: 429 Too Many Requests'))),
+				delete: async () => (await noted(), Promise.reject(new Error('KV DELETE failed: 429 Too Many Requests'))),
+			})
+			await expect(updateSettings(refusing, { languages: ['ja'] })).rejects.toMatchObject({ status: 503, code: 'kv' })
+			expect(notes.length).toBeGreaterThan(0)
+			expect(notes).not.toContain(false)
 			expect(JSON.parse((await env.KV.get(`${NAME_PREFIX}rd-languages`))!).page.languages).toEqual([])
 			// Something else altogether is changed the day after: what is still owed goes with it.
 			expect((await apiJson<{ copiesLeft?: true }>('/settings', { method: 'PUT', json: { plan: 'free' } })).copiesLeft).toBeUndefined()
@@ -323,6 +333,116 @@ describe('settings', () => {
 		// The setup wizard sends the switch with the time zone and the language. The answer says nothing was saved.
 		await expect(updateSettings(full(), { bio: false, timezone: 'Asia/Tokyo', locale: was.locale === 'ja' ? 'ko' : 'ja' })).rejects.toMatchObject({ status: 503 })
 		expect(await settings()).toMatchObject({ bio: true, timezone: 'UTC', locale: was.locale })
+		// KV may hold half of it, and that is noted: the next change of any kind puts the record right, and the note goes.
+		expect(await owedNoted()).toBe(true)
+		expect((await api('/settings', { method: 'PUT', json: {} })).status).toBe(200)
+		expect(await owedNoted()).toBe(false)
+		expect(JSON.parse((await env.KV.get(SITE_KEY))!)).toMatchObject({ bio: true, timezone: 'UTC' })
+	})
+
+	it('keep a language that isn’t the page’s own among the others, when a refused switch puts the page’s language back', async () => {
+		await api('/settings', { method: 'PUT', json: { bio: true, locale: 'en', languages: [] } })
+		try {
+			// Pages off and Japanese as the page language, refused; English and Korean saved as the others meanwhile.
+			let saved = false
+			const refusing = kv({
+				put: async () => {
+					if (!saved) await env.DB.prepare("UPDATE _meta SET value = json_set(value, '$.languages', json('[\"en\",\"ko\"]')) WHERE key = 'settings'").run()
+					saved = true
+					throw new Error('KV PUT failed: 429 Too Many Requests')
+				},
+				delete: () => Promise.reject(new Error('KV DELETE failed: 429 Too Many Requests')),
+			})
+			await expect(updateSettings(refusing, { bio: false, locale: 'ja' })).rejects.toMatchObject({ status: 503 })
+			expect(await settings()).toMatchObject({ bio: true, locale: 'en', languages: ['ko'] })
+		} finally {
+			await api('/settings', { method: 'PUT', json: { languages: [] } })
+		}
+	})
+
+	it('are not changed at all when what the change will owe visitors can’t be noted first', async () => {
+		const [first, second] = [await page('rd-noted-a'), await page('rd-noted-b')]
+		expect((await api('/settings', { method: 'PUT', json: { home: first } })).status).toBe(200)
+		// D1 fails once, at the note. Had the settings been saved before it, the home page would be changed in D1 with
+		// nothing to say KV still has the old one, and sending the request again would find nothing to do.
+		let failed = false
+		const DB = new Proxy(env.DB, {
+			get(target, key) {
+				if (key === 'prepare') {
+					return (text: string) => {
+						if (failed || !/INTO _meta/.test(text) || !/INSERT OR IGNORE/.test(text)) return target.prepare(text)
+						failed = true
+						return { bind: () => ({ run: () => Promise.reject(new Error('D1_ERROR: storage operation exceeded timeout')) }) }
+					}
+				}
+				const value = Reflect.get(target, key)
+				return typeof value === 'function' ? value.bind(target) : value
+			},
+		})
+		await expect(updateSettings({ ...env, DB } as Env, { home: second })).rejects.toThrow('D1_ERROR')
+		expect(failed).toBe(true)
+		expect((await settings()).home).toBe(first)
+		expect((await api('/settings', { method: 'PUT', json: { home: second } })).status).toBe(200)
+		expect(JSON.parse((await env.KV.get(SITE_KEY))!).home).toBe('rd-noted-b')
+	})
+
+	it('note what a change owes when it turns out to owe more than it looked to, before KV is asked', async () => {
+		await page('rd-turned-out')
+		await api('/settings', { method: 'PUT', json: { languages: ['ja'] } })
+		try {
+			// Japanese is asked for and is already on, so nothing looks owed. Someone takes it off in between, so
+			// this request does put it on, and every page's copy is owed after all.
+			let changed = false
+			const DB = new Proxy(env.DB, {
+				get(target, key) {
+					if (key === 'prepare') {
+						return (text: string) => {
+							const statement = target.prepare(text)
+							if (changed || text !== "SELECT value FROM _meta WHERE key = 'settings'") return statement
+							changed = true
+							const first = statement.first.bind(statement)
+							statement.first = (async (...args: []) => {
+								await env.DB.prepare("UPDATE _meta SET value = json_set(value, '$.languages', json('[]')) WHERE key = 'settings'").run()
+								return first(...args)
+							}) as typeof statement.first
+							return statement
+						}
+					}
+					const value = Reflect.get(target, key)
+					return typeof value === 'function' ? value.bind(target) : value
+				},
+			})
+			const notes: boolean[] = []
+			const refusing = kv({
+				put: async () => (notes.push(await owedNoted()), Promise.reject(new Error('KV PUT failed: 429 Too Many Requests'))),
+				delete: async () => (notes.push(await owedNoted()), Promise.reject(new Error('KV DELETE failed: 429 Too Many Requests'))),
+			})
+			await expect(updateSettings({ ...refusing, DB } as Env, { languages: ['ja'] })).rejects.toMatchObject({ status: 503 })
+			expect(changed).toBe(true)
+			expect(notes.length).toBeGreaterThan(0)
+			expect(notes).not.toContain(false)
+		} finally {
+			await api('/settings', { method: 'PUT', json: { languages: [] } })
+		}
+	})
+
+	it('keep what each of two changes at once owes visitors', async () => {
+		await page('rd-two-at-once')
+		expect(await status('/rd-two-at-once')).toBe(200)
+		await api('/settings', { method: 'PUT', json: { timezone: 'UTC', languages: [] } })
+		try {
+			// A time zone is on its way to KV when another language is saved and KV refuses that one. The first then
+			// finishes, with nothing left of its own to do: it must not clear what the second noted.
+			const first = justBefore(SITE_KEY, () => expect(updateSettings(full(), { languages: ['ko'] })).rejects.toMatchObject({ status: 503 }))
+			await updateSettings(first, { timezone: 'Asia/Seoul' })
+			expect(await owedNoted()).toBe(true)
+			expect((await api('/settings', { method: 'PUT', json: {} })).status).toBe(200)
+			expect(await owedNoted()).toBe(false)
+			expect(JSON.parse((await env.KV.get(SITE_KEY))!)).toMatchObject({ timezone: 'Asia/Seoul', languages: ['ko'] })
+			expect(await env.KV.get(`${NAME_PREFIX}rd-two-at-once`)).toBeNull()
+		} finally {
+			await api('/settings', { method: 'PUT', json: { timezone: 'UTC', languages: [] } })
+		}
 	})
 })
 

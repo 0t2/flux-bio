@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { PreviewLinkResponse } from '../src/shared/api'
 import { env } from 'cloudflare:test'
-import { PASSWORD_TRIES } from '../src/worker/lib/db'
+import { PASSWORD_TRIES, PASSWORD_WINDOW, returnPasswordTry, takePasswordTry } from '../src/worker/lib/db'
 import { distance } from '../src/worker/routes/site'
 import { api, apiJson, call, visit } from './helpers'
 
@@ -182,4 +182,17 @@ describe('a link’s password', () => {
 		expect((await api('/links/rv-lock-1', { method: 'PATCH', json: { password: 'new and longer' } })).status).toBe(200)
 		expect((await guess('rv-lock', 'new and longer')).status).toBe(303)
 	}, 30_000)
+
+	it('gives a try back only in the quarter of an hour it was counted in', async () => {
+		// A burst turned away at the end of one quarter of an hour, given back in the next, would make room there
+		// for as many guesses again.
+		const start = Date.now()
+		const old = await takePasswordTry(env.DB, 'rv-window-1', start)
+		for (let n = 0; n < 3; n++) expect((await takePasswordTry(env.DB, 'rv-window-1', start + PASSWORD_WINDOW + 1 + n)).ok).toBe(true)
+		expect(await counted('rv-window-1')).toBe(3)
+		await returnPasswordTry(env.DB, 'rv-window-1', old.since)
+		expect(await counted('rv-window-1')).toBe(3)
+		await returnPasswordTry(env.DB, 'rv-window-1', start + PASSWORD_WINDOW + 1)
+		expect(await counted('rv-window-1')).toBe(2)
+	})
 })

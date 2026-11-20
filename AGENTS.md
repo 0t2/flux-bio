@@ -654,7 +654,8 @@ tests/                  Vitest tests (run in workerd)
   too, and after the visitor has their answer (`takeBackIfOld`). A settings change writes what it owes KV in `_meta`
   (`copies-owed`) before telling KV and takes it out afterwards, so one that reached D1 and not KV, or a site with more
   pages than one request may drop, is finished by the next settings call, a slice of pages at a time from where the last
-  stopped. KV refusing then is `copiesLeft` in the answer, not an error. KV copies aren't parsed when read, so one written by an older
+  stopped. The note is saved only over what the request last saw there (`owedNote`), so two requests keep each other's.
+  KV refusing is still an error, 503 `kv`, that says the change is saved and visitors don't see it yet. KV copies aren't parsed when read, so one written by an older
   version lacks any field added since: anything that changes what a copy holds, a new page content field included, raises
   `COPY_VERSION` in `lib/cache.ts`, which makes older copies count as missing (`tests/copy-version.test.ts` notices new
   content fields). The first visit to each page after such a deploy costs a D1 read and a KV write.

@@ -1005,5 +1005,6 @@
 	"幫我把 FluxBio 更新到最新版": "Aktualisiere mein FluxBio auf die neueste Version",
 	"看看改了什麼": "Änderungen ansehen",
 	"已是最新版": "Aktuell",
-	"第 {n} 項和第 {m} 項的 id 一樣，請改掉其中一個": "Die Elemente {m} und {n} haben dieselbe id: Bitte eine davon ändern"
+	"第 {n} 項和第 {m} 項的 id 一樣，請改掉其中一個": "Die Elemente {m} und {n} haben dieselbe id: Bitte eine davon ändern",
+	"已經儲存，但 Cloudflare KV 暫時寫不進去，訪客還看不到這次的修改。請稍後再儲存一次。": "Gespeichert, aber Cloudflare KV nimmt gerade keine Schreibvorgänge an, daher sehen Besucher diese Änderung noch nicht. Bitte später noch einmal speichern."
 }

@@ -562,6 +562,20 @@ export async function loadSettings(db: D1Database): Promise<Settings> {
 	return parsed.success ? parsed.data : { ...DEFAULT_SETTINGS }
 }
 
+/** The settings and one other row of _meta as it is written there, in one query. */
+export async function loadSettingsWith(db: D1Database, key: string): Promise<{ settings: Settings; other: string | null }> {
+	const { results } = await db.prepare("SELECT key, value FROM _meta WHERE key IN ('settings', ?1)").bind(key).all<{ key: string; value: string }>()
+	const text = (name: string) => results.find((row) => row.key === name)?.value ?? null
+	let stored: unknown
+	try {
+		stored = JSON.parse(text('settings') ?? 'null')
+	} catch {
+		stored = undefined
+	}
+	const parsed = SettingsSchema.safeParse(stored)
+	return { settings: parsed.success ? parsed.data : { ...DEFAULT_SETTINGS }, other: text(key) }
+}
+
 export const saveSettingsStatement = (db: D1Database, settings: Settings) => writeMetaStatement(db, 'settings', settings)
 
 /**

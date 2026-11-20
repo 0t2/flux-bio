@@ -145,7 +145,7 @@ site.get('/skill.md', (c) =>
 
 // For search engines. Neither can be a page or a short link: slugs can't contain dots.
 site.get('/robots.txt', async (c) => {
-	const pages = ((await systemSite(c.env)) ?? (await findSite(c.env))).bio
+	const pages = ((await systemSite(c.env)) ?? (await findSite(c.env, later(c)))).bio
 	return c.text(robotsTxt(new URL(c.req.url).origin, pages, isTestSite(c.env)), 200, { 'cache-control': 'public, max-age=3600' })
 })
 site.get('/sitemap.xml', async (c) => {
@@ -191,7 +191,7 @@ const later =
 		c.executionCtx.waitUntil(work)
 
 site.get('/', async (c) => {
-	const record = await findSite(c.env)
+	const record = await findSite(c.env, later(c))
 	if (!record.bio) return record.homeUrl ? redirect(record.homeUrl, 302) : systemPage(c, 'short-links', 200, { site: record })
 	// The home page comes with the record, so this is the only read.
 	if (record.page) return serveBio(c, record.page)
@@ -283,7 +283,7 @@ site.get('/:segment', async (c) => {
 	if (stored) return serveLink(c, stored, slug)
 	if (page) return serveBio(c, page)
 	// Whether pages are on decides if any address may be suggested, so a site with no record in KV yet gets one made.
-	const record = (await systemSite(c.env)) ?? (await findSite(c.env).catch(() => undefined))
+	const record = (await systemSite(c.env)) ?? (await findSite(c.env, later(c)).catch(() => undefined))
 	return systemPage(c, 'not-found', 404, { site: record, suggestions: await suggestionsFor(c.env, slug, record), meta: `${new URL(c.req.url).host}/${slug}` })
 })
 
@@ -497,7 +497,7 @@ async function closedPage(c: SiteContext, record: LinkRecord, slug: string): Pro
 /** The page a bio link sits on, so its system pages wear that page's look and can point back to it. */
 async function linkPage(c: SiteContext, record: LinkRecord): Promise<Pick<SystemPageOptions, 'page' | 'appearance'> & { site?: SiteRecord }> {
 	if (!record.page) return {}
-	const site = (await systemSite(c.env)) ?? (await findSite(c.env))
+	const site = (await systemSite(c.env)) ?? (await findSite(c.env, later(c)))
 	// With pages off there is nothing to point back to.
 	if (!site.bio) return { site }
 	const page = await getPage(c.env.DB, record.page)

@@ -78,6 +78,7 @@ export const ENGLISH: Record<string, string> = {
 	"小店": "Shop",
 	"已刪除的商品": "Deleted product",
 	"已封存，這個短網址不會再轉址": "Archived. This short link no longer redirects.",
+	"已經儲存，但 Cloudflare KV 暫時寫不進去，訪客還看不到這次的修改。請稍後再儲存一次。": "Saved, but Cloudflare KV isn’t taking writes right now, so visitors don’t see this change yet. Save it again later.",
 	"平板": "Tablet",
 	"影片、免費資源、合作洽詢": "Videos, free downloads, collaborations",
 	"影片：{title}": "Video: {title}",
