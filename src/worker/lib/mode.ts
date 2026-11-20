@@ -1,4 +1,4 @@
-/** TEST_SITE is "true" on what `cf deploy --mode staging` deploys: the owner's test site, separate from the live one. */
+/** TEST_SITE is "true" on what `pnpm run deploy --mode staging` deploys: the owner's test site, separate from the live one. */
 export const isTestSite = (env: Env): boolean => String((env as { TEST_SITE?: unknown }).TEST_SITE) === 'true'
 
 /** The admin password, the ADMIN_PASSWORD secret; "" when it isn't set. */

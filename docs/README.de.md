@@ -294,7 +294,7 @@ Sag es einfach deiner KI: „Stell die Domain auf links.example.com um“, „Ä
 <details>
 <summary><b>Wie bekomme ich neue Versionen?</b></summary>
 
-Ihre Website aktualisiert sich nicht von selbst: Sie läuft mit dem Code, den Sie bereitgestellt haben, bis Sie erneut bereitstellen. Fragen Sie Ihre KI „Gibt es eine neuere Version von FluxBio?“, dann sagt sie Ihnen, was sich geändert hat, und aktualisiert für Sie. Wenn Sie ohne Nachfragen informiert werden möchten, öffnen Sie [das Projekt auf GitHub](https://github.com/0t2/flux-bio), klicken Sie auf Watch → Custom → Releases, und GitHub schickt Ihnen bei jeder Version eine E-Mail. Alle Versionen und ihre Änderungen stehen im [Änderungsprotokoll](https://fluxbio.link/de/changelog/).
+Ihre Website aktualisiert sich nicht von selbst: Sie läuft mit dem Code, den Sie bereitgestellt haben, bis Sie erneut bereitstellen. Fragen Sie Ihre KI „Gibt es eine neuere Version von FluxBio?“, dann sagt sie Ihnen, was sich geändert hat, und aktualisiert für Sie. Auch die Einstellungen in Ihrem Dashboard zeigen an, wenn eine neuere Version erschienen ist. Wenn Sie ohne Nachfragen informiert werden möchten, öffnen Sie [das Projekt auf GitHub](https://github.com/0t2/flux-bio), klicken Sie auf Watch → Custom → Releases, und GitHub schickt Ihnen bei jeder Version eine E-Mail. Alle Versionen und ihre Änderungen stehen im [Änderungsprotokoll](https://fluxbio.link/de/changelog/).
 
 </details>
 

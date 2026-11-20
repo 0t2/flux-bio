@@ -136,8 +136,9 @@ try {
 } catch {
 	passwordFile = pending
 }
-// Every token made before now is revoked, the ones a run before this one left here too.
-rmSync('.tokens.env', { force: true })
+// Every token made before now is revoked, the ones a run before this one left here too. Not by a test site's
+// reset, though: that is another Worker's password, and the tokens on file are the live site's.
+if (!staging) rmSync('.tokens.env', { force: true })
 console.log(`The password is changed, and it is in ${passwordFile}. Everyone is signed out, and every API token made before now has stopped working.`)
 
 const headers = { authorization: `Bearer ${password}`, 'content-type': 'application/json' }
@@ -179,5 +180,7 @@ if (opts.tokens && !staging) {
 } else if (staging) {
 	console.log('A test site gets no token: sign in to it with the password.')
 }
-console.log(`Give the owner the password once${made ? ', put the tokens where the old ones were' : ''}, then delete ${passwordFile}${made ? ' and .tokens.env' : ''}.`)
+console.log(staging
+	? `Give the owner the password once, and keep ${passwordFile}: it is how you sign in to the test site, and how \`pnpm deploy:images --mode staging\` reads it.`
+	: `Give the owner the password once${made ? ', put the tokens where the old ones were' : ''}, then delete ${passwordFile}${made ? ' and .tokens.env' : ''}.`)
 if (waiting.length || (opts.tokens && !staging && without.length)) process.exitCode = 1

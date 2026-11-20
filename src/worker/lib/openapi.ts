@@ -379,7 +379,8 @@ function jsonSchema(schema: z.ZodType): Record<string, unknown> {
 
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/avif']
 
-function operationObject(op: Operation): Record<string, unknown> {
+/** One route as OpenAPI describes it. Exported for scripts/api-surface.mjs, which lists owner-only routes too. */
+export function operationObject(op: Operation): Record<string, unknown> {
 	const parameters = [
 		...[...op.path.matchAll(/\{(\w+)\}/g)].map((match) => ({ name: match[1], in: 'path', required: true, schema: { type: 'string' } })),
 		...(op.query ?? []).map((q) => ({ name: q.name, in: 'query', required: false, description: q.description, schema: q.enum ? { enum: q.enum } : { type: 'string' } })),

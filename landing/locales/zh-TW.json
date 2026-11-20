@@ -173,5 +173,5 @@
 	"s217": "變更",
 	"s218": "修正",
 	"s219": "怎麼取得新版本？",
-	"s220": "你的網站不會自己更新：部署了哪一版就一直跑那一版，直到你再部署一次。問你的 AI「FluxBio 有新版嗎？」，它會告訴你改了什麼，並幫你更新。想不用問也收到通知，可以到 <a href=\"https://github.com/0t2/flux-bio\">GitHub 上的專案</a> 按 Watch → Custom → Releases，每次發布 GitHub 都會寄信給你。每個版本改了什麼都寫在<a href=\"/zh-TW/changelog/\">更新紀錄</a>。"
+	"s220": "你的網站不會自己更新：部署了哪一版就一直跑那一版，直到你再部署一次。問你的 AI「FluxBio 有新版嗎？」，它會告訴你改了什麼，並幫你更新。儀表板的設定頁也會顯示有沒有新版。想不用問也收到通知，可以到 <a href=\"https://github.com/0t2/flux-bio\">GitHub 上的專案</a> 按 Watch → Custom → Releases，每次發布 GitHub 都會寄信給你。每個版本改了什麼都寫在<a href=\"/zh-TW/changelog/\">更新紀錄</a>。"
 }

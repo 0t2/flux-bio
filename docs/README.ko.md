@@ -294,7 +294,7 @@ AI에게 말하면 돼요. “도메인을 links.example.com으로 바꿔 주세
 <details>
 <summary><b>새 버전은 어떻게 받나요?</b></summary>
 
-사이트는 스스로 업데이트되지 않습니다. 배포한 코드 그대로 실행되다가 다시 배포해야 바뀝니다. AI에게 “FluxBio 새 버전 있어?”라고 물으면 무엇이 바뀌었는지 알려 주고 업데이트해 줍니다. 묻지 않아도 소식을 받고 싶다면 [GitHub의 프로젝트](https://github.com/0t2/flux-bio)에서 Watch → Custom → Releases를 선택하세요. 릴리스가 나올 때마다 GitHub가 이메일을 보냅니다. 버전별 변경 내용은 [변경 기록](https://fluxbio.link/ko/changelog/)에 있습니다.
+사이트는 스스로 업데이트되지 않습니다. 배포한 코드 그대로 실행되다가 다시 배포해야 바뀝니다. AI에게 “FluxBio 새 버전 있어?”라고 물으면 무엇이 바뀌었는지 알려 주고 업데이트해 줍니다. 대시보드의 설정에서도 새 버전이 나오면 알려 줍니다. 묻지 않아도 소식을 받고 싶다면 [GitHub의 프로젝트](https://github.com/0t2/flux-bio)에서 Watch → Custom → Releases를 선택하세요. 릴리스가 나올 때마다 GitHub가 이메일을 보냅니다. 버전별 변경 내용은 [변경 기록](https://fluxbio.link/ko/changelog/)에 있습니다.
 
 </details>
 

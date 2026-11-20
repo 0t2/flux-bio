@@ -426,8 +426,13 @@ test('pnpm reset-password: a failed change leaves the old password file as it wa
 test('pnpm reset-password: the test site gets its own password file and no token', async (t) => {
 	const f = fixture(t, { workers: { 'my-links': fluxbio('my-links'), 'my-links-staging': fluxbio('my-links-staging', { testSite: true }) }, worker: { name: 'my-links' } })
 	const s = await site(t, f, { worker: 'my-links-staging' })
+	// The live site's tokens on file are not this Worker's to revoke.
+	writeFileSync(join(f.dir, '.tokens.env'), 'export FLUXBIO_TOKEN=fbk_the_live_sites\n')
 	const result = await f.run('reset-password', '--site', s.origin, '--mode', 'staging')
 	assert.equal(result.code, 0, result.log)
+	assert.equal(readFileSync(join(f.dir, '.tokens.env'), 'utf8'), 'export FLUXBIO_TOKEN=fbk_the_live_sites\n')
+	assert.match(result.log, /keep \.secrets\.staging\.env: it is how you sign in to the test site/)
+	rmSync(join(f.dir, '.tokens.env'))
 	assert.deepEqual(f.calls().at(-1).slice(4, 6), ['--worker', 'my-links-staging'])
 	assert.equal(readFileSync(join(f.dir, '.secrets.staging.env'), 'utf8'), `ADMIN_PASSWORD=${s.password()}\n`)
 	assert.equal(existsSync(join(f.dir, '.tokens.env')), false)

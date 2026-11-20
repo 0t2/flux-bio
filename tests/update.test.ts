@@ -110,7 +110,7 @@ describe('GET /api/update', () => {
 		const guide = await (await call('/llms.txt')).text()
 		for (const part of ['`GET /api/update` once a conversation', 'If `security` is true, say first that a fix for their site is waiting', '- When `GET /api/update` shows a newer FluxBio, offer to update']) expect(guide).toContain(part)
 		const topic = await (await call('/api/guide/update')).text()
-		for (const part of ['`{ version, latest, behind, security, actionNeeded, releases }`', 'a fix is waiting if `security` is true', 'takes a step beyond deploying', "don't call the site up to date"]) expect(topic).toContain(part)
+		for (const part of ['`{ version, latest, behind, security, actionNeeded, releases }`', 'a fix is waiting if `security` is true', 'takes a step beyond deploying', "Don't call the site up to date"]) expect(topic).toContain(part)
 	})
 })
 
@@ -181,5 +181,26 @@ describe('how an owner hears of a new version', () => {
 		const landing = (await import('../landing/locales/en.json')).default as Record<string, string>
 		expect(readme).toContain(`<summary><b>${landing.s219}</b></summary>`)
 		expect(landing.s220).toContain('Watch → Custom → Releases')
+		// And the dashboard, which the changelog said the FAQ names.
+		for (const text of [readme, landing.s220!]) expect(text).toContain('Settings in your dashboard also says when a newer version is out')
+	})
+})
+
+describe('what the update check can’t place', () => {
+	const text = (...sections: string[]) => `# Changelog\n\n${sections.join('\n\n')}\n`
+	it('a site whose own version isn’t three numbers is not called up to date', () => {
+		const answer = updateFrom(text('## 0.4.5 - 2027-01-02\n\n### Security\n- A fix.', '## 0.4.4 - 2027-01-01\n\n### New\n- A thing.'), '0.4.4-ours')
+		expect(answer).toMatchObject({ version: '0.4.4-ours', latest: null, behind: 0, security: false })
+	})
+
+	it('a heading it can’t read below the top makes the whole answer unknown, not a shorter one', () => {
+		// The release under that heading is a security fix, and counting only the one above it would hide that.
+		const answer = updateFrom(text('## 0.4.6 - 2027-01-03\n\n### New\n- A thing.', '## 0.4.5 - 2027-01-02 (yanked)\n\n### Security\n- A fix.', '## 0.4.4 - 2027-01-01\n\n### New\n- A thing.'), '0.4.4')
+		expect(answer).toMatchObject({ latest: null, behind: 0, security: false, releases: [] })
+	})
+
+	it('the days from before versions still end the list for a site of those days', () => {
+		const answer = updateFrom(text('## 0.3.1 - 2026-11-20\n\n### New\n- A thing.', '## 0.3.0 - 2026-11-19\n\n### New\n- Versions.', '## 2026-11-17\n\n### Fixed\n- Before versions.'), '0.2.1')
+		expect(answer).toMatchObject({ latest: '0.3.1', behind: 2 })
 	})
 })

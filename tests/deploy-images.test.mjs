@@ -73,10 +73,10 @@ async function fixture(t, { site = 'main', staging = false } = {}) {
 			mkdirSync(dirname(file(name)), { recursive: true })
 			writeFileSync(file(name), bytes)
 		},
-		async run() {
+		async run(tokens = { FLUXBIO_TOKEN: token }) {
 			const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith('FLUXBIO_')))
 			Object.assign(env, {
-				FLUXBIO_TOKEN: token,
+				...tokens,
 				FLUXBIO_SITES: JSON.stringify(site === 'main' ? {} : { main: [], [site]: ['127.0.0.1'] }),
 				CF_SEND_TELEMETRY: 'false',
 			})
@@ -177,4 +177,13 @@ test('falls back to KV without a stale or partial file after a failed refresh', 
 		assert.ok(!existsSync(f.file()))
 		assert.match(result.log, /1 left to KV/)
 	}
+})
+
+test('a second site’s pictures are read with its own token, not the first site’s', async (t) => {
+	// As a shell profile has them after `pnpm reset-password`: FLUXBIO_TOKEN is the first site's and opens nothing here.
+	const f = await fixture(t, { site: 'link' })
+	const result = await f.run({ FLUXBIO_TOKEN: 'the-first-sites-token', FLUXBIO_TOKEN_LINK: token })
+	assert.equal(result.code, 0, result.log)
+	assert.equal(readFileSync(f.file(), 'utf8'), 'version 1')
+	assert.ok(f.requests.every(({ auth }) => auth === `Bearer ${token}`))
 })

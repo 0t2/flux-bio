@@ -294,7 +294,7 @@ FluxBio 免費、開源，跑在你自己的 Cloudflare 帳號。Cloudflare 的�
 <details>
 <summary><b>怎麼取得新版本？</b></summary>
 
-你的網站不會自己更新：部署了哪一版就一直跑那一版，直到你再部署一次。問你的 AI「FluxBio 有新版嗎？」，它會告訴你改了什麼，並幫你更新。想不用問也收到通知，可以到 [GitHub 上的專案](https://github.com/0t2/flux-bio) 按 Watch → Custom → Releases，每次發布 GitHub 都會寄信給你。每個版本改了什麼都寫在[更新紀錄](https://fluxbio.link/zh-TW/changelog/)。
+你的網站不會自己更新：部署了哪一版就一直跑那一版，直到你再部署一次。問你的 AI「FluxBio 有新版嗎？」，它會告訴你改了什麼，並幫你更新。儀表板的設定頁也會顯示有沒有新版。想不用問也收到通知，可以到 [GitHub 上的專案](https://github.com/0t2/flux-bio) 按 Watch → Custom → Releases，每次發布 GitHub 都會寄信給你。每個版本改了什麼都寫在[更新紀錄](https://fluxbio.link/zh-TW/changelog/)。
 
 </details>
 

@@ -123,7 +123,9 @@ describe('logs', () => {
 
 	it('leaves the bindings that need a Cloudflare sign-in out of local development', () => {
 		// Trying FluxBio on your own computer, before having an account, depends on this (AGENTS.md 1.2).
-		const local = config.indexOf("const analytics = mode !== 'development' && own.analytics")
+		// `cf dev --mode staging`, the test site on a computer, is not the mode "development": the command is asked too.
+		expect(config).toContain("const local = mode === 'development' || command === 'dev'")
+		const local = config.indexOf('const analytics = !local && own.analytics')
 		expect(local).toBeGreaterThan(-1)
 		const inProduction = config.slice(local)
 		// Every Analytics binding hangs on that one answer, a second site's too.

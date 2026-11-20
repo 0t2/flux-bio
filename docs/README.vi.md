@@ -294,7 +294,7 @@ Cứ nói thẳng với AI: “Đổi tên miền thành links.example.com”, �
 <details>
 <summary><b>Làm sao để nhận phiên bản mới?</b></summary>
 
-Trang web của bạn không tự cập nhật: nó chạy mã bạn đã triển khai cho đến khi bạn triển khai lại. Hãy hỏi AI của bạn “Có bản FluxBio mới hơn không?”, nó sẽ cho biết có gì thay đổi và cập nhật giúp bạn. Để nhận tin mà không cần hỏi, hãy mở [dự án trên GitHub](https://github.com/0t2/flux-bio), nhấn Watch → Custom → Releases, và GitHub sẽ gửi email cho bạn mỗi khi có bản phát hành. Mọi phiên bản và thay đổi của nó đều có trong [nhật ký thay đổi](https://fluxbio.link/vi/changelog/).
+Trang web của bạn không tự cập nhật: nó chạy mã bạn đã triển khai cho đến khi bạn triển khai lại. Hãy hỏi AI của bạn “Có bản FluxBio mới hơn không?”, nó sẽ cho biết có gì thay đổi và cập nhật giúp bạn. Trang Cài đặt trong bảng điều khiển cũng cho biết khi có phiên bản mới. Để nhận tin mà không cần hỏi, hãy mở [dự án trên GitHub](https://github.com/0t2/flux-bio), nhấn Watch → Custom → Releases, và GitHub sẽ gửi email cho bạn mỗi khi có bản phát hành. Mọi phiên bản và thay đổi của nó đều có trong [nhật ký thay đổi](https://fluxbio.link/vi/changelog/).
 
 </details>
 

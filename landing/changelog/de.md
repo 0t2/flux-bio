@@ -1,9 +1,18 @@
 # Changelog
 
 What changed in FluxBio, a release at a time, newest first. fluxbio.link shows this file at `/en/changelog/` and is made from it.
-If you host your own, you take `main`. Your site says which version it runs, in `version` of `GET /api/state` and at the top of `/llms.txt`, so after updating read the releases above that one. The number says what updating takes: a release that changes the middle number (0.3.4 to 0.4.0) has an "Action needed", and one that changes only the last (0.3.4 to 0.3.5) needs nothing but the deploy.
+If you host your own, `pnpm update:code` in your FluxBio folder brings its code to the newest release and shows the releases in between: read them before you deploy. Your site says which version it runs, in `version` of `GET /api/state` and at the top of `/llms.txt`. The number says what updating takes: a release that changes the middle number (0.3.4 to 0.4.0) has an "Action needed", and one that changes only the last (0.3.4 to 0.3.5) needs nothing but the deploy.
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
+
+## 0.4.5 - 2026-11-20
+
+### Behoben
+- Die Anleitung, die eine Testseite oder eine lokale Kopie ausliefert, nennt nicht mehr die Befehle der Live-Website: Ihre Bereitstellungen enthalten `--mode staging`, und sie weist Ihre KI nicht mehr an, diese Anleitung als Skill der Live-Website zu speichern. [#52](https://github.com/0t2/flux-bio/pull/52)
+- Bei einem Worker mit mehreren Websites lässt „FluxBio entfernen“ in der Anleitung Ihre KI nicht mehr den ganzen Worker und die Datenbank der ersten Website löschen, um nur eine Website herauszunehmen. [#52](https://github.com/0t2/flux-bio/pull/52)
+- `pnpm run deploy` richtet sich nach der Version Ihres Workers, die gerade läuft; nach einem Rollback im Cloudflare-Dashboard ist das nicht immer die neueste. `pnpm deploy:images` liest die Bilder einer zweiten Website mit deren eigenem Token, und `pnpm reset-password --mode staging` lässt die gespeicherten Token der Live-Website unberührt. [#52](https://github.com/0t2/flux-bio/pull/52)
+- Eine Testseite auf Ihrem Computer auszuführen (`cf dev --mode staging`) erfordert keine Anmeldung bei Cloudflare mehr. [#52](https://github.com/0t2/flux-bio/pull/52)
+- `GET /api/update` antwortet bei einer Version oder einem Änderungsprotokoll, die es nicht einordnen kann, dass es nichts weiß (`latest` ist null), statt die Website als aktuell zu melden. [#52](https://github.com/0t2/flux-bio/pull/52)
 
 ## 0.4.4 - 2026-11-20
 

@@ -294,7 +294,7 @@ Cukup bilang ke AI: “Ganti domain ke links.example.com”, “Ganti kata sandi
 <details>
 <summary><b>Bagaimana cara mendapatkan versi baru?</b></summary>
 
-Situs Anda tidak memperbarui dirinya sendiri: ia menjalankan kode yang Anda deploy sampai Anda men-deploy lagi. Tanyakan kepada AI Anda “Apakah ada FluxBio yang lebih baru?”, dan ia akan memberi tahu apa yang berubah lalu memperbaruinya untuk Anda. Agar mendapat kabar tanpa bertanya, buka [proyeknya di GitHub](https://github.com/0t2/flux-bio), tekan Watch → Custom → Releases, dan GitHub akan mengirim email setiap ada rilis. Semua versi dan perubahannya ada di [catatan perubahan](https://fluxbio.link/id/changelog/).
+Situs Anda tidak memperbarui dirinya sendiri: ia menjalankan kode yang Anda deploy sampai Anda men-deploy lagi. Tanyakan kepada AI Anda “Apakah ada FluxBio yang lebih baru?”, dan ia akan memberi tahu apa yang berubah lalu memperbaruinya untuk Anda. Pengaturan di dasbor Anda juga memberi tahu saat ada versi baru. Agar mendapat kabar tanpa bertanya, buka [proyeknya di GitHub](https://github.com/0t2/flux-bio), tekan Watch → Custom → Releases, dan GitHub akan mengirim email setiap ada rilis. Semua versi dan perubahannya ada di [catatan perubahan](https://fluxbio.link/id/changelog/).
 
 </details>
 

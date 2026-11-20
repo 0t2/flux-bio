@@ -113,7 +113,7 @@ export function parseChangelog(source: string, labels: CategoryLabels = Object.f
 			releases.push(release)
 			section = null
 		} else if (text.startsWith('### ')) {
-			if (!release) throw new Error(`CHANGELOG.md line ${line}: a category before the first "## " heading.`)
+			if (!release) throw new Error(`${file} line ${line}: a category before the first "## " heading.`)
 			closeSection(line)
 			const name = text.slice(4).trim()
 			const category = CATEGORIES.find((candidate) => labels[candidate] === name)

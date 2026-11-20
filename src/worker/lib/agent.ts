@@ -45,6 +45,8 @@ export interface GuideNames {
 	skill: string
 	/** The hostnames of the other sites this Worker holds; none for a Worker with one site. */
 	otherSites: string[]
+	/** Which of the Worker's sites this is: "main" for the first, the one every Worker has. */
+	site: string
 }
 
 /** Which of a Worker's sites a guide is for, and where the others are. */
@@ -72,6 +74,7 @@ export function guideNames(origin: string, workerName?: string, site: GuideSite 
 		tokenVar: main ? 'FLUXBIO_TOKEN' : `FLUXBIO_TOKEN_${bindingSuffix(site.id)}`,
 		skill: main ? 'fluxbio' : `fluxbio-${site.id}`,
 		otherSites: site.others,
+		site: site.id,
 	}
 }
 

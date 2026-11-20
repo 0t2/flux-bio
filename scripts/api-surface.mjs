@@ -207,6 +207,11 @@ export function responseNames(source) {
 		own.set(match[1], typeNames(code.slice(open + 1, closing(code, open)), '', new Set()))
 		parents.set(match[1], match[2] ? match[2].split(',').map((name) => name.trim()) : [])
 	}
+	// An interface written in a way the pattern above doesn't know, with a type parameter or extending an Omit<…>,
+	// would be left out without a word, and its fields with it.
+	const declared = [...code.matchAll(/^export interface (\w+)/gm)].map((match) => match[1])
+	const unread = declared.filter((name) => !own.has(name))
+	if (unread.length) throw new Error(`src/shared/api.ts: scripts/api-surface.mjs can't read how ${unread.map((name) => `"${name}"`).join(', ')} ${unread.length === 1 ? 'is' : 'are'} declared, so ${unread.length === 1 ? 'its' : 'their'} fields would be missing from the list.`)
 	const out = new Set()
 	for (const match of code.matchAll(/^export type (\w+) =/gm)) {
 		const fields = new Set()
@@ -237,8 +242,9 @@ export async function surface() {
 		out.add(name)
 		// Who may call it: taking a route away from tokens breaks them as much as removing it.
 		out.add(`${name} for=${op.owner ? 'owner' : op.open ? 'anyone' : op.linksToken ? 'links-token' : 'full-token'}`)
-		const described = document.paths[op.path]?.[op.method]
-		if (!described) continue
+		// The document leaves owner-only routes out, since no token can call them. An agent holding the admin
+		// password can, and the hand-over and pnpm reset-password do: their parameters and bodies are promised too.
+		const described = document.paths[op.path]?.[op.method] ?? openapi.operationObject(op)
 		for (const parameter of described.parameters ?? []) {
 			out.add(`${name} ${parameter.in}:${parameter.name}`)
 			if (!parameter.required) out.add(`${name} ${parameter.in}:${parameter.name} optional`)

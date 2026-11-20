@@ -295,7 +295,7 @@ Just ask your AI: "Switch the domain to links.example.com", "Change my dashboard
 <details>
 <summary><b>How do I get new versions?</b></summary>
 
-Your site doesn’t update by itself: it runs the code you deployed until you deploy again. Ask your AI “Is there a newer FluxBio?” and it tells you what changed and updates for you. To hear about new versions without asking, open [the project on GitHub](https://github.com/0t2/flux-bio), press Watch → Custom → Releases, and GitHub emails you each one. Every version and what it changed is in [the changelog](https://fluxbio.link/en/changelog/).
+Your site doesn’t update by itself: it runs the code you deployed until you deploy again. Ask your AI “Is there a newer FluxBio?” and it tells you what changed and updates for you. Settings in your dashboard also says when a newer version is out. To hear about new versions without asking, open [the project on GitHub](https://github.com/0t2/flux-bio), press Watch → Custom → Releases, and GitHub emails you each one. Every version and what it changed is in [the changelog](https://fluxbio.link/en/changelog/).
 
 </details>
 

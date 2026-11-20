@@ -1,9 +1,18 @@
 # Changelog
 
 What changed in FluxBio, a release at a time, newest first. fluxbio.link shows this file at `/en/changelog/` and is made from it.
-If you host your own, you take `main`. Your site says which version it runs, in `version` of `GET /api/state` and at the top of `/llms.txt`, so after updating read the releases above that one. The number says what updating takes: a release that changes the middle number (0.3.4 to 0.4.0) has an "Action needed", and one that changes only the last (0.3.4 to 0.3.5) needs nothing but the deploy.
+If you host your own, `pnpm update:code` in your FluxBio folder brings its code to the newest release and shows the releases in between: read them before you deploy. Your site says which version it runs, in `version` of `GET /api/state` and at the top of `/llms.txt`. The number says what updating takes: a release that changes the middle number (0.3.4 to 0.4.0) has an "Action needed", and one that changes only the last (0.3.4 to 0.3.5) needs nothing but the deploy.
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
+
+## 0.4.5 - 2026-11-20
+
+### Correcciones
+- La guía que sirve un sitio de pruebas o una copia local ya no da los comandos del sitio real: sus despliegues llevan `--mode staging`, y ya no le dice a tu IA que guarde esa guía como la skill del sitio real. [#52](https://github.com/0t2/flux-bio/pull/52)
+- En un Worker con más de un sitio, «Eliminar FluxBio» en la guía ya no hace que tu IA borre el Worker entero y la base de datos del primer sitio para quitar uno solo. [#52](https://github.com/0t2/flux-bio/pull/52)
+- `pnpm run deploy` se guía por la versión de tu Worker que está en ejecución, que no siempre es la más reciente tras una reversión en el panel de Cloudflare. `pnpm deploy:images` lee las imágenes de un segundo sitio con el token de ese sitio, y `pnpm reset-password --mode staging` ya no toca los tokens guardados del sitio real. [#52](https://github.com/0t2/flux-bio/pull/52)
+- Ejecutar un sitio de pruebas en tu ordenador (`cf dev --mode staging`) ya no requiere iniciar sesión en Cloudflare. [#52](https://github.com/0t2/flux-bio/pull/52)
+- `GET /api/update` responde que no lo sabe (`latest` es null) ante una versión o un registro de cambios que no puede situar, en lugar de decir que está al día. [#52](https://github.com/0t2/flux-bio/pull/52)
 
 ## 0.4.4 - 2026-11-20
 
