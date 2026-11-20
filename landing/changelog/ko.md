@@ -5,6 +5,16 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.9 - 2026-11-20
+
+### 보안
+- 상세 통계에서 방문자의 그날 ID는 이제 관리자 비밀번호가 아니라 매일 바뀌는 임의의 값으로 솔트됩니다. 하루가 지나면 소유자를 포함해 누구도 특정 주소가 방문했는지 확인할 수 없습니다. 이 업데이트를 적용한 날의 순 방문자 수는 높게 나옵니다. [#58](https://github.com/0t2/flux-bio/pull/58)
+
+### 수정
+- 게시하는 동안 다른 사람이 초안을 저장하면, 이제 응답이 초안의 실제 버전을 알려 주고 초안이 유지되었다고(`draftKept`) 알립니다. 대시보드는 그 초안을 받아들이거나 어느 쪽을 남길지 묻습니다. [#58](https://github.com/0t2/flux-bio/pull/58)
+- 게시와 같은 순간에 페이지 주소가 바뀌거나, 링크의 단축 주소가 바뀌거나, 설정 변경으로 글꼴이 복사되는 중이어도 예전 복사본, 남는 단축 주소, 잘못된 글꼴 파일이 남지 않습니다. [#58](https://github.com/0t2/flux-bio/pull/58)
+- 통계를 내려받는 동안에는 예전 일별 데이터를 월로 합치는 작업이 끝날 때까지 멈춥니다. 내려받기의 두 페이지 사이로 숫자가 빠지지 않습니다. [#58](https://github.com/0t2/flux-bio/pull/58)
+
 ## 0.4.8 - 2026-11-20
 
 ### 수정

@@ -1,7 +1,8 @@
 import type { UtmTags } from '../../shared/api'
 import { detectBrowser, detectDevice, detectOs } from '../../shared/source'
+import { randomString } from '../../shared/content'
 import { sha256Hex } from './auth'
-import { adminPassword } from './mode'
+import { perSite, siteId } from './sites'
 
 /**
  * Raw visit and click events go to Workers Analytics Engine: writes are free,
@@ -76,9 +77,40 @@ export interface EventInput {
 	utm?: UtmTags
 }
 
+const SALT_KEY = 'visitor-salt'
+const salts = perSite<{ day: string; salt: Promise<string> }>()
+
 /**
- * The visitor id is a hash of the day, IP and browser, salted with the admin
- * password. It changes every day and can't be turned back into an IP.
+ * The day's salt for visitor ids: random, kept in _meta for that day only, and written over by the next day's the
+ * first time a visit of that day is counted. A salt that lasted, the admin password as it used to be, would let
+ * whoever knows it try every address against an old id and learn whether someone visited. Without a table to keep
+ * it in, as in a test with no schema yet, the salt lasts as long as this copy of the Worker.
+ */
+function daySalt(env: Env, day: string): Promise<string> {
+	const site = siteId(env)
+	const kept = salts.get(site)
+	if (kept?.day === day) return kept.salt
+	const salt = (async () => {
+		const fresh = JSON.stringify({ day, salt: randomString(32) })
+		const [, read] = await env.DB.batch<{ value: string }>([
+			// Only where the day has changed: every copy of the Worker counts the day's visitors with one salt.
+			env.DB.prepare(`INSERT INTO _meta (key, value) VALUES (?1, ?2) ON CONFLICT (key) DO UPDATE SET value = excluded.value WHERE json_extract(_meta.value, '$.day') IS NOT ?3`).bind(SALT_KEY, fresh, day),
+			env.DB.prepare('SELECT value FROM _meta WHERE key = ?1').bind(SALT_KEY),
+		])
+		const stored = JSON.parse(read?.results[0]?.value ?? 'null') as { day?: string; salt?: string } | null
+		if (stored?.day !== day || typeof stored.salt !== 'string') throw new Error('The day has no salt')
+		return stored.salt
+	})().catch((error: unknown) => {
+		console.error('Could not read the day\'s salt for visitor ids', error)
+		return randomString(32)
+	})
+	salts.set(site, { day, salt })
+	return salt
+}
+
+/**
+ * The visitor id is a hash of the day, IP and browser, salted with a random value that is kept for that day and
+ * then gone (daySalt). It changes every day, and once the day is over nobody can turn it back into an IP.
  */
 async function visitorId(secret: string, day: string, request: Request): Promise<string> {
 	const ip = request.headers.get('cf-connecting-ip') ?? ''
@@ -148,7 +180,7 @@ export async function eventBlobs(env: Env, request: Request, input: EventInput):
 		browser: detectBrowser(ua),
 		os: detectOs(ua),
 		referrer: referrerHost(request),
-		visitor: await visitorId(adminPassword(env), input.day, request),
+		visitor: await visitorId(await daySalt(env, input.day), input.day, request),
 		region: cf(request, 'region'),
 		city: cf(request, 'city'),
 		utmContent: utm.content ?? '',

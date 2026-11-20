@@ -5,6 +5,16 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.9 - 2026-11-20
+
+### Bảo mật
+- Mã định danh trong ngày của khách truy cập trong thống kê chi tiết giờ được thêm muối bằng một giá trị ngẫu nhiên thay đổi mỗi ngày, không phải mật khẩu quản trị. Khi ngày đó qua đi, không ai có thể kiểm tra một địa chỉ nào đó đã truy cập hay chưa, kể cả chủ sở hữu. Số khách truy cập trong ngày sẽ cao hơn thực tế vào ngày cập nhật này. [#58](https://github.com/0t2/flux-bio/pull/58)
+
+### Đã sửa
+- Xuất bản trong lúc người khác lưu bản nháp giờ trả về phiên bản thật của bản nháp và cho biết bản nháp đã được giữ lại (`draftKept`); bảng điều khiển dùng bản nháp đó hoặc hỏi nên giữ bản nào. [#58](https://github.com/0t2/flux-bio/pull/58)
+- Trang được xuất bản đúng lúc nó bị chuyển địa chỉ, một liên kết của nó nhận địa chỉ rút gọn khác, hoặc một thay đổi cài đặt đang sao chép phông chữ sẽ không còn giữ bản sao cũ, địa chỉ rút gọn thừa hay tệp phông chữ sai. [#58](https://github.com/0t2/flux-bio/pull/58)
+- Tải thống kê về sẽ tạm dừng việc gộp các ngày cũ thành tháng cho đến khi xong, nên không số liệu nào rơi vào giữa hai trang của lượt tải. [#58](https://github.com/0t2/flux-bio/pull/58)
+
 ## 0.4.8 - 2026-11-20
 
 ### Đã sửa

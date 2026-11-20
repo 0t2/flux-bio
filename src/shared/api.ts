@@ -192,6 +192,11 @@ export interface PublishResponse {
 	content: PageContent
 	/** Publishing fills in slugs, so the draft has a new version: the one to send with the next change. */
 	draftUpdatedAt: number
+	/**
+	 * True when the draft was saved by someone else while this was publishing, and so was kept: it is newer than
+	 * `content`, which is what went live. Read the page before changing its draft. Absent otherwise.
+	 */
+	draftKept?: true
 	/** Per language turned on, the texts that show as written because they have no translation yet. */
 	untranslated: Untranslated
 }

@@ -5,6 +5,16 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.9 - 2026-11-20
+
+### Sicherheit
+- Die Tageskennung eines Besuchers in den detaillierten Statistiken wird jetzt mit einem Zufallswert gesalzen, der täglich ersetzt wird, nicht mehr mit dem Admin-Passwort. Ist der Tag vorbei, kann niemand mehr prüfen, ob eine bestimmte Adresse zu Besuch war, auch der Eigentümer nicht. Die Zahl der Besucher des Tages ist am Tag dieses Updates zu hoch. [#58](https://github.com/0t2/flux-bio/pull/58)
+
+### Behoben
+- Wird veröffentlicht, während jemand anderes den Entwurf speichert, enthält die Antwort jetzt die tatsächliche Version des Entwurfs und sagt, dass der Entwurf erhalten blieb (`draftKept`); das Dashboard übernimmt diesen Entwurf oder fragt, welcher bleiben soll. [#58](https://github.com/0t2/flux-bio/pull/58)
+- Eine Seite, die im selben Moment veröffentlicht wird, in dem sie verschoben wird, einer ihrer Links eine andere Kurzadresse bekommt oder eine Einstellungsänderung ihre Schriften kopiert, behält keine alte Kopie, keine verwaiste Kurzadresse und keine falschen Schriftdateien mehr. [#58](https://github.com/0t2/flux-bio/pull/58)
+- Beim Herunterladen der Statistiken wird das Zusammenfassen alter Tage zu Monaten angehalten, bis es fertig ist, sodass keine Zahl zwischen zwei Seiten des Downloads fallen kann. [#58](https://github.com/0t2/flux-bio/pull/58)
+
 ## 0.4.8 - 2026-11-20
 
 ### Behoben

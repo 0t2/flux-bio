@@ -48,6 +48,15 @@ async function loadState(db: D1Database): Promise<State> {
 	return stateOf((await readMeta(db, KEY)) as Partial<State> | undefined)
 }
 
+/**
+ * While the stats are being downloaded, a thousand rows a request, nothing merges days into months or deletes
+ * them: days not downloaded yet would move into a month's row, which sorts before the place the download has got
+ * to, and their counts would be in no file. Each page of a download holds the tidying for this long after it.
+ */
+const DOWNLOAD_HOLD = 5 * 60_000
+const DOWNLOAD_KEY = 'stats-download'
+const holdStatement = (db: D1Database, now: number) => writeMetaStatement(db, DOWNLOAD_KEY, now + DOWNLOAD_HOLD)
+
 const utcDay = (now: number) => new Date(now).toISOString().slice(0, 10)
 const monthOf = (timeZone: string, now: number) => dayIn(timeZone, now).slice(0, 7)
 
@@ -74,7 +83,8 @@ const SLICE = 'SELECT day, target, kind, dim, value FROM stats WHERE day >= ?1 A
  * to delete first, then daily rows of whole months past the window into one row per month.
  */
 export async function tidyStats(db: D1Database, settings: Settings, now = Date.now()): Promise<void> {
-	const state = await loadState(db)
+	const [state, held] = await Promise.all([loadState(db), readMeta(db, DOWNLOAD_KEY)])
+	if (typeof held === 'number' && held > now) return
 	const today = utcDay(now)
 	const done = state.day === today ? state.done : 0
 	const room = Math.min(PER_RUN[settings.plan], PER_DAY[settings.plan] - done)
@@ -176,7 +186,11 @@ export async function clearStats(db: D1Database, settings: Settings, before: str
 		throw new ApiError(400, 'invalid', { key: msg('只能清除 {month} 以前的點擊數據，比這更新的還會顯示在數據頁'), params: { month: clearableBefore(settings.timezone, now) } })
 	}
 	const state = await loadState(db)
-	await writeMetaStatement(db, KEY, { ...state, clear: state.clear && state.clear > before ? state.clear : before } satisfies State).run()
+	// The owner clears after downloading: asking for it says the download is done, and nothing is held for one.
+	await db.batch([
+		writeMetaStatement(db, KEY, { ...state, clear: state.clear && state.clear > before ? state.clear : before } satisfies State),
+		db.prepare('DELETE FROM _meta WHERE key = ?1').bind(DOWNLOAD_KEY),
+	])
 }
 
 /** One line of the stats download. */
@@ -203,10 +217,13 @@ function decodeCursor(cursor: string): Key | null {
  * Every count, oldest first, a thousand at a time: days as "YYYY-MM-DD", merged months as "YYYY-MM". `page` is the
  * page's address for its views, its links and the clicks inside it; `slug` and `title` are a short link's.
  */
-export async function exportStats(db: D1Database, cursor: string | undefined, before?: string): Promise<{ rows: ExportRow[]; nextCursor: string | null }> {
+export async function exportStats(db: D1Database, cursor: string | undefined, before?: string, now = Date.now()): Promise<{ rows: ExportRow[]; nextCursor: string | null }> {
 	const after = cursor ? decodeCursor(cursor) : null
 	if (cursor && !after) throw new ApiError(400, 'invalid', msg('查詢參數不正確'))
-	const { results } = await db
+	// Held first, in the same trip as the read: a slice of tidying that starts after this finds it held.
+	const [, read] = await db.batch<{ day: string; kind: string; target: string; dim: string; value: string; count: number; handle: string | null; slug: string | null; title: string | null }>([
+		holdStatement(db, now),
+		db
 		.prepare(
 			`SELECT s.day, s.kind, s.target, s.dim, s.value, s.count, p.handle, l.slug, l.title
 			FROM stats s
@@ -215,8 +232,9 @@ export async function exportStats(db: D1Database, cursor: string | undefined, be
 			WHERE (s.day, s.target, s.kind, s.dim, s.value) > (?1, ?2, ?3, ?4, ?5) AND s.day < ?6
 			ORDER BY s.day, s.target, s.kind, s.dim, s.value LIMIT ?7`,
 		)
-		.bind(...(after ?? ['', '', '', '', '']), before ?? '9999', EXPORT_PAGE + 1)
-		.all<{ day: string; kind: string; target: string; dim: string; value: string; count: number; handle: string | null; slug: string | null; title: string | null }>()
+		.bind(...(after ?? ['', '', '', '', '']), before ?? '9999', EXPORT_PAGE + 1),
+	])
+	const results = read?.results ?? []
 	const page = results.slice(0, EXPORT_PAGE)
 	const last = page.at(-1)
 	return {

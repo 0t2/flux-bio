@@ -1,8 +1,10 @@
+import { env } from 'cloudflare:test'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import type { FontsResponse, PageJson, StateResponse } from '../src/shared/api'
 import { emptyContent, newItem, PageContentSchema, storedContent, type PageContent } from '../src/shared/content'
 import { findFont, fontAxis, GOOGLE_TEXT_LIMIT, headingWeight, searchFonts, FEATURED_FONTS, googleFonts } from '../src/shared/fonts'
 import { charactersFor, pageCharacters, pageWebFonts, parseFaces } from '../src/worker/lib/fonts'
+import { updateSettings } from '../src/worker/lib/ops'
 import { resolveAppearance } from '../src/templates/themes'
 import { api, apiJson, visit } from './helpers'
 
@@ -262,6 +264,50 @@ describe('fonts on published pages', () => {
 		const asked = decodeURIComponent(requests.find((url) => url.includes('Noto+Sans+TC'))!)
 		for (const char of '営まで') expect(asked, char).toContain(char)
 		expect(fontFiles(await (await visit(`/${handle}`)).text()).length).toBeGreaterThan(0)
+	})
+
+	it('are left as a publish made them, when one lands while a change of settings is copying them again', async () => {
+		const listed = async () => (await env.DB.prepare('SELECT fonts FROM pages WHERE id = ?1').bind(pageId).first<{ fonts: string }>())!.fonts
+		// The change has read the page and copied its fonts for the languages there are now. Before it saves their
+		// list, the page is published with other words, and so with fonts of its own.
+		const text = new WeakMap<object, string>()
+		let published = ''
+		const DB = new Proxy(env.DB, {
+			get(target, key) {
+				if (key === 'prepare') {
+					return (sql: string) => {
+						const statement = target.prepare(sql)
+						const bind = statement.bind.bind(statement)
+						statement.bind = ((...values: unknown[]) => {
+							const bound = bind(...values)
+							text.set(bound, sql)
+							return bound
+						}) as typeof statement.bind
+						return statement
+					}
+				}
+				if (key === 'batch') {
+					return async (statements: D1PreparedStatement[]) => {
+						if (!published && statements.some((statement) => text.get(statement)?.startsWith('UPDATE pages SET fonts = ?1 WHERE id = ?2'))) {
+							await publish((content) => {
+								content.profile.bio = '在複製字型的時候發布'
+							})
+							published = await listed()
+						}
+						return target.batch(statements)
+					}
+				}
+				const value = Reflect.get(target, key)
+				return typeof value === 'function' ? value.bind(target) : value
+			},
+		})
+		await updateSettings({ ...env, DB } as Env, { languages: [] })
+		expect(published).not.toBe('')
+		expect(await listed()).toBe(published)
+		// The page names the publish's files, which are there; the other copy's are gone, with nothing to list them.
+		const files = fontFiles(await (await visit(`/${handle}`)).text())
+		expect(files.length).toBeGreaterThan(0)
+		for (const file of files) expect((await visit(file)).status).toBe(200)
 	})
 
 	it('go back to Google, and their files away, when the switch is turned off', async () => {

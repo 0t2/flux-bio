@@ -5,6 +5,16 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.9 - 2026-11-20
+
+### Segurança
+- O identificador diário de um visitante nas estatísticas detalhadas agora usa como sal um valor aleatório trocado a cada dia, e não a senha de administração. Passado o dia, ninguém consegue testar se um determinado endereço visitou o site, nem o proprietário. A contagem de visitantes do dia fica alta demais no dia desta atualização. [#58](https://github.com/0t2/flux-bio/pull/58)
+
+### Correções
+- Publicar enquanto outra pessoa salva o rascunho agora responde com a versão real do rascunho e informa que o rascunho foi mantido (`draftKept`); o painel adota esse rascunho ou pergunta qual manter. [#58](https://github.com/0t2/flux-bio/pull/58)
+- Uma página publicada no mesmo instante em que é movida, em que um de seus links recebe outro endereço curto ou em que uma alteração de configuração copia suas fontes não mantém mais uma cópia antiga, um endereço curto solto ou arquivos de fonte errados. [#58](https://github.com/0t2/flux-bio/pull/58)
+- Baixar as estatísticas suspende a junção de dias antigos em meses até terminar, então nenhuma contagem pode cair entre duas páginas do download. [#58](https://github.com/0t2/flux-bio/pull/58)
+
 ## 0.4.8 - 2026-11-20
 
 ### Correções

@@ -402,6 +402,7 @@ Rules worth knowing:
 
 - **Nobody overwrites anybody.** The owner in the dashboard and their AI edit the same drafts. `PUT /api/pages/:id/draft` needs `If-Match` with the `draftUpdatedAt` that was read (`428`
   without it), and answers `409` `draft-changed` if the draft has moved on. The save is one atomic `UPDATE`, and `draft_updated_at` only goes up. Publishing takes `If-Match` too, and gives the new version.
+  Publishing copies fonts first, which can take seconds; a draft saved meanwhile is kept, and the answer says so (`draftKept`) with the version D1 has.
   The dashboard sends it with every autosave, asks which copy to keep on a `409`, and loads a newer draft when its window gets focus, if it has no edits of its own.
   It asks with `If-None-Match` and the version it holds, and `GET /api/pages/:id` answers `304` while the draft is still that one, without reading the page.
 - **Going back.** Every publish leaves a row in `page_versions`, the last 20 per page, with who published it (`owner`, or `token:<name>`). `POST /api/pages/:id/versions/:versionId/restore` puts one in
@@ -690,7 +691,8 @@ tests/                  Vitest tests (run in workerd)
     Days are kept for 13 whole months (6 once the database passes 70% of the plan's size), then each month becomes one row whose
     `day` is `YYYY-MM`, which sorts before that month's days and so is never in a range of days (`lib/statsHistory.ts`).
     That, and deleting the months the owner asks to clear, happens a slice at a time after `GET /api/state`, within a daily
-    budget of rows written. `GET /api/stats/export` downloads every row; `GET /api/usage` says how full the database is.
+    budget of rows written, and not while the stats are being downloaded: each page of `GET /api/stats/export` holds it for
+    five minutes, or days not downloaded yet would move into a month's row that sorts before where the download has got to. `GET /api/stats/export` downloads every row; `GET /api/usage` says how full the database is.
     The Worker can't see the owner's Cloudflare plan, so `settings.plan` (`free` or `paid`) says it.
   - *Workers Analytics Engine, detailed, last 90 days.* One raw event per hit in the instance's own
     dataset (`ANALYTICS`, named after the Worker). The blob order is `EVENT_FIELDS` in
@@ -702,6 +704,10 @@ tests/                  Vitest tests (run in workerd)
     above 0. AE allows 20 blobs and the list is full: put new fields in doubles. Append, never reorder.
     `lib/analytics.ts` reads them through the Analytics SQL binding (`ANALYTICS_SQL`, no API token);
     its sampling column is `sampleInterval`, not `_sample_interval`.
+  - *The daily visitor hash* is of the day, the IP and the browser, salted with a random value kept in `_meta` for that
+    day and written over by the next day's (`daySalt` in `lib/analytics.ts`). Not with anything that lasts, the admin
+    password or the deployment's secret: whoever knows the salt can try addresses against an id, so no one must once
+    the day is over.
   - *Never store anything that identifies a person.* That means no IP address, no user-agent string
     and no precise coordinates: Cloudflare's estimate of where the IP is (a city's position, not
     GPS) is rounded to 0.1°, about a town. `tests/analytics.test.ts` checks this; keep it passing. Cloudflare's per-request Workers Logs would record request headers, so they stay off (`invocationLogs: false`), and only `console.error` is logged.

@@ -2192,6 +2192,8 @@
 	"type PublishResponse.content",
 	"type PublishResponse.content always",
 	"type PublishResponse.content: PageContent",
+	"type PublishResponse.draftKept",
+	"type PublishResponse.draftKept: true",
 	"type PublishResponse.draftUpdatedAt",
 	"type PublishResponse.draftUpdatedAt always",
 	"type PublishResponse.draftUpdatedAt: number",

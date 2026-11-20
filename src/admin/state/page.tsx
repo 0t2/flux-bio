@@ -301,8 +301,9 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 				const sent = savedJson.current
 				const result = await request<PublishResponse>(`/pages/${id}/publish`, { method: 'POST', headers: { 'if-match': String(version.current) } })
 				version.current = result.draftUpdatedAt
-				// The server filled in short link slugs, and that is the saved draft now.
-				savedJson.current = JSON.stringify(result.content)
+				// The server filled in short link slugs, and that is the saved draft now. Unless the draft was saved
+				// elsewhere while this was publishing: then it was kept, and what is saved is not known here.
+				if (!result.draftKept) savedJson.current = JSON.stringify(result.content)
 				return { result, sent }
 			})
 			queue.current = done.then(
@@ -313,6 +314,18 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 			setPublished(result.content)
 			setPublishedAt(result.publishedAt)
 			const unchanged = JSON.stringify(latest.current) === sent
+			if (result.draftKept) {
+				// Someone else, the owner's AI or another window, saved the draft while this was publishing. Theirs is
+				// the draft now. With nothing typed here since, it is taken; with something, the owner is asked which
+				// to keep, as when a save finds the draft changed: the next save would otherwise write over theirs.
+				if (unchanged) adopt(await readLatest())
+				else {
+					inConflict.current = true
+					setConflict(true)
+					setSaveStatus('error')
+				}
+				return true
+			}
 			if (unchanged) {
 				// Nothing was typed since: take the server's version as it is.
 				latest.current = result.content

@@ -611,21 +611,33 @@ export async function publishPage(env: Env, pageId: string, { by = null, seen }:
 				`UPDATE pages SET published = ?1, published_at = ?2, fonts = ?4,
 				draft = CASE WHEN draft_updated_at = ?5 THEN ?1 ELSE draft END,
 				draft_updated_at = CASE WHEN draft_updated_at = ?5 THEN ?6 ELSE draft_updated_at END
-				WHERE id = ?3`,
+				WHERE id = ?3 RETURNING draft_updated_at AS version, handle`,
 			)
 			.bind(JSON.stringify(content), now, pageId, fonts ? JSON.stringify(fonts) : null, page.draftUpdatedAt, draftUpdatedAt),
 	)
 	// Links that were live and now change or leave lose their KV copy first, and so does the page.
 	const replaced = ownRows.filter((row) => row.status === 'active' && !row.slug.startsWith('~') && !unchanged.has(row.slug))
 	await dropCopies(env, [page.handle], replaced.map((row) => row.slug), { home: settings.home === pageId })
-	await db.batch(statements)
+	// What D1 has by now, which is not always what was meant: the draft is kept where one was saved while fonts were
+	// being copied, and the page may have been given another address.
+	const stored = (await db.batch<{ version: number; handle: string }>(statements)).at(-1)?.results[0]
+	const draftKept = stored !== undefined && stored.version !== draftUpdatedAt
+	const handle = stored?.handle ?? page.handle
 	forgetPublicNames()
 	// The slugs that left the page or changed are written nowhere below.
 	const written = new Set(freshLinks.map((row) => row.slug))
-	await dropAgain(env, replaced.map((row) => row.slug).filter((slug) => !written.has(slug)))
+	const leftBehind = replaced.map((row) => row.slug).filter((slug) => !written.has(slug))
+	if (draftKept) {
+		// A link given another short address meanwhile has it in the draft that was kept, and in KV, while its
+		// row is back at the address that went live: that copy would go on redirecting with nothing behind it.
+		const kept = await getPage(db, pageId)
+		const went = new Set(links.map((link) => normalizeSlug(link.slug)))
+		leftBehind.push(...(kept ? linkItems(kept.draft).map((link) => normalizeSlug(link.slug)).filter((slug) => slug && !went.has(slug)) : []))
+	}
+	await dropAgain(env, leftBehind)
 
 	// With pages off, the published version waits in D1 until they are on again.
-	const snapshot = await snapshotOf(db, { ...page, published: content, publishedAt: now, draft: content, fonts }, settings)
+	const snapshot = await snapshotOf(db, { ...page, handle, published: content, publishedAt: now, draft: content, fonts }, settings)
 	await putCopies([
 		snapshot ? putSnapshot(env, snapshot) : null,
 		...freshLinks.map((row) => putLinkRecord(env, row.slug, toLinkRecord(row))),
@@ -633,7 +645,7 @@ export async function publishPage(env: Env, pageId: string, { by = null, seen }:
 	])
 	if (!page.published && settings.home !== pageId) await relist(env)
 	await deleteFontFiles(env, unusedFontFiles(page.fonts, fonts))
-	return { publishedAt: now, content, draftUpdatedAt, untranslated: untranslated(content, settings.languages) }
+	return { publishedAt: now, content, draftUpdatedAt: stored?.version ?? draftUpdatedAt, untranslated: untranslated(content, settings.languages), ...(draftKept ? { draftKept: true as const } : {}) }
 }
 
 export interface NewPage {
@@ -706,9 +718,22 @@ export async function renamePage(env: Env, id: string, input: string): Promise<P
 	await db.prepare('UPDATE pages SET handle = ?1 WHERE id = ?2').bind(handle, id).run()
 	forgetPublicNames()
 	await dropAgain(env, [page.handle])
-	const renamed = { ...page, handle }
+	// As D1 has the page after the move: it may have been published since it was read above, and the copy at its
+	// new address must not be what it was before that. Checked once more when it is in KV, as a visit's rebuild is.
+	const renamed = (await getPage(db, id)) ?? { ...page, handle }
 	const snapshot = await snapshotOf(env.DB, renamed, settings)
 	await putCopies([snapshot ? putSnapshot(env, snapshot) : null, settings.home === id ? writeSite(env, settings) : null])
+	if (snapshot) {
+		const copy = JSON.stringify(snapshot)
+		await takeBackIfOld(
+			undefined,
+			async () => {
+				const [now, current] = await Promise.all([getPageByHandle(db, handle), loadSettings(db)])
+				return JSON.stringify(now ? await snapshotOf(db, now, current) : null) !== copy
+			},
+			() => deleteNamed(env, handle),
+		)
+	}
 	if (page.published && settings.home !== id) await relist(env)
 	return renamed
 }
@@ -1138,11 +1163,18 @@ async function refreshFonts(env: Env, previous: Settings, next: Settings): Promi
 	}
 	const pages = await recentlyPublishedPages(env.DB, FONT_PAGES_AT_ONCE)
 	const refreshed = await Promise.all(pages.map(async (page) => ({ ...page, fonts: page.published ? await hostFonts(env, { ...page, published: page.published }, next) : page.fonts })))
-	const changed = refreshed.filter((page, i) => page.fonts !== pages[i]?.fonts)
-	if (changed.length) {
-		await env.DB.batch(changed.map((page) => env.DB.prepare('UPDATE pages SET fonts = ?1 WHERE id = ?2').bind(page.fonts ? JSON.stringify(page.fonts) : null, page.id)))
-	}
-	const unused = pages.flatMap((page, i) => unusedFontFiles(page.fonts, refreshed[i]?.fonts ?? null))
+	const changed = refreshed.map((page, i) => ({ page, before: pages[i]! })).filter(({ page, before }) => page.fonts !== before.fonts)
+	// A page published since it was read has that publish's fonts, made from what it shows now: these were made
+	// from what it showed before, and are not written over them.
+	const saved = changed.length
+		? await env.DB.batch(
+				changed.map(({ page, before }) =>
+					env.DB.prepare('UPDATE pages SET fonts = ?1 WHERE id = ?2 AND published_at IS ?3').bind(page.fonts ? JSON.stringify(page.fonts) : null, page.id, before.publishedAt),
+				),
+			)
+		: []
+	// The files of the list that lost: the old one where the new was saved, the new one where it wasn't.
+	const unused = changed.flatMap(({ page, before }, i) => ((saved[i]?.meta.changes ?? 0) > 0 ? unusedFontFiles(before.fonts, page.fonts) : unusedFontFiles(page.fonts, before.fonts)))
 	// A file a page had already is not written again; the others each took a KV operation of this request's.
 	return { unused, written: refreshed.flatMap((page, i) => unusedFontFiles(page.fonts, pages[i]?.fonts ?? null)).length }
 }
