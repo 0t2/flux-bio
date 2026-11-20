@@ -171,5 +171,7 @@
 	"s215": "Seguridad",
 	"s216": "Novedades",
 	"s217": "Cambios",
-	"s218": "Correcciones"
+	"s218": "Correcciones",
+	"s219": "¿Cómo consigo las versiones nuevas?",
+	"s220": "Tu sitio no se actualiza solo: ejecuta el código que desplegaste hasta que vuelvas a desplegar. Pregúntale a tu IA «¿Hay una versión más reciente de FluxBio?» y te dirá qué ha cambiado y lo actualizará por ti. Para enterarte sin preguntar, abre <a href=\"https://github.com/0t2/flux-bio\">el proyecto en GitHub</a>, pulsa Watch → Custom → Releases y GitHub te enviará un correo con cada versión. Todas las versiones y sus cambios están en <a href=\"/es/changelog/\">el registro de cambios</a>."
 }

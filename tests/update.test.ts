@@ -170,3 +170,16 @@ describe('the dashboard', () => {
 		expect(((await answer.json()) as UpdateResponse).version).toBe(VERSION)
 	})
 })
+
+describe('how an owner hears of a new version', () => {
+	it('is answered the same way in the guide, the README and on fluxbio.link', async () => {
+		const faq = await (await call('/api/guide/faq')).text()
+		expect(faq).toContain("- **New versions:** the site doesn't update by itself")
+		// The three ways: the AI asks, Settings says, GitHub emails.
+		for (const part of ['`GET /api/update` once a conversation', 'Settings in the dashboard says so too', 'Watch → Custom → Releases']) expect(faq).toContain(part)
+		const readme = (await import('../README.md?raw')).default as string
+		const landing = (await import('../landing/locales/en.json')).default as Record<string, string>
+		expect(readme).toContain(`<summary><b>${landing.s219}</b></summary>`)
+		expect(landing.s220).toContain('Watch → Custom → Releases')
+	})
+})
