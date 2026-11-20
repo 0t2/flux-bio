@@ -134,6 +134,7 @@ import {
 	setPageLinkSlug,
 	updateLink,
 	refuseTooLarge,
+	sendOwed,
 	settingsAndOwed,
 	updateSettings,
 } from '../lib/ops'
@@ -450,7 +451,7 @@ api.get('/state', async (c) => {
 	c.executionCtx.waitUntil(tidyStats(db, settings).catch((error: unknown) => console.error('Could not tidy old stats', error)))
 	// A settings change that D1 has and KV refused is sent again when the dashboard is next opened: nobody has to
 	// know to save twice. Not the dropping of a large site's pages, which goes on with settings calls only.
-	if (owed) c.executionCtx.waitUntil(updateSettings(c.env, {}).catch((error: unknown) => console.error('Could not send what KV is owed', error)))
+	if (owed) c.executionCtx.waitUntil(sendOwed(c.env).catch((error: unknown) => console.error('Could not send what KV is owed', error)))
 	return c.json(body)
 })
 

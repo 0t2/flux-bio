@@ -248,6 +248,12 @@ export async function firstPublishedPages(db: D1Database, limit: number): Promis
 	return results.map(toPageRow).filter((row): row is PageRow => row !== null)
 }
 
+/** Their handles only, in the same order: no page is parsed. */
+export async function firstPublishedHandles(db: D1Database, limit: number): Promise<string[]> {
+	const { results } = await db.prepare('SELECT handle FROM pages WHERE published IS NOT NULL ORDER BY position, created_at LIMIT ?1').bind(limit).all<{ handle: string }>()
+	return results.map((row) => row.handle)
+}
+
 /** The most recently published pages. */
 export async function recentlyPublishedPages(db: D1Database, limit: number): Promise<PageRow[]> {
 	const { results } = await db.prepare('SELECT * FROM pages WHERE published IS NOT NULL ORDER BY published_at DESC LIMIT ?1').bind(limit).all<PageRecordRow>()

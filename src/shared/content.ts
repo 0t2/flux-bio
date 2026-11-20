@@ -320,7 +320,20 @@ export const CUSTOM_HTML_LIMIT = 250_000
  * translations into many languages, or a long HTML page in Chinese, where a character is three bytes.
  */
 export const CONTENT_BYTES_LIMIT = 950_000
+/** The size of a page's content, in bytes. */
 export const contentBytes = (content: PageContent): number => new TextEncoder().encode(JSON.stringify(content)).byteLength
+
+/**
+ * Whether a page's content is within the limit, and its size if not. Counting bytes means encoding all of it, which
+ * a save is too frequent for: a text of so few characters that at three bytes each it can't be past the limit is
+ * never encoded.
+ */
+export function contentPastLimit(content: PageContent): number | null {
+	const json = JSON.stringify(content)
+	if (json.length * 3 <= CONTENT_BYTES_LIMIT) return null
+	const bytes = new TextEncoder().encode(json).byteLength
+	return bytes > CONTENT_BYTES_LIMIT ? bytes : null
+}
 
 /** What a page is when it isn't a page of links. */
 export const CustomPageSchema = z.discriminatedUnion('kind', [

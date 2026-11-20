@@ -445,7 +445,8 @@ Rules worth knowing:
   back to its page. Every short link keeps redirecting and counting, `/media/` stays public, and pages can
   still be edited and published through the API. A page's handle stays taken, so switching back on can't clash.
 - **How large a page may be.** A page's content is at most 950 KB as JSON (`CONTENT_BYTES_LIMIT`), checked when a draft is
-  saved, at publishing and in a backup: D1 takes 2 MB in a row, and a page's row holds the draft and what is published.
+  saved and, as it will be stored, at publishing: D1 takes 2 MB in a row, and a page's row holds the draft and what is
+  published. A backup's page is held to the two together, so a draft from before the limit still goes back in.
 - **Bio links vs. standalone links.** Bio links are the links on a page. Their URL, title and
   schedule change only through the draft and publish; `PATCH /api/links/:id` refuses those fields
   for bio links. A slug is different, like a page's own address: `PATCH` or `PUT /api/pages/:id/links/:itemId/short` changes it at once, in the draft and what's published too, and the second also makes the short link of a link that hasn't been published yet. Renaming a live one is two KV writes and three deletes: the page's copy changes too, and the old slug is deleted before D1 changes and once more after. Removing a link from the page archives its short link.
