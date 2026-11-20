@@ -68,13 +68,13 @@ jobs:
         run: |
           changed=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}") || changed=unknown
           product=$(printf '%s\n' "$changed" | grep -vE '^(landing/|docs/|tests/|scripts/|\.claude/|[^/]+\.md$|themes/README\.md$|LICENSE$|\.gitignore$)' || true)
-          # The one script a deploy runs.
-          deployer=$(printf '%s\n' "$changed" | grep -E '^scripts/deploy-images\.mjs$' || true)
+          # The scripts a deploy runs.
+          deployer=$(printf '%s\n' "$changed" | grep -E '^scripts/deploy(-images|-check)?\.mjs$' || true)
           if [ -n "$FLUXBIO_SITE" ] && [ -n "$product$deployer" ]; then
             if [ -n "$FLUXBIO_TOKEN$FLUXBIO_SITE_TOKENS" ]; then
-              pnpm deploy:images --site "$FLUXBIO_SITE" || pnpm exec cf deploy
+              pnpm deploy:images --site "$FLUXBIO_SITE" || pnpm run deploy
             else
-              pnpm exec cf deploy
+              pnpm run deploy
             fi
           fi
           # The Traditional Chinese page's font, cut to the characters it shows now. Without it the page links Google's.
@@ -88,6 +88,8 @@ jobs:
           # The other sites the Worker holds, as sites.json would list them: a checkout has no such file, and a deploy
           # without the list would unbind them (cloudflare.config.ts).
           FLUXBIO_SITES: ${{ vars.FLUXBIO_SITES }}
+          # And the Worker's own name and domains, as worker.json would say them.
+          FLUXBIO_WORKER: ${{ vars.FLUXBIO_WORKER }}
 
   # After the tests and the deploy, so a version that never worked gets no tag. A push without a new version, which
   # is any change that needed no changelog entry, finds its tag already there and does nothing.

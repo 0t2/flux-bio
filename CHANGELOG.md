@@ -5,6 +5,15 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.0 - 2026-11-20
+
+### Action needed
+- If you changed `cloudflare.config.ts` (another `WORKER_NAME`, a custom domain, or `ANALYTICS` taken out), put that in `worker.json` in your FluxBio folder before you deploy this version, for example `{ "name": "my-links" }`. That file isn't part of the code, so updates leave it alone from now on. If you forget, the deploy stops and tells you the name to write. [#45](https://github.com/0t2/flux-bio/pull/45)
+
+### New
+- `pnpm run deploy` asks Cloudflare what is running before it uploads anything, and stops a deploy that would make a second, empty site, take one of your sites offline, replace another Worker or replace your password. Use it in place of `cf deploy`. [#45](https://github.com/0t2/flux-bio/pull/45)
+- `pnpm reset-password` sets a new admin password and makes a new API token for each of your sites, without printing either. The sign-in page's "Forgot your password?" gives this command now. [#45](https://github.com/0t2/flux-bio/pull/45)
+
 ## 0.3.2 - 2026-11-20
 
 ### New

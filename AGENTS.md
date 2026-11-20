@@ -147,19 +147,21 @@ instead.
 
 ### 1.4 Pick the Worker name
 
-The Worker is named `flux-bio` in `cloudflare.config.ts`. The site will be at
-`https://flux-bio.<account-subdomain>.workers.dev`. Deploying replaces any existing Worker with
-the same name, so check first:
+The Worker is named `flux-bio`, and the site will be at `https://flux-bio.<account-subdomain>.workers.dev`. The name is
+part of their address: keep `flux-bio` unless the account already has a Worker of that name, which the deploy in 1.5 checks
+for and refuses to replace. For another name, write it in `worker.json` in the FluxBio folder:
 
-```sh
-pnpm exec cf workers list | grep '"flux-bio"'
+```json
+{ "name": "my-links" }
 ```
 
-Finding nothing is the usual answer on a new account, so grep's exit code of 1 isn't an error. The name is part of their address: keep `flux-bio` unless it's taken. If the name is taken, change `WORKER_NAME` in `cloudflare.config.ts`. A second instance must
-also use a different D1 name than the first.
+`worker.json` holds what is this deployment's own (`worker.config.ts`): the Worker's name, and when needed `"domains"` (1.8)
+and `"analytics": false` (1.5). It isn't in git or in the download, so updating FluxBio leaves it alone. Nobody edits
+`cloudflare.config.ts` for these: an edit there is lost with the next update. The database is named after the Worker, so a
+second FluxBio on one account gets its own.
 
 **Their account may already be in use.** The free plan's limits are per Cloudflare account, so FluxBio shares them with
-whatever else is on it. If `cf workers list` above showed other Workers, or `pnpm exec cf d1 list` shows databases, run `pnpm usage` and tell them, in plain words, before deploying:
+whatever else is on it. If `pnpm exec cf workers list` shows other Workers, or `pnpm exec cf d1 list` shows databases, run `pnpm usage` and tell them, in plain words, before deploying:
 
 - FluxBio will share the account's free quota with their other projects: 100,000 Worker requests and KV reads, 1,000 KV
   writes, 5 million D1 rows read and 100,000 written a day, 5 GB of D1 in all. Its stats also use Analytics Engine, which is
@@ -175,20 +177,23 @@ Generate one, then deploy with it:
 
 ```sh
 printf 'ADMIN_PASSWORD=%s\n' "$(openssl rand -base64 30 | tr -dc 'A-Za-z0-9' | head -c 24)" > .secrets.env
-pnpm exec cf deploy --secrets-file .secrets.env
+pnpm run deploy --secrets-file .secrets.env
 ```
 
+- `pnpm run deploy` asks Cloudflare what is running before it uploads anything (`scripts/deploy.mjs`), and deploys nothing
+  when that would replace a Worker that isn't FluxBio, make a second, empty FluxBio on an account that has one, take a site
+  off a Worker that holds several, or replace a password that is already set. It says what to do instead: do that. `cf deploy`
+  by hand checks nothing, so don't deploy with it.
 - The first deploy creates the D1 database and the KV namespace from `cloudflare.config.ts`.
 - The Worker creates its database tables on the first request, so there is no migration step.
 - `.secrets.env` is gitignored. Keep it until the hand-over (1.7), then give the password to the human and
   delete the file.
-- Call `cf` directly as shown. With `pnpm run deploy -- --secrets-file …`, pnpm passes the `--` through,
-  so the flag is ignored and the deploy stops with "required secrets have not been set".
-- Later deploys only need `pnpm run deploy`, because secrets persist.
+- Later deploys are `pnpm run deploy` alone: Cloudflare keeps the password, and `--secrets-file` is refused once it is set.
+  `--dry-run` runs the checks and the build and uploads nothing.
 
 A new Cloudflare account can stop the first deploy. Tell them what it means in plain words, and which button to press:
 
-- **"You need to enable Analytics Engine" (code 10089).** Ask them to open https://dash.cloudflare.com, go to Workers & Pages → Analytics Engine and turn it on, then deploy again. Cloudflare's menus change, so if they can't find it after one try, remove `ANALYTICS` and `ANALYTICS_SQL` from `cloudflare.config.ts` and deploy. Views and clicks still count; only the detailed stats, like the map, are missing.
+- **"You need to enable Analytics Engine" (code 10089).** Ask them to open https://dash.cloudflare.com, go to Workers & Pages → Analytics Engine and turn it on, then deploy again. Cloudflare's menus change, so if they can't find it after one try, write `"analytics": false` in `worker.json` (1.4) and deploy. Views and clicks still count; only the detailed stats, like the map, are missing.
 - **No `workers.dev` subdomain, or the deploy stops to ask for one.** Ask them to open Workers & Pages at https://dash.cloudflare.com and pick the name it asks for. It becomes part of their address, so suggest something other than their email name. If Cloudflare refuses the name or says the account is under review, nothing on this side can fix it: help them write to Cloudflare support.
 
 ### 1.6 Verify
@@ -232,19 +237,22 @@ bearer token (its role is `admin`, which may also make tokens), and following `h
 for shortcuts and scripts afterwards.
 
 ```sh
-pnpm exec cf workers secrets update ADMIN_PASSWORD --worker flux-bio --type secret_text --text '<new password>'
+pnpm reset-password --site https://<site>
 ```
+
+It makes a password and sets it on the Worker, then makes a full token for each site the Worker holds. It prints neither:
+the password is in `.secrets.env` and the tokens in `.tokens.env`, to hand over and then delete. For a password the owner
+picked, set the secret itself, with the Worker's name:
+`pnpm exec cf workers secrets update ADMIN_PASSWORD --worker <name> --type secret_text --text '<new password>'`.
 
 **Use a custom domain.** The domain's zone must be on the same Cloudflare account. Either:
 
 - in the dashboard, open Workers & Pages → the Worker → Settings → Domains & Routes → Add →
   Custom domain; or
-- add a route in `cloudflare.config.ts`, give the hostname a proxied DNS record, and redeploy:
+- list it in `worker.json` (1.4) and deploy, and Cloudflare makes its DNS record:
 
-  ```ts
-  import { bindings, defineConfig, triggers } from 'cf/config'
-  // inside worker: { … }
-  triggers: [triggers.fetch({ pattern: 'links.example.com/*', zone: 'example.com' })],
+  ```json
+  { "domains": ["links.example.com"] }
   ```
 
 Then check it with `POST /api/settings/verify-domain` and save it with `PUT /api/settings` (or ask
@@ -296,8 +304,8 @@ KV and stats:
 
 ```sh
 printf 'ADMIN_PASSWORD=%s\n' "$(openssl rand -base64 30 | tr -dc 'A-Za-z0-9' | head -c 24)" > .secrets.staging.env
-pnpm exec cf deploy --mode staging --secrets-file .secrets.staging.env   # first time
-pnpm exec cf deploy --mode staging                                       # later
+pnpm run deploy --mode staging --secrets-file .secrets.staging.env   # first time
+pnpm run deploy --mode staging                                       # later
 ```
 
 It sets `TEST_SITE` to `"true"`: `robots.txt` turns every crawler away, the sitemap is empty, responses say
@@ -314,16 +322,17 @@ try.
 
 The folder a site was deployed from holds none of its data. Pages, short links, stats, pictures and the admin password are on
 Cloudflare, and the site keeps running without it. So when the owner deleted the folder, or is at another computer, say that
-first, and don't start again from 1.4:
+first, and don't start again from 1.4. What the folder had that the code doesn't is `worker.json` and `sites.json`, and a
+deploy without them does harm:
 
-- a deploy under another Worker name makes a second, empty site;
-- a deploy without `sites.json` takes every site but the first offline, on a Worker that holds more than one;
-- a deploy with `--secrets-file` replaces the password, which signs everyone out and revokes every API token.
+- under another Worker name it makes a second, empty site;
+- without `sites.json` it takes every site but the first offline, on a Worker that holds more than one;
+- with `--secrets-file` it replaces the password, which signs everyone out and revokes every API token.
 
-The site has the steps, with its own Worker's name in them, and they need no sign-in: read `https://<site>/api/guide/rebuild`.
-In short: download the code (1.1), sign in to the Cloudflare account that has the Worker (1.3), set `WORKER_NAME` to its name,
-write `sites.json` from the `SITES` binding of the running Worker (`pnpm exec cf workers versions list --worker-id <name>`),
-check that `pnpm exec cf deploy --dry-run` lists the bindings the running Worker has, then deploy as an update, reading the
+`pnpm run deploy` refuses each of these and says what to write instead; `cf deploy` by hand doesn't. The site has the steps,
+with its own Worker's name in them, and they need no sign-in: read `https://<site>/api/guide/rebuild`. In short: download
+the code (1.1), sign in to the Cloudflare account that has the Worker (1.3), write the Worker's name in `worker.json`, run
+`pnpm run deploy --dry-run` and save the `sites.json` it prints if it stops for one, then deploy as an update, reading the
 changelog first (the guide's `update` topic). A custom domain stays with the Worker through a deploy.
 
 ## 2. Manage an existing FluxBio through its API
@@ -472,7 +481,9 @@ pnpm i18n check  # lists dashboard text that isn't translated yet
 pnpm api:surface # rewrites tests/api-surface.json, the names the API promises, after a route, a body or a response changed
 pnpm landing     # builds the landing page, the project's own site; its other commands are in landing/AGENTS.md
 pnpm brand       # remakes the favicon, app icons and the landing page's logo pictures from LOGO_PATH in src/templates/icons.ts
+pnpm run deploy  # checks what is running on Cloudflare, then cf deploy (--dry-run, --mode staging; 1.5)
 pnpm deploy:images --site <url>  # deploy with the site's pictures as static files (--no-deploy, --mode staging)
+pnpm reset-password --site <url> # a new admin password, and a new token for each site (1.8)
 pnpm usage       # today's free KV and D1 quota used and left, and each D1 database's size, on the signed-in Cloudflare account (--date, --days, --json)
 ```
 
@@ -504,7 +515,9 @@ own FluxBio is deployed from their computer (section 1). Only in the project's o
 ### Layout
 
 ```
-cloudflare.config.ts    Worker name, bindings (DB, KV, ASSETS, ANALYTICS…), secrets, test site
+cloudflare.config.ts    bindings (DB, KV, ASSETS, ANALYTICS…), secrets, test site
+worker.json             this deployment's own: the Worker's name, its custom domains, whether it has detailed stats.
+                        The owner's, not in git (1.4)
 pnpm-workspace.yaml     pnpm's settings: the two packages that may run a script when installed
 sites.json              the other sites this Worker holds, by hostname: the owner's, not in git (1.8, "More sites")
 src/worker/             Hono app

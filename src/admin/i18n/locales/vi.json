@@ -334,7 +334,7 @@
 	"掃描進來也算一次點擊，來源會記成「QR Code」。樣式會跟著這個短網址儲存。": "Lượt nhấp từ quét mã được ghi nguồn là “QR Code”. Kiểu mã sẽ được lưu cùng liên kết rút gọn này.",
 	"排程": "Đã lên lịch",
 	"接上之後，可以這樣說": "Sau khi kết nối, bạn có thể nói",
-	"接著輸入新密碼，至少 12 個字元。如果 Worker 改過名字，把指令裡的 flux-bio 換掉。": "Sau đó nhập mật khẩu mới, ít nhất 12 ký tự. Nếu Worker đã đổi tên, hãy thay flux-bio trong lệnh.",
+	"它會設一組新密碼，存在資料夾裡的 .secrets.env。所有人會被登出，原本的 API token 也會失效。": "Lệnh này đặt mật khẩu mới và lưu vào .secrets.env trong thư mục đó. Mọi người sẽ bị đăng xuất, và các API token cũ sẽ ngừng hoạt động.",
 	"提前下單，到店直接拿": "Đặt trước, đến lấy ngay",
 	"換一張圖片": "Đổi ảnh",
 	"換一張頭像": "Đổi ảnh đại diện",

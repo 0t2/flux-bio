@@ -33,3 +33,9 @@ skills-lock.json
 
 # The other sites this Worker holds, by hostname (cloudflare.config.ts): the owner's, never committed
 sites.json
+
+# What is this deployment's own (worker.config.ts): the Worker's name, its custom domains, whether it has detailed stats
+worker.json
+
+# A new password and tokens from pnpm reset-password, until they are handed over
+.tokens.env

@@ -127,7 +127,7 @@ pnpm exec cf auth login          # na primeira vez, entre na Cloudflare
 
 # gere a senha do painel (ADMIN_PASSWORD, pelo menos 12 caracteres) e faça o deploy
 printf 'ADMIN_PASSWORD=%s\n' "$(openssl rand -base64 30 | tr -dc 'A-Za-z0-9' | head -c 24)" > .secrets.env
-pnpm exec cf deploy --secrets-file .secrets.env
+pnpm run deploy --secrets-file .secrets.env
 cat .secrets.env && rm .secrets.env   # guarde a senha num lugar seguro
 ```
 
