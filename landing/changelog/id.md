@@ -5,6 +5,16 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.7 - 2026-11-20
+
+### Keamanan
+- Kata sandi admin yang salah dan dikirim sebagai bearer token API kini menunggu seperti formulir masuk, jadi API bukan tempat yang lebih cepat untuk menebaknya. [#56](https://github.com/0t2/flux-bio/pull/56)
+
+### Diperbaiki
+- Halaman yang kontennya terlalu besar untuk diterbitkan ditolak saat disimpan, dengan ukurannya dan batas 950 KB. Sebelumnya halaman itu tersimpan lalu gagal diterbitkan dengan galat yang tidak menjelaskan apa pun. [#56](https://github.com/0t2/flux-bio/pull/56)
+- Tanpa halaman beranda, alamat situs menawarkan halaman yang sudah dihapus atau dipindahkan, dan tidak menawarkan halaman yang baru diterbitkan. [#56](https://github.com/0t2/flux-bio/pull/56)
+- Perubahan pengaturan yang tersimpan tetapi belum sampai ke pengunjung dikirim saat dasbor dibuka berikutnya, tanpa menyimpan lagi. [#56](https://github.com/0t2/flux-bio/pull/56)
+
 ## 0.4.6 - 2026-11-20
 
 ### Keamanan

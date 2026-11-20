@@ -5,6 +5,16 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.7 - 2026-11-20
+
+### 安全性
+- 把錯誤的管理密碼當成 API bearer token 送出時，現在會和登入表單一樣延遲回應，所以從 API 猜密碼不會比較快。 [#56](https://github.com/0t2/flux-bio/pull/56)
+
+### 修正
+- 內容大到無法發布的頁面，現在在儲存時就會被拒絕，並顯示它的大小和 950 KB 的上限。之前是存得進去、發布時卻失敗，錯誤訊息也看不出原因。 [#56](https://github.com/0t2/flux-bio/pull/56)
+- 沒有設首頁時，網站首頁會列出已刪除或已改網址的頁面，卻沒列出剛發布的頁面。 [#56](https://github.com/0t2/flux-bio/pull/56)
+- 已儲存但沒送到訪客面前的設定變更，下次打開後台時就會送出，不必再儲存一次。 [#56](https://github.com/0t2/flux-bio/pull/56)
+
 ## 0.4.6 - 2026-11-20
 
 ### 安全性

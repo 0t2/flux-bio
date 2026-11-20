@@ -184,6 +184,7 @@ export const ENGLISH: Record<string, string> = {
 	"近期活動": "Upcoming events",
 	"近期活動、加入方式、贊助": "Events, how to join, donations",
 	"這一筆資料有問題，已略過": "This entry has a problem and was skipped",
+	"這一頁的內容有 {size} KB，不能超過 {limit} KB。最佔空間的是翻譯和自訂的 HTML。": "This page’s content is {size} KB, and the limit is {limit} KB. Translations and custom HTML take the most room.",
 	"這不是 FluxBio 的主題檔（需要 name、base、accent、font、button）": "This isn’t a FluxBio theme file (it needs name, base, accent, font and button)",
 	"這個 token 只能建立短網址": "This token can only create short links",
 	"這個代稱是系統保留字，請換一個": "This slug is reserved. Please choose another.",

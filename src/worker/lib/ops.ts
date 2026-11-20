@@ -1,4 +1,6 @@
 import {
+	CONTENT_BYTES_LIMIT,
+	contentBytes,
 	emptyContent,
 	isHttpUrl,
 	linkItems,
@@ -14,7 +16,7 @@ import { normalizeSlug, SLUG_PROBLEM_TEXT, slugFromText, slugFromUrl, slugProble
 import { duplicateContent, starterContent, starterWords, type StarterId } from '../../shared/starters'
 import { isValidTimeZone } from '../../shared/time'
 import { untranslated, usedTranslations } from '../../shared/translations'
-import { problemMessage, publishProblems, type Problem } from '../../shared/validate'
+import { problemMessage, publishProblems, TOO_LARGE, type Problem } from '../../shared/validate'
 import { fill, msg } from '../../templates/msg'
 import { ApiError } from '../types'
 import { deleteFontFiles, hostFonts, parseHostedFonts, unusedFontFiles } from './fonts'
@@ -216,6 +218,45 @@ function owedFrom(stored: unknown): Owed {
 	return { site: site === true, pages: Array.isArray(pages) ? pages.filter((id): id is string => typeof id === 'string').sort() : [], after: typeof after === 'string' ? after : null }
 }
 
+/** The settings, and whether a change to them still owes KV something a look at the site's state should send (see Owed). */
+export async function settingsAndOwed(db: D1Database): Promise<{ settings: Settings; owed: boolean }> {
+	const { settings, other } = await loadSettingsWith(db, COPIES_OWED)
+	let noted: Owed = NOTHING_OWED
+	try {
+		noted = owedFrom(other === null ? null : JSON.parse(other))
+	} catch {
+		// A note that can't be read owes nothing, and the next settings call takes it out.
+	}
+	return { settings, owed: (noted.site || noted.pages.length > 0) && noted.after === null }
+}
+
+/** Refuses a page's content that D1 could keep as a draft and never as draft and published both. */
+export function refuseTooLarge(content: PageContent): void {
+	const bytes = contentBytes(content)
+	if (bytes > CONTENT_BYTES_LIMIT) {
+		throw new ApiError(413, 'too-large', { key: TOO_LARGE, params: { size: Math.ceil(bytes / 1000), limit: CONTENT_BYTES_LIMIT / 1000 } })
+	}
+}
+
+/**
+ * The "site" record lists a few published pages, for "/" to offer when no page is the home page. It is written when
+ * the home page or the settings change, so with no home page a page that was deleted or moved stayed offered there,
+ * and one just published wasn't. One KV read, and a write only when the list is wrong.
+ */
+async function relist(env: Env, change: { gone?: string; here?: string }): Promise<void> {
+	try {
+		const site = await getSite(env)
+		// With a home page, or pages off, the list is shown to nobody; whatever takes the home page away rewrites it.
+		if (!site || site.home || !site.bio) return
+		const wrong =
+			(change.gone !== undefined && site.published.includes(change.gone)) ||
+			(change.here !== undefined && !site.published.includes(change.here) && site.published.length < SITE_RECORD_PAGES)
+		if (wrong) await writeSite(env, await loadSettings(env.DB))
+	} catch (error) {
+		console.error('Could not bring the list of pages at "/" up to date', error)
+	}
+}
+
 /** Something to be done after the response has left: `waitUntil`, where there is a request to hang it on. */
 export type Later = (work: Promise<unknown>) => void
 
@@ -406,6 +447,8 @@ export async function publishPage(env: Env, pageId: string, { by = null, seen }:
 
 	const problems = publishProblems(content, page.handle)
 	if (problems.length) throw new ApiError(400, 'invalid', problemMessage(problems[0]!), problems)
+	// A draft saved by an older version may be larger than can be published.
+	refuseTooLarge(content)
 
 	const links = linkItems(content)
 	const own = new Set(ownRows.map((row) => row.id))
@@ -565,6 +608,7 @@ export async function publishPage(env: Env, pageId: string, { by = null, seen }:
 		...freshLinks.map((row) => putLinkRecord(env, row.slug, toLinkRecord(row))),
 		settings.home === pageId ? writeSite(env, settings) : null,
 	])
+	if (!page.published && settings.home !== pageId) await relist(env, { here: page.handle })
 	await deleteFontFiles(env, unusedFontFiles(page.fonts, fonts))
 	return { publishedAt: now, content, draftUpdatedAt, untranslated: untranslated(content, settings.languages) }
 }
@@ -642,6 +686,7 @@ export async function renamePage(env: Env, id: string, input: string): Promise<P
 	const renamed = { ...page, handle }
 	const snapshot = await snapshotOf(env.DB, renamed, settings)
 	await putCopies([snapshot ? putSnapshot(env, snapshot) : null, settings.home === id ? writeSite(env, settings) : null])
+	if (page.published && settings.home !== id) await relist(env, { gone: page.handle, here: handle })
 	return renamed
 }
 
@@ -677,6 +722,7 @@ export async function deletePage(env: Env, id: string): Promise<void> {
 	// page since, and "/" would go on showing it.
 	const wasHome = settings.home === id || (done[0]?.meta.changes ?? 0) > 0
 	await putCopies([wasHome ? writeSite(env, await loadSettings(db)) : null])
+	if (page.published && !wasHome) await relist(env, { gone: page.handle })
 	await deleteFontFiles(env, unusedFontFiles(page.fonts, null))
 }
 

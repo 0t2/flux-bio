@@ -1,10 +1,9 @@
 import { env } from 'cloudflare:test'
 import { describe, expect, it } from 'vitest'
-import type { StateResponse } from '../src/shared/api'
 import { NAME_PREFIX, SITE_KEY } from '../src/worker/lib/cache'
 import type { Backup } from '../src/shared/backup'
 import { importData } from '../src/worker/lib/backup'
-import { migrate, SCHEMA_VERSION } from '../src/worker/lib/db'
+import { loadSettings, migrate, SCHEMA_VERSION } from '../src/worker/lib/db'
 import { deletePage, linkRecordFromDb, publishPage, renamePage, setPageLinkSlug, siteFromDb, snapshotFromDb, updateLink, updateSettings } from '../src/worker/lib/ops'
 import { api, apiJson, visit } from './helpers'
 
@@ -251,7 +250,8 @@ describe('a backup that has a link archived', () => {
 })
 
 describe('settings', () => {
-	const settings = async () => (await apiJson<StateResponse>('/state')).settings
+	// From D1, and not through GET /api/state: reading the state sends what KV is owed, which these tests are about.
+	const settings = () => loadSettings(env.DB)
 	const owedNoted = async () => Boolean(await env.DB.prepare("SELECT 1 FROM _meta WHERE key = 'copies-owed'").first())
 
 	it('keep a change someone else saved while a page was being deleted', async () => {

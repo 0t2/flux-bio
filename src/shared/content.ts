@@ -313,6 +313,15 @@ export type Translations = z.infer<typeof TranslationsSchema>
  */
 export const CUSTOM_HTML_LIMIT = 250_000
 
+/**
+ * How large a page's content may be, as JSON in UTF-8. D1 takes 2 MB in a row, and a page's row holds its draft and
+ * what is published, which are the same just after publishing: so a draft over half of that could be saved and then
+ * never published, with an error that said nothing. Each field has its own limit; what adds up to this is
+ * translations into many languages, or a long HTML page in Chinese, where a character is three bytes.
+ */
+export const CONTENT_BYTES_LIMIT = 950_000
+export const contentBytes = (content: PageContent): number => new TextEncoder().encode(JSON.stringify(content)).byteLength
+
 /** What a page is when it isn't a page of links. */
 export const CustomPageSchema = z.discriminatedUnion('kind', [
 	z.object({ kind: z.literal('html'), html: z.string().max(CUSTOM_HTML_LIMIT).describe('A complete HTML document, served as it is in a sandbox: scripts run, without cookies, storage or this site\'s API') }),

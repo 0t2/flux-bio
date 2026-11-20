@@ -5,6 +5,16 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.7 - 2026-11-20
+
+### セキュリティ
+- まちがった管理パスワードを API の bearer token として送った場合も、ログインフォームと同じように応答を遅らせるようになりました。API から推測するほうが速い、ということはなくなりました。 [#56](https://github.com/0t2/flux-bio/pull/56)
+
+### 修正
+- 内容が大きすぎて公開できないページは、保存の時点で拒否され、そのサイズと上限の 950 KB が表示されます。これまでは保存できても公開に失敗し、エラーからは理由がわかりませんでした。 [#56](https://github.com/0t2/flux-bio/pull/56)
+- ホームページを設定していないとき、サイトのトップに削除済みや移動済みのページが表示され、公開したばかりのページは表示されていませんでした。 [#56](https://github.com/0t2/flux-bio/pull/56)
+- 保存されたのに訪問者に届いていなかった設定の変更は、次にダッシュボードを開いたときに送られます。もう一度保存する必要はありません。 [#56](https://github.com/0t2/flux-bio/pull/56)
+
 ## 0.4.6 - 2026-11-20
 
 ### セキュリティ

@@ -5,6 +5,16 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.7 - 2026-11-20
+
+### Sicherheit
+- Ein falsches Admin-Passwort, das als bearer token an die API geschickt wird, wartet jetzt wie das Anmeldeformular. Über die API lässt es sich also nicht schneller erraten. [#56](https://github.com/0t2/flux-bio/pull/56)
+
+### Behoben
+- Eine Seite, deren Inhalt zu groß zum Veröffentlichen ist, wird beim Speichern abgelehnt, mit ihrer Größe und der Grenze von 950 KB. Bisher ließ sie sich speichern und scheiterte dann beim Veröffentlichen mit einem nichtssagenden Fehler. [#56](https://github.com/0t2/flux-bio/pull/56)
+- Ohne Startseite bot die Adresse der Website eine gelöschte oder verschobene Seite an und eine gerade veröffentlichte nicht. [#56](https://github.com/0t2/flux-bio/pull/56)
+- Eine Einstellungsänderung, die gespeichert wurde, aber die Besucher nicht erreichte, wird beim nächsten Öffnen des Dashboards gesendet, ohne erneutes Speichern. [#56](https://github.com/0t2/flux-bio/pull/56)
+
 ## 0.4.6 - 2026-11-20
 
 ### Sicherheit

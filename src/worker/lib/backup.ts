@@ -22,7 +22,7 @@ import {
 } from './db'
 import { NAME_PREFIX, SITE_KEY, toLinkRecord } from './cache'
 import { KV_OPS_AT_ONCE } from './mode'
-import { dropAgain, dropCopies, forgetSite, rebuildCache } from './ops'
+import { dropAgain, dropCopies, forgetSite, rebuildCache, refuseTooLarge } from './ops'
 
 export async function exportData(env: Env): Promise<Backup> {
 	const [pages, rows, settings, themes] = await Promise.all([
@@ -114,6 +114,7 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 		if (pageIds.has(page.id)) throw new ApiError(400, 'invalid', msg('備份檔裡有重複的頁面'))
 		pageIds.add(page.id)
 		claim(handle, msg('網址代稱'))
+		for (const content of [page.draft, page.published]) if (content) refuseTooLarge(content)
 		// Published content goes straight to visitors, so it has to pass the same checks as the publish button.
 		const problem = page.published ? publishProblems(page.published, handle).find((found) => found.key !== SAME_ID) : undefined
 		if (problem) {

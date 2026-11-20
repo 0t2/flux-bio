@@ -5,6 +5,16 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.7 - 2026-11-20
+
+### 보안
+- 잘못된 관리자 비밀번호를 API bearer token으로 보내면 이제 로그인 양식과 마찬가지로 응답이 지연됩니다. API로 추측하는 쪽이 더 빠르지 않습니다. [#56](https://github.com/0t2/flux-bio/pull/56)
+
+### 수정
+- 내용이 너무 커서 게시할 수 없는 페이지는 이제 저장할 때 거부되며, 크기와 한도 950 KB가 표시됩니다. 이전에는 저장은 되지만 게시에 실패했고 오류만으로는 이유를 알 수 없었습니다. [#56](https://github.com/0t2/flux-bio/pull/56)
+- 홈 페이지가 없을 때 사이트 주소에 삭제했거나 옮긴 페이지가 표시되고, 방금 게시한 페이지는 표시되지 않았습니다. [#56](https://github.com/0t2/flux-bio/pull/56)
+- 저장되었지만 방문자에게 전달되지 않은 설정 변경은 다음에 대시보드를 열 때 전달됩니다. 다시 저장할 필요가 없습니다. [#56](https://github.com/0t2/flux-bio/pull/56)
+
 ## 0.4.6 - 2026-11-20
 
 ### 보안
