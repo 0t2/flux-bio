@@ -91,7 +91,8 @@ if (waiting.length) console.error(`Not answering to the new password yet: ${wait
 
 if (opts.tokens) {
 	const lines = []
-	for (const id of ready) {
+	// The first site's line first, as the folder's files have them.
+	for (const id of Object.keys(origins).filter((id) => ready.has(id)).sort((a, b) => (b === 'main') - (a === 'main'))) {
 		const made = await request(origins[id], '/api/tokens', { method: 'POST', headers, body: JSON.stringify({ name: opts.tokenName, scope: 'full' }) })
 		const token = made?.ok ? (await made.json().catch(() => null))?.token : null
 		if (typeof token !== 'string') {

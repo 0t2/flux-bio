@@ -1,6 +1,6 @@
 {
   "name": "flux-bio",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Open-source Link in bio with short links and click tracking, running entirely on Cloudflare Workers.",
   "license": "AGPL-3.0-only",
   "private": true,
@@ -25,7 +25,8 @@
     "brand": "node scripts/brand.mjs",
     "usage": "node scripts/usage.mjs",
     "deploy:images": "node scripts/deploy-images.mjs",
-    "reset-password": "node scripts/reset-password.mjs"
+    "reset-password": "node scripts/reset-password.mjs",
+    "update:code": "node scripts/update-code.mjs"
   },
   "cloudflare": {
     "bindings": {

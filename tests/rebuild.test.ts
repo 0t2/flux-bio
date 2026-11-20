@@ -44,6 +44,9 @@ describe('the commands the guide gives for the folder', () => {
 		}
 		const password = await (await call('/api/guide/password')).text()
 		expect(password).toContain('`pnpm reset-password --site https://')
-		expect(await (await call('/api/guide/update')).text()).toContain('`worker.json` and `sites.json`')
+		const update = await (await call('/api/guide/update')).text()
+		expect(update).toContain('`worker.json` and `sites.json`')
+		// The folder's code is brought up by a command that checks for the owner's changes, with --overwrite only on their yes.
+		for (const part of ['run `pnpm update:code` in it', 'pass `--overwrite` only on their yes', 'A folder from before 0.4.3 has no such command']) expect(update).toContain(part)
 	})
 })
