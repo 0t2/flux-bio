@@ -310,6 +310,22 @@ A test site takes a D1 database, and the free plan allows 10 per account. If tha
 and never delete a database on your own. The failed deploy leaves an empty KV namespace behind, which has to go before the next
 try.
 
+### 1.9 When the folder is gone
+
+The folder a site was deployed from holds none of its data. Pages, short links, stats, pictures and the admin password are on
+Cloudflare, and the site keeps running without it. So when the owner deleted the folder, or is at another computer, say that
+first, and don't start again from 1.4:
+
+- a deploy under another Worker name makes a second, empty site;
+- a deploy without `sites.json` takes every site but the first offline, on a Worker that holds more than one;
+- a deploy with `--secrets-file` replaces the password, which signs everyone out and revokes every API token.
+
+The site has the steps, with its own Worker's name in them, and they need no sign-in: read `https://<site>/api/guide/rebuild`.
+In short: download the code (1.1), sign in to the Cloudflare account that has the Worker (1.3), set `WORKER_NAME` to its name,
+write `sites.json` from the `SITES` binding of the running Worker (`pnpm exec cf workers versions list --worker-id <name>`),
+check that `pnpm exec cf deploy --dry-run` lists the bindings the running Worker has, then deploy as an update, reading the
+changelog first (the guide's `update` topic). A custom domain stays with the Worker through a deploy.
+
 ## 2. Manage an existing FluxBio through its API
 
 Every deployment describes itself, without sign-in:
@@ -319,7 +335,7 @@ Every deployment describes itself, without sign-in:
   pages, quotas), which suggestions to offer, and an index of topics that says when to read each. `/skill.md` is the same
   guide as an Agent Skill. Everything about one feature is in a topic at `/api/guide/<topic>`, read when needed: page
   content and every kind of item, stats and sources, themes and fonts, translations, short links in bulk and QR codes,
-  the domain and more sites, the test site, quota, the admin password, every route and more.
+  the domain and more sites, the test site, quota, the admin password, rebuilding a lost folder, every route and more.
 - `/api/openapi.json`: the OpenAPI 3.1 document of what an API token can do (owner-only routes are left
   out), e.g. for ChatGPT actions or n8n.
 

@@ -113,7 +113,7 @@ describe('the agent guide', () => {
 
 	it('keeps the main part short, with the rest a request away', async () => {
 		const guide = await (await call('/llms.txt')).text()
-		// Every conversation loads all of it, as a skill's SKILL.md. About 21,600 characters now: detail about one feature
+		// Every conversation loads all of it, as a skill's SKILL.md. About 21,700 characters now: detail about one feature
 		// goes in a topic, not here, rather than raising this.
 		expect(guide.length).toBeLessThan(22_000)
 		for (const topic of GUIDE_TOPICS) {
