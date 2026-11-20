@@ -167,7 +167,8 @@ describe('copying fonts turned off', () => {
 		// Copying is turned on again before the rest is done. Google can't be reached here, so no page is copied.
 		await env.DB.prepare("UPDATE _meta SET value = json_set(value, '$.hostFonts', json('true')) WHERE key = 'settings'").run()
 		expect(await onPages()).toBe(0)
-		expect(await (await visit(`/${handle(8)}`)).text()).not.toContain('/_fonts/')
+		// A page of that first slice, whose files are gone: slices go by the lists' keys, "large-0", "large-1", "large-10"…
+		expect(await (await visit(`/${handle(10)}`)).text()).not.toContain('/_fonts/')
 		// And what is left to delete is still deleted, with copying on.
 		let left = true
 		for (let calls = 0; left && calls < 12; calls++) left = (await updateSettings(env, {})).copiesLeft
@@ -340,7 +341,10 @@ describe('a backup brought in', () => {
 				return typeof value === 'function' ? value.bind(target) : value
 			},
 		})
-		// Refused once, and not for ever: every save would otherwise answer 503 from then on.
+		// KV refusing for a moment is no reason to start over, so the same place is tried once more, and after that
+		// it is from the start: every save would otherwise answer 503 from then on.
+		await expect(updateSettings({ ...env, KV } as Env, {})).rejects.toMatchObject({ status: 503 })
+		expect((await noted())?.purge).toBe('!a-place-kv-has-forgotten')
 		await expect(updateSettings({ ...env, KV } as Env, {})).rejects.toMatchObject({ status: 503 })
 		expect((await noted())?.purge).toBe('')
 		expect((await updateSettings({ ...env, KV } as Env, {})).copiesLeft).toBe(false)

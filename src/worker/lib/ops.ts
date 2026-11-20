@@ -215,10 +215,12 @@ interface Owed {
 	 * the start, null none. After a backup was brought in on a site with more names than one request may delete.
 	 */
 	purge: string | null
-	/** Copying fonts was turned off and pages' font files are still in KV: `pages.fonts` says whose. */
+	/** Font files are still in KV whose pages no longer list them: lists set aside in _meta say which (setFontsAside). */
 	fonts: boolean
 }
 const COPIES_OWED = 'copies-owed'
+/** Before a place in KV's list (Owed.purge) that KV refused the last time. No place KV gives starts with it. */
+const PLACE_REFUSED = '!'
 const NOTHING_OWED: Owed = { site: false, pages: [], after: null, purge: null, fonts: false }
 const owesNothing = (owed: Owed) => !owed.site && !owed.pages.length && owed.after === null && owed.purge === null && !owed.fonts
 function owedFrom(stored: unknown): Owed {
@@ -862,17 +864,22 @@ async function tellKv(env: Env, owed: Owed, budget = KV_OPS_AT_ONCE): Promise<{ 
 		}
 		if (owed.purge !== null && budget >= 2 && !refused) {
 			// Every name KV has, by KV's own list: the names a backup replaced are in no table any more.
+			// A place that was refused once is marked (PLACE_REFUSED) and tried once more.
+			const again = owed.purge.startsWith(PLACE_REFUSED)
+			const place = again ? owed.purge.slice(PLACE_REFUSED.length) : owed.purge
 			try {
-				const listed = await env.KV.list({ prefix: NAME_PREFIX, cursor: owed.purge || undefined, limit: Math.min(1000, budget - 1) })
+				const listed = await env.KV.list({ prefix: NAME_PREFIX, cursor: place || undefined, limit: Math.min(1000, budget - 1) })
 				budget -= 1 + listed.keys.length
 				const failed = rejected(await Promise.allSettled(listed.keys.map((key) => env.KV.delete(key.name))))
 				// One refused: from the same place again next time.
 				if (failed) refused = failed.reason
 				else owed = { ...owed, purge: listed.list_complete ? null : listed.cursor }
 			} catch (error) {
-				// A place in the list that KV no longer takes would be refused at every call: from the start next time.
+				// KV refusing for a moment is no reason to go back to the start and delete what visits have
+				// rebuilt since. A place KV no longer takes is refused every time, and would have every save
+				// answer 503 from then on: so the same place once more, and after that from the start.
 				refused = error
-				if (owed.purge) owed = { ...owed, purge: '' }
+				owed = { ...owed, purge: !place || again ? '' : `${PLACE_REFUSED}${place}` }
 			}
 		}
 		// Pages' copies are dropped whether pages are on or off: off, they are what is still public (switchBio).
@@ -923,6 +930,11 @@ export function setFontsAside(db: D1Database): D1PreparedStatement[] {
 		),
 		db.prepare('UPDATE pages SET fonts = NULL WHERE fonts IS NOT NULL'),
 	]
+}
+
+/** Whether any list of font files is set aside, waiting for its files to be deleted. */
+export async function fontsAside(db: D1Database): Promise<boolean> {
+	return Boolean(await db.prepare('SELECT 1 FROM _meta WHERE key >= ?1 AND key < ?2 LIMIT 1').bind(FONTS_ASIDE, `${FONTS_ASIDE.slice(0, -1)};`).first())
 }
 
 /** Every file the lists set aside for one page name: a list of lists (setFontsAside). */
@@ -999,7 +1011,7 @@ export async function noteBeforeImport(db: D1Database, { everyCopy, fonts }: { e
 
 /** What one change to the settings owes KV. */
 function owedBy(previous: Settings, next: Settings): Owed {
-	// Turned off: the files are deleted a slice a call, by the lists the pages keep until theirs are gone.
+	// Turned off: the pages' lists are set aside, and the files deleted by them a slice a call.
 	const fonts = previous.hostFonts && !next.hostFonts
 	// The "site" record is what says pages are on or off. Going off, every page's copy is owed too, from the start:
 	// noted before D1 has the switch, so that whatever stops the request after that, the pages are still gone on

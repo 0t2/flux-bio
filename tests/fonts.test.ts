@@ -225,6 +225,19 @@ describe('fonts on published pages', () => {
 		for (const file of gone) expect((await visit(file)).status).toBe(404)
 	})
 
+	it('get names of their own each time they are copied, so files being deleted for an older copy are never these', async () => {
+		const before = fontFiles(await (await visit(`/${handle}`)).text())
+		expect(before.length).toBeGreaterThan(0)
+		await setHosting(false)
+		for (const file of before) expect((await visit(file)).status).toBe(404)
+		// On again, with the same text: the same fingerprint, and still not the same names.
+		await setHosting(true)
+		const after = fontFiles(await (await visit(`/${handle}`)).text())
+		expect(after).toHaveLength(before.length)
+		expect(after.filter((file) => before.includes(file))).toEqual([])
+		for (const file of after) expect((await visit(file)).status).toBe(200)
+	})
+
 	it('fall back to the visitor’s own fonts, not Google, when Google could not be reached', async () => {
 		googleUp = false
 		await publish((content) => {

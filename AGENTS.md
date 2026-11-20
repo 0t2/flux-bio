@@ -734,7 +734,7 @@ tests/                  Vitest tests (run in workerd)
   the whole one's files for a year. Other families, and the dashboard's preview, link whole. With `settings.hostFonts` on (外觀 has the switch, with a help dialog aimed
   at owners with visitors in the EU), publishing asks Google Fonts for each family the page uses
   with only the characters it can show (its text, the built-in text of its languages, ASCII),
-  stores the woff2 files in KV under `font:<page id>-<fingerprint>-<n>` and lists them in the page's
+  stores the woff2 files in KV under `font:<page id>-<fingerprint>-<copy>-<n>` and lists them in the page's
   `fonts` column (`lib/fonts.ts`); the page declares them with `@font-face` and loads them from
   `/_fonts/`, so visitors never connect to Google. Files are kept while the characters stay the same
   and deleted when unused; turning the switch on or off copies or drops every published page's

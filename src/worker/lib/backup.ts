@@ -22,7 +22,7 @@ import {
 } from './db'
 import { NAME_PREFIX, SITE_KEY, toLinkRecord } from './cache'
 import { KV_OPS_AT_ONCE } from './mode'
-import { dropAgain, dropCopies, forgetSite, noteBeforeImport, rebuildCache, refuseTooLarge, sendOwed, setFontsAside } from './ops'
+import { dropAgain, dropCopies, fontsAside, forgetSite, noteBeforeImport, rebuildCache, refuseTooLarge, sendOwed, setFontsAside } from './ops'
 
 export async function exportData(env: Env): Promise<Backup> {
 	const [pages, rows, settings, themes] = await Promise.all([
@@ -246,7 +246,11 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 		budget -= dropped.length * 2
 	}
 	await rebuildCache(env)
-	const { copiesLeft } = large || fonts ? await sendOwed(env, Math.max(0, budget)) : { copiesLeft: false }
+	// Noted again, by what D1 holds now: the note from before the batch may have been settled by another request
+	// that found nothing set aside yet, and a page may have got its list after it was looked for.
+	const aside = await fontsAside(db)
+	if (large || aside) await noteBeforeImport(db, { everyCopy: large, fonts: aside })
+	const { copiesLeft } = large || aside ? await sendOwed(env, Math.max(0, budget)) : { copiesLeft: false }
 	return { pages: backup.pages.length, shortLinks: rows.length, ...(copiesLeft ? { copiesLeft: true as const } : {}) }
 }
 
