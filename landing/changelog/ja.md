@@ -5,6 +5,11 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.3.2 - 2026-11-20
+
+### 新機能
+- デプロイに使ったフォルダーが、削除した、別のパソコンに置いてきたなどでなくなっても、あなたの AI が作り直せます。サイトのガイドの `/api/guide/rebuild` に、あなたの Worker の名前が入った手順があります。その間もサイトは動き続け、サイトの内容は何も失われません。 [#44](https://github.com/0t2/flux-bio/pull/44)
+
 ## 0.3.1 - 2026-11-20
 
 ### 新機能
