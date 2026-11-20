@@ -528,7 +528,7 @@ export interface RestoreVersionResponse {
 /** PUT /api/settings */
 export interface SettingsResponse {
 	settings: Settings
-	/** True when the change is saved and a site has more pages than one request may drop the copies of. The next call goes on from there. Absent otherwise. */
+	/** True when the change is saved and there is more to tell KV than one request may: a large site's pages to drop, or pages still public after `bio` was switched off. The next call goes on from there. Absent otherwise. */
 	copiesLeft?: true
 }
 
@@ -580,4 +580,6 @@ export type ExportResponse = Backup
 export interface ImportResponse {
 	pages: number
 	shortLinks: number
+	/** True when the site had more names than one request may delete the copies of, so some answer as before the import. `PUT /api/settings` goes on with it. Absent otherwise. */
+	copiesLeft?: true
 }

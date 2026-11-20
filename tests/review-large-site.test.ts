@@ -39,10 +39,11 @@ it('drops every page’s copy across calls, each going on from the last, and the
 	}
 
 	// Another language: every page's copy carries the languages.
-	expect(await call({ languages: ['ja'] })).toEqual({ copiesLeft: true, dropped: KV_OPS_AT_ONCE, written: 1 })
+	// One request starts so many KV operations and no more: the "site" record, and pages' copies with the rest.
+	expect(await call({ languages: ['ja'] })).toEqual({ copiesLeft: true, dropped: KV_OPS_AT_ONCE - 1, written: 1 })
 	const first = new Set(dropped)
 	// Whatever is changed next finishes it, with the pages the first call didn't reach and no others.
-	expect(await call({ plan: 'paid' })).toEqual({ copiesLeft: false, dropped: EXTRA, written: 0 })
+	expect(await call({ plan: 'paid' })).toEqual({ copiesLeft: false, dropped: EXTRA + 1, written: 0 })
 	expect(dropped.some((name) => first.has(name))).toBe(false)
 	expect(new Set([...first, ...dropped]).size).toBe(KV_OPS_AT_ONCE + EXTRA)
 	// And then nothing is owed.

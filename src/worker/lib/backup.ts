@@ -22,7 +22,8 @@ import {
 } from './db'
 import { NAME_PREFIX, SITE_KEY, toLinkRecord } from './cache'
 import { KV_OPS_AT_ONCE } from './mode'
-import { dropAgain, dropCopies, forgetSite, rebuildCache, refuseTooLarge } from './ops'
+import { deleteFontFiles, parseHostedFonts, unusedFontFiles } from './fonts'
+import { dropAgain, dropCopies, forgetSite, noteEveryCopyOld, rebuildCache, refuseTooLarge, sendOwed } from './ops'
 
 export async function exportData(env: Env): Promise<Backup> {
 	const [pages, rows, settings, themes] = await Promise.all([
@@ -100,7 +101,7 @@ export async function exportData(env: Env): Promise<Backup> {
  * stats and API tokens stay as they are. Images must already be
  * uploaded (PUT /api/media/:id) under the ids the file uses.
  */
-export async function importData(env: Env, backup: Backup): Promise<{ pages: number; shortLinks: number }> {
+export async function importData(env: Env, backup: Backup): Promise<{ pages: number; shortLinks: number; copiesLeft?: true }> {
 	const db = env.DB
 	const names = new Set<string>()
 	const claim = (name: string, label: string) => {
@@ -178,7 +179,16 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 			.filter((row) => row.status === 'active' && !row.slug.startsWith('~') && incoming.get(row.slug) !== JSON.stringify(toLinkRecord(row)))
 			.map((row) => row.slug),
 	]
-	await dropCopies(env, dropped, [], { home: true })
+	// One request may start KV_OPS_AT_ONCE operations, and each name is deleted twice (below). Past that, nothing is
+	// deleted name by name: it is noted that every copy in KV is old (Owed.purge), KV is asked for one thing, so that
+	// nothing changes if it is refusing, and after D1 has the backup KV's own list of names is gone through from the
+	// start, a slice here and the rest by the calls that follow. Until then a name not reached yet answers as before.
+	const large = dropped.length > KV_OPS_AT_ONCE / 2
+	if (large) await noteEveryCopyOld(db)
+	await dropCopies(env, large ? [] : dropped, [], { home: true })
+	// The pages' font files go with the pages: nothing lists them afterwards.
+	const { results: listed } = await db.prepare('SELECT fonts FROM pages WHERE fonts IS NOT NULL').all<{ fonts: string }>()
+	const oldFonts = listed.flatMap((row) => unusedFontFiles(parseHostedFonts(row.fonts), null))
 	await db.batch([
 		db.prepare('DELETE FROM page_versions'),
 		db.prepare('DELETE FROM pages'),
@@ -211,14 +221,22 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 		saveThemesStatement(db, backup.themes),
 	])
 
-	// None of those names gets a fresh copy here, so each is deleted once more (dropAgain): a visit while the copies
-	// were going read the old rows and may have put one back. As far as one request's KV operations go, and the
-	// names the backup doesn't have first: a page it removed must not stay public.
-	const comingBack = new Set([...backup.pages.map((page) => normalizeSlug(page.handle)), ...incoming.keys()])
-	const again = [...dropped.filter((name) => !comingBack.has(name)), ...dropped.filter((name) => comingBack.has(name))]
-	await dropAgain(env, again.slice(0, Math.max(0, KV_OPS_AT_ONCE - dropped.length)))
+	// The home copy taken out above and the "site" record written below are two of this request's operations.
+	let budget = KV_OPS_AT_ONCE - 2
+	let copiesLeft = false
+	if (large) {
+		;({ copiesLeft } = await sendOwed(env, budget))
+		budget = 0
+	} else {
+		// None of those names gets a fresh copy here, so each is deleted once more (dropAgain): a visit while the
+		// copies were going read the old rows and may have put one back.
+		await dropAgain(env, dropped)
+		budget -= dropped.length * 2
+	}
 	await rebuildCache(env)
-	return { pages: backup.pages.length, shortLinks: rows.length }
+	// As far as this request goes. On a site too large for that they stay in KV, where nothing reads them.
+	await deleteFontFiles(env, oldFonts.slice(0, Math.max(0, budget)))
+	return { pages: backup.pages.length, shortLinks: rows.length, ...(copiesLeft ? { copiesLeft: true as const } : {}) }
 }
 
 /**
