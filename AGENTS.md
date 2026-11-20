@@ -443,6 +443,10 @@ Rules worth knowing:
 - **QR code pictures.** A link's `qr.logo` of `default`, which is also what a link with no saved style has, shows its page's `qrLogo`, else the site's
   `qrLogo`, else nothing. Codes are drawn in the dashboard, or for an agent by `GET /api/links/:id/qr` (an SVG file, at most one KV read for its picture), so these cost visitors nothing and write no KV. Changing one changes codes in the dashboard and new
   downloads, not files already saved or printed.
+- **A link's password** is hashed fast, since a slow hash would cost every visit its 10 ms, so what stops guessing is a
+  count: ten wrong tries in 15 minutes (`takePasswordTry` in `lib/db.ts`, one row in `_meta`), then the link reads no password
+  until the time is up, at one row read and nothing written. A right try is given back. A draft's preview link shows a link
+  behind a password, or with `hideUrl`, as its short link, as the live page does (`keepPrivate` in `render.ts`).
 - **Smart routing** (per short link): `lineExternal` adds `openExternalBrowser=1` inside LINE;
   `inAppPrompt` shows Instagram, Threads and Facebook users how to open the link in their browser
   first (`?inapp=preview` shows that page anywhere); `iosUrl`/`androidUrl` send those devices
@@ -623,7 +627,11 @@ tests/                  Vitest tests (run in workerd)
   A removal passes only in a release newer than the one before, whose "Action needed" names in `code` something that went.
 - **D1 is the source of truth.** It holds `pages`, `page_versions`, `links`, `stats` and
   `api_tokens`, which the Worker creates and upgrades on first use. To change the schema, append a
-  migration to `MIGRATIONS` in `src/worker/lib/db.ts`. Never edit an existing migration.
+  migration to `MIGRATIONS` in `src/worker/lib/db.ts`. Never edit an existing migration. How far a database has come is
+  `schema` in `_meta`; `schema_version` is the older name, whose 1 and 10 both mean the first migration, and is only read.
+  Each migration runs in a batch that stops unless the database is still where it was read to be, so two copies of the
+  Worker can't run one twice. Settings are one row that several things change a field of: change them through
+  `changeSettings`, or one field in SQL (`noLongerHomeStatement`), never by saving what was read earlier in the request.
 - **KV holds what visitors read.** One record per name (`name:<handle or slug>`), holding the published page's snapshot or
   the short link that has that name, the `site` record (the home page's snapshot, the look of system pages), uploaded
   images, and the font files of published pages. A page view, a redirect and a tap on a button each cost one KV read
@@ -635,7 +643,12 @@ tests/                  Vitest tests (run in workerd)
   left unless the page shows opening hours. System pages go by the `site` record a copy of the Worker last saw, for up to
   a minute (`systemSite`), because anyone can ask for addresses that don't exist. Any change to D1 that visitors would see
   must also rewrite KV; follow the patterns in `lib/ops.ts`. A missing KV entry is rebuilt from D1
-  on the next visit, so KV can be treated as a cache. KV copies aren't parsed when read, so one written by an older
+  on the next visit, so KV can be treated as a cache. That rebuild is also how an old copy can come back: a visit that
+  falls between a change's delete and its write to D1 reads the old row. So a change deletes a name before D1 changes
+  (`dropCopies`), deletes it once more afterwards where it writes no fresh copy (`dropAgain`), and a visit that rebuilds a
+  copy looks at D1 again and takes back what is already out of date (`linkRecordFromDb`). `tests/review-data.test.ts` puts a
+  visit in that gap. A setting that is named in a request is written to KV again even when D1 already has it, since the
+  request before may have saved to D1 and been refused by KV. KV copies aren't parsed when read, so one written by an older
   version lacks any field added since: anything that changes what a copy holds, a new page content field included, raises
   `COPY_VERSION` in `lib/cache.ts`, which makes older copies count as missing (`tests/copy-version.test.ts` notices new
   content fields). The first visit to each page after such a deploy costs a D1 read and a KV write.

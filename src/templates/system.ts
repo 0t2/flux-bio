@@ -18,6 +18,8 @@ export interface SystemPageOptions {
 	meta?: string
 	/** Shown on the password page after a wrong attempt. */
 	wrongPassword?: boolean
+	/** Too many wrong tries lately: no form, only when to come back. */
+	lockedPassword?: boolean
 	opensAt?: number
 	expiredAt?: number
 	timeZone?: string
@@ -48,6 +50,8 @@ interface SystemText {
 	passwordPlaceholder: string
 	passwordSubmit: string
 	passwordWrong: string
+	/** Shown in place of the form after too many wrong tries (lib/db.ts, passwordTries). */
+	passwordLocked: string
 	scheduled: { title: string; body: (when: string) => string }
 	expired: { title: string; body: (name?: string) => string }
 	expiredOn: (when: string) => string
@@ -79,6 +83,7 @@ const TEXT: Record<Locale, SystemText> = {
 		passwordPlaceholder: '輸入密碼',
 		passwordSubmit: '解鎖',
 		passwordWrong: '密碼不對，再試一次。',
+		passwordLocked: '試太多次了，請 15 分鐘後再試。',
 		scheduled: { title: '這個連結還沒開放', body: (when) => `開放時間：${when}` },
 		expired: {
 			title: '這個連結已經過期',
@@ -108,6 +113,7 @@ const TEXT: Record<Locale, SystemText> = {
 		passwordPlaceholder: 'Enter the password',
 		passwordSubmit: 'Unlock',
 		passwordWrong: 'Wrong password. Please try again.',
+		passwordLocked: 'Too many wrong tries. Try again in 15 minutes.',
 		scheduled: { title: 'This link is not open yet', body: (when) => `Opens ${when}` },
 		expired: {
 			title: 'This link has expired',
@@ -137,6 +143,7 @@ const TEXT: Record<Locale, SystemText> = {
 		passwordPlaceholder: '输入密码',
 		passwordSubmit: '解锁',
 		passwordWrong: '密码不对，再试一次。',
+		passwordLocked: '尝试次数太多，请 15 分钟后再试。',
 		scheduled: { title: '这个链接还没开放', body: (when) => `开放时间：${when}` },
 		expired: {
 			title: '这个链接已经过期',
@@ -169,6 +176,7 @@ const TEXT: Record<Locale, SystemText> = {
 		passwordPlaceholder: 'パスワードを入力',
 		passwordSubmit: 'ロックを解除',
 		passwordWrong: 'パスワードが違います。もう一度お試しください。',
+		passwordLocked: '入力の誤りが続きました。15 分後にもう一度お試しください。',
 		scheduled: { title: 'このリンクはまだ公開されていません', body: (when) => `公開日時：${when}` },
 		expired: {
 			title: 'このリンクは期限切れです',
@@ -198,6 +206,7 @@ const TEXT: Record<Locale, SystemText> = {
 		passwordPlaceholder: '비밀번호 입력',
 		passwordSubmit: '잠금 해제',
 		passwordWrong: '비밀번호가 맞지 않아요. 다시 입력해 주세요.',
+		passwordLocked: '잘못된 시도가 너무 많습니다. 15분 후에 다시 시도해 주세요.',
 		scheduled: { title: '아직 열리지 않은 링크예요', body: (when) => `공개 시간: ${when}` },
 		expired: {
 			title: '만료된 링크예요',
@@ -230,6 +239,7 @@ const TEXT: Record<Locale, SystemText> = {
 		passwordPlaceholder: 'Escribe la contraseña',
 		passwordSubmit: 'Desbloquear',
 		passwordWrong: 'Contraseña incorrecta. Inténtalo de nuevo.',
+		passwordLocked: 'Demasiados intentos fallidos. Vuelve a intentarlo en 15 minutos.',
 		scheduled: { title: 'Este enlace aún no está disponible', body: (when) => `Disponible desde el ${when}` },
 		expired: {
 			title: 'Este enlace ha caducado',
@@ -262,6 +272,7 @@ const TEXT: Record<Locale, SystemText> = {
 		passwordPlaceholder: 'Digite a senha',
 		passwordSubmit: 'Desbloquear',
 		passwordWrong: 'Senha incorreta. Tente de novo.',
+		passwordLocked: 'Muitas tentativas erradas. Tente de novo em 15 minutos.',
 		scheduled: { title: 'Este link ainda não está disponível', body: (when) => `Disponível a partir de ${when}` },
 		expired: {
 			title: 'Este link expirou',
@@ -294,6 +305,7 @@ const TEXT: Record<Locale, SystemText> = {
 		passwordPlaceholder: 'Saisissez le mot de passe',
 		passwordSubmit: 'Déverrouiller',
 		passwordWrong: 'Mot de passe incorrect. Veuillez réessayer.',
+		passwordLocked: 'Trop de tentatives erronées. Réessayez dans 15 minutes.',
 		scheduled: { title: 'Ce lien n’est pas encore ouvert', body: (when) => `Ouverture le ${when}` },
 		expired: {
 			title: 'Ce lien a expiré',
@@ -329,6 +341,7 @@ const TEXT: Record<Locale, SystemText> = {
 		passwordPlaceholder: 'Passwort eingeben',
 		passwordSubmit: 'Entsperren',
 		passwordWrong: 'Falsches Passwort. Versuch es bitte noch einmal.',
+		passwordLocked: 'Zu viele falsche Versuche. Bitte in 15 Minuten erneut versuchen.',
 		scheduled: { title: 'Dieser Link ist noch nicht verfügbar', body: (when) => `Verfügbar ab ${when}` },
 		expired: {
 			title: 'Dieser Link ist abgelaufen',
@@ -361,6 +374,7 @@ const TEXT: Record<Locale, SystemText> = {
 		passwordPlaceholder: 'Masukkan kata sandi',
 		passwordSubmit: 'Buka kunci',
 		passwordWrong: 'Kata sandi salah. Coba lagi.',
+		passwordLocked: 'Terlalu banyak percobaan yang salah. Coba lagi dalam 15 menit.',
 		scheduled: { title: 'Tautan ini belum tersedia', body: (when) => `Tersedia mulai ${when}` },
 		expired: {
 			title: 'Tautan ini sudah kedaluwarsa',
@@ -390,6 +404,7 @@ const TEXT: Record<Locale, SystemText> = {
 		passwordPlaceholder: 'ใส่รหัสผ่าน',
 		passwordSubmit: 'ปลดล็อก',
 		passwordWrong: 'รหัสผ่านไม่ถูกต้อง ลองอีกครั้ง',
+		passwordLocked: 'ลองผิดหลายครั้งเกินไป โปรดลองอีกครั้งใน 15 นาที',
 		scheduled: { title: 'ลิงก์นี้ยังไม่เปิด', body: (when) => `เปิดให้ใช้ได้ตั้งแต่ ${when}` },
 		expired: {
 			title: 'ลิงก์นี้หมดอายุแล้ว',
@@ -422,6 +437,7 @@ const TEXT: Record<Locale, SystemText> = {
 		passwordPlaceholder: 'Nhập mật khẩu',
 		passwordSubmit: 'Mở khóa',
 		passwordWrong: 'Sai mật khẩu. Bạn thử lại nhé.',
+		passwordLocked: 'Nhập sai quá nhiều lần. Hãy thử lại sau 15 phút.',
 		scheduled: { title: 'Liên kết này chưa mở', body: (when) => `Mở vào ${when}` },
 		expired: {
 			title: 'Liên kết này đã hết hạn',
@@ -454,6 +470,7 @@ const TEXT: Record<Locale, SystemText> = {
 		passwordPlaceholder: 'أدخل كلمة المرور',
 		passwordSubmit: 'فتح',
 		passwordWrong: 'كلمة المرور غير صحيحة. حاول مرة أخرى.',
+		passwordLocked: 'محاولات خاطئة كثيرة. حاول مجددًا بعد 15 دقيقة.',
 		scheduled: { title: 'هذا الرابط غير متاح بعد', body: (when) => `يُفتح في ${when}` },
 		expired: {
 			title: 'انتهت صلاحية هذا الرابط',
@@ -556,7 +573,9 @@ export function renderSystemPage(options: SystemPageOptions): string {
 	}
 
 	const parts: string[] = []
-	if (kind === 'password') {
+	if (kind === 'password' && options.lockedPassword) {
+		parts.push(`<p class="error" role="alert">${iconSvg('alert', 16, 2)}${esc(text.passwordLocked)}</p>`)
+	} else if (kind === 'password') {
 		parts.push(`<form method="post">
 <label for="password">${esc(text.passwordLabel)}</label>
 <input id="password" name="password" type="password" autocomplete="current-password" placeholder="${esc(text.passwordPlaceholder)}" required autofocus>

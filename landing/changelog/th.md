@@ -5,6 +5,19 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.6 - 2026-11-20
+
+### ความปลอดภัย
+- ลิงก์ดูตัวอย่างของฉบับร่างจะไม่แสดงที่อยู่ของลิงก์ที่มีรหัสผ่านหรือที่ซ่อนที่อยู่ไว้อีกต่อไป ปุ่มลักษณะนี้จะผ่านลิงก์สั้นในหน้าตัวอย่างเช่นเดียวกับในหน้าที่เผยแพร่แล้ว [#54](https://github.com/0t2/flux-bio/pull/54)
+- รหัสผ่านของลิงก์รับการลองผิดได้สิบครั้งใน 15 นาที จากนั้นจะไม่รับอีกจนกว่าจะครบเวลา ก่อนหน้านี้ไม่มีการจำกัด [#54](https://github.com/0t2/flux-bio/pull/54)
+- ที่อยู่ที่ไม่มีอยู่จริงจะไม่ใช้ทรัพยากรมากขึ้นตามความยาวอีกต่อไป การค้นหาที่อยู่ที่ใกล้เคียงอาจใช้เวลาหลายเท่าของขีดจำกัดเวลาต่อคำขอบนเว็บไซต์ขนาดใหญ่ และใครก็ส่งที่อยู่แบบนั้นได้ [#54](https://github.com/0t2/flux-bio/pull/54)
+
+### แก้ไข
+- ลิงก์สั้นที่เก็บถาวร หน้าที่ลบแล้ว หรือที่อยู่เก่าของหน้า อาจกลับมาและค้างอยู่ได้ หากมีคนเข้าชมในจังหวะที่กำลังเปลี่ยนแปลงพอดี [#54](https://github.com/0t2/flux-bio/pull/54)
+- การกู้คืนข้อมูลสำรองจะไม่ทำให้ลิงก์ที่ข้อมูลสำรองเก็บถาวรไว้ยังคงเปลี่ยนเส้นทางต่อไป [#54](https://github.com/0t2/flux-bio/pull/54)
+- การตั้งค่าที่บันทึกในขณะที่อย่างอื่นกำลังบันทึกจะไม่ถูกเขียนทับ และการเปลี่ยนแปลงที่ไปถึงฐานข้อมูลแต่ไม่ถึงผู้เข้าชมจะถูกส่งไปเมื่อคุณทำซ้ำอีกครั้ง [#54](https://github.com/0t2/flux-bio/pull/54)
+- รายการสองรายการที่มี id เดียวกันในหน้าเดียวจะถูกปฏิเสธเมื่อเผยแพร่ เพราะลิงก์สั้นของรายการหนึ่งจะใช้ไม่ได้ [#54](https://github.com/0t2/flux-bio/pull/54)
+
 ## 0.4.5 - 2026-11-20
 
 ### แก้ไข

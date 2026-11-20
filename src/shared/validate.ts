@@ -31,9 +31,16 @@ export function publishProblems(content: PageContent, handle: string): Problem[]
 	if (content.custom?.kind === 'html' && !content.custom.html.trim()) report('custom.html', msg('自訂 HTML 還是空的'), {})
 	if (content.custom?.kind === 'redirect' && !isHttpUrl(content.custom.url.trim())) report('custom.url', msg('轉址的網址要以 http:// 或 https:// 開頭'), {})
 
+	// An id is what a link's short link, its clicks and its stats hang on. Two items with one id publish as one row:
+	// one of their short links answers 404 and its clicks are counted as the other's. The dashboard makes its own
+	// ids, so this is an item copied whole through the API.
+	const ids = new Map<string, number>()
 	content.items.forEach((item, i) => {
 		const n = i + 1
 		const at = (field: string) => `items.${i}.${field}`
+		const first = ids.get(item.id)
+		if (first === undefined) ids.set(item.id, n)
+		else report(at('id'), msg('第 {n} 項和第 {m} 項的 id 一樣，請改掉其中一個'), { n, m: first })
 		switch (item.kind) {
 			case 'link': {
 				const url = item.url.trim()

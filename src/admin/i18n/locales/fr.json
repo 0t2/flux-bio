@@ -1004,5 +1004,6 @@
 	"更新是在你的電腦上做的。對你的 AI 說：": "La mise à jour se fait sur votre ordinateur. Dites à votre IA :",
 	"幫我把 FluxBio 更新到最新版": "Mets à jour mon FluxBio vers la dernière version",
 	"看看改了什麼": "Voir ce qui a changé",
-	"已是最新版": "À jour"
+	"已是最新版": "À jour",
+	"第 {n} 項和第 {m} 項的 id 一樣，請改掉其中一個": "Les éléments {m} et {n} ont le même id : modifiez l’un des deux"
 }

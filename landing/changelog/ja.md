@@ -5,6 +5,19 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.6 - 2026-11-20
+
+### セキュリティ
+- 下書きのプレビューリンクで、パスワード付きのリンクやアドレスを隠したリンクの本当のアドレスが表示されなくなりました。こうしたボタンは、公開ページと同じく、プレビューでも短縮リンクを経由します。 [#54](https://github.com/0t2/flux-bio/pull/54)
+- リンクのパスワードは、15 分間に 10 回まちがえると、その時間が過ぎるまで受け付けなくなりました。これまで回数の制限はありませんでした。 [#54](https://github.com/0t2/flux-bio/pull/54)
+- 存在しないアドレスが、長いほど負荷がかかるということはなくなりました。大きなサイトでは、近いアドレスを探す処理がリクエストの時間制限の何倍にもなることがあり、そうしたアドレスは誰でも送れました。 [#54](https://github.com/0t2/flux-bio/pull/54)
+
+### 修正
+- アーカイブした短縮リンク、削除したページ、ページの古いアドレスが、変更のちょうどその瞬間に誰かが訪れると復活して残り続けることがありました。 [#54](https://github.com/0t2/flux-bio/pull/54)
+- バックアップを復元したあと、バックアップ内でアーカイブされているリンクがリダイレクトし続けることはなくなりました。 [#54](https://github.com/0t2/flux-bio/pull/54)
+- ほかの保存と同時に保存した設定が上書きされなくなりました。データベースには入ったのに訪問者に届いていなかった変更は、同じ変更をもう一度行うと届きます。 [#54](https://github.com/0t2/flux-bio/pull/54)
+- 同じページに同じ id の項目が 2 つあると、公開は拒否されます。どちらかの短縮リンクが使えなくなっていたためです。 [#54](https://github.com/0t2/flux-bio/pull/54)
+
 ## 0.4.5 - 2026-11-20
 
 ### 修正

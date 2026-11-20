@@ -46,12 +46,16 @@ import {
 	listPageLinks,
 	getPageByHandle,
 	insertPageStatement,
+	changeSettings,
+	homeIfNoneStatement,
 	loadSettings,
+	noLongerHomeStatement,
+	readMeta,
+	writeMetaStatement,
 	ownersOf,
 	pageExists,
 	publishedHandles,
 	recentlyPublishedPages,
-	saveSettingsStatement,
 	upsertLinkStatement,
 	type LinkRow,
 	type PageRow,
@@ -126,7 +130,7 @@ function assertNameFree(name: string, taken: Set<string>, label: string): void {
 }
 
 /** A password, device routing and UTM tags only happen in a redirect, so a button that skipped it would skip them. */
-function linkNeedsWorker(link: LinkRow): boolean {
+export function linkNeedsWorker(link: LinkRow): boolean {
 	return Boolean(link.passwordHash || link.iosUrl || link.androidUrl || link.lineExternal || link.inAppPrompt || link.utmSource || link.utmMedium || link.utmCampaign || link.utmContent)
 }
 
@@ -180,6 +184,19 @@ async function dropHomeCopy(env: Env): Promise<void> {
 	if (!site?.page) return
 	const { page: _page, ...rest } = site
 	await storeSite(env, rest)
+}
+
+/**
+ * After D1 has changed, the names that get no fresh copy are deleted once more. A visit between the first delete
+ * and the change read the old row, and may have put its copy back: an archived link that redirects again, a deleted
+ * page that is public again, and nothing would ever take that copy away. A failure here is only logged, since D1 is
+ * right by now. What a visit rebuilds after this delete it checks against D1 itself (stillThere).
+ */
+/** The key in _meta that says copies were left after a change to every page, for the next settings call to drop. */
+const COPIES_OWED = 'copies-owed'
+
+export async function dropAgain(env: Env, names: string[]): Promise<void> {
+	await putCopies([...new Set(names)].map((name) => deleteNamed(env, name)))
 }
 
 /** Writes fresh KV copies; see dropCopies for why a failure here only costs speed. */
@@ -475,6 +492,9 @@ export async function publishPage(env: Env, pageId: string, { by = null, seen }:
 	await dropCopies(env, [page.handle], replaced.map((row) => row.slug), { home: settings.home === pageId })
 	await db.batch(statements)
 	forgetPublicNames()
+	// The slugs that left the page or changed are written nowhere below.
+	const written = new Set(freshLinks.map((row) => row.slug))
+	await dropAgain(env, replaced.map((row) => row.slug).filter((slug) => !written.has(slug)))
 
 	// With pages off, the published version waits in D1 until they are on again.
 	const snapshot = await snapshotOf(db, { ...page, published: content, publishedAt: now, draft: content, fonts }, settings)
@@ -536,9 +556,9 @@ export async function createPage(env: Env, input: NewPage): Promise<PageRow> {
 	// The first page is also the home page.
 	const settings = await loadSettings(db)
 	const first = last === null
-	if (first) statements.push(saveSettingsStatement(db, { ...settings, home: page.id }))
+	if (first) statements.push(homeIfNoneStatement(db, settings, page.id))
 	await db.batch(statements)
-	if (first) await putCopies([writeSite(env, { ...settings, home: page.id }, [page])])
+	if (first) await putCopies([writeSite(env, await loadSettings(db), [page])])
 	return page
 }
 
@@ -556,6 +576,7 @@ export async function renamePage(env: Env, id: string, input: string): Promise<P
 	await dropCopies(env, [page.handle, handle], [], { home: settings.home === id })
 	await db.prepare('UPDATE pages SET handle = ?1 WHERE id = ?2').bind(handle, id).run()
 	forgetPublicNames()
+	await dropAgain(env, [page.handle])
 	const renamed = { ...page, handle }
 	const snapshot = await snapshotOf(env.DB, renamed, settings)
 	await putCopies([snapshot ? putSnapshot(env, snapshot) : null, settings.home === id ? writeSite(env, settings) : null])
@@ -576,23 +597,21 @@ export async function deletePage(env: Env, id: string): Promise<void> {
 	const [page, another, own, settings] = await Promise.all([getPage(db, id), hasOtherPage(db, id), listOwnLinks(db, id), loadSettings(db)])
 	if (!page) throw new ApiError(404, 'not-found', msg('找不到這個頁面'))
 	if (!another) throw new ApiError(409, 'last-page', msg('至少要留一個頁面'))
-	const nextSettings = settings.home === id ? { ...settings, home: '' } : settings
-	await dropCopies(
-		env,
-		[page.handle],
-		own.filter((row) => row.status === 'active' && !row.slug.startsWith('~')).map((row) => row.slug),
-		{ home: settings.home === id },
-	)
+	const names = [page.handle, ...own.filter((row) => row.status === 'active' && !row.slug.startsWith('~')).map((row) => row.slug)]
+	await dropCopies(env, [page.handle], names.slice(1), { home: settings.home === id })
 	await db.batch([
 		db
 			.prepare("UPDATE links SET status = 'archived', slug = '~' || id, updated_at = ?1 WHERE kind = 'bio' AND page_id = ?2")
 			.bind(Date.now(), id),
 		db.prepare('DELETE FROM page_versions WHERE page_id = ?1').bind(id),
 		db.prepare('DELETE FROM pages WHERE id = ?1').bind(id),
-		saveSettingsStatement(db, nextSettings),
+		// Only the home page, and only that field: the settings as they were read above may be older than what
+		// someone else has saved since.
+		noLongerHomeStatement(db, id),
 	])
 	forgetPublicNames()
-	await putCopies([settings.home === id ? writeSite(env, nextSettings) : null])
+	await dropAgain(env, names)
+	await putCopies([settings.home === id ? writeSite(env, await loadSettings(db)) : null])
 	await deleteFontFiles(env, unusedFontFiles(page.fonts, null))
 }
 
@@ -609,33 +628,22 @@ export function normalizeDomain(value: string): string {
 	}
 }
 
-/** Settings to save; a list of languages, a font switch, the bio switch or its redirect left out keeps the current one. */
-export type SettingsInput = Omit<Settings, 'languages' | 'hostFonts' | 'bio' | 'homeUrl' | 'qrLogo' | 'plan'> & {
-	qrLogo?: string
-	plan?: Settings['plan']
-	languages?: Settings['languages']
-	hostFonts?: boolean
-	bio?: boolean
-	homeUrl?: string
-}
+/** What a request asks to change in the settings. Whatever it leaves out stays as it is now, not as it was when the request began. */
+export type SettingsPatch = Partial<Settings>
 
-export async function updateSettings(env: Env, input: SettingsInput): Promise<{ settings: Settings; copiesLeft: boolean }> {
+export async function updateSettings(env: Env, patch: SettingsPatch): Promise<{ settings: Settings; copiesLeft: boolean }> {
 	const db = env.DB
-	if (!isValidTimeZone(input.timezone)) throw new ApiError(400, 'invalid', msg('時區格式不正確'))
-	if (input.home && !(await pageExists(db, input.home))) throw new ApiError(400, 'invalid', msg('找不到要放在首頁的頁面'))
+	if (patch.timezone !== undefined && !isValidTimeZone(patch.timezone)) throw new ApiError(400, 'invalid', msg('時區格式不正確'))
+	if (patch.home && !(await pageExists(db, patch.home))) throw new ApiError(400, 'invalid', msg('找不到要放在首頁的頁面'))
+	const domain = patch.domain === undefined ? undefined : normalizeDomain(patch.domain)
+	const homeUrl = patch.homeUrl === undefined ? undefined : (optionalUrl(patch.homeUrl, msg('首頁轉址')) ?? '')
+	const named = (key: keyof Settings) => patch[key] !== undefined
 
-	const previous = await loadSettings(db)
-	const next: Settings = {
-		...input,
-		languages: otherLanguages(input.locale, input.languages ?? previous.languages),
-		domain: normalizeDomain(input.domain),
-		hostFonts: input.hostFonts ?? previous.hostFonts,
-		bio: input.bio ?? previous.bio,
-		homeUrl: input.homeUrl === undefined ? previous.homeUrl : (optionalUrl(input.homeUrl, msg('首頁轉址')) ?? ''),
-		qrLogo: input.qrLogo ?? previous.qrLogo,
-		plan: input.plan ?? previous.plan,
-	}
-	await saveSettingsStatement(db, next).run()
+	// From the settings as they are at this moment: another request may have saved since this one started.
+	const { previous, next } = await changeSettings(db, (current) => {
+		const asked = { ...current, ...(Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined)) as SettingsPatch) }
+		return { ...asked, languages: otherLanguages(asked.locale, patch.languages ?? current.languages), domain: domain ?? current.domain, homeUrl: homeUrl ?? current.homeUrl }
+	})
 	forgetPublicNames()
 	const bioChanged = previous.bio !== next.bio
 	if (bioChanged) await switchBio(env, previous, next)
@@ -649,7 +657,13 @@ export async function updateSettings(env: Env, input: SettingsInput): Promise<{ 
 
 	// Every snapshot carries these, so each has to go. Dropping one takes no parsing and no D1 read per page, and
 	// the page's next visit rebuilds it from D1, so pages nobody visits never cost a write. Going on or off has dealt with them.
-	const everyPage = languagesChanged || hostingChanged
+	// What KV needs is worked out from what changed. A request whose KV writes failed has changed D1 all the same,
+	// so the same request sent again changes nothing, and by that reckoning would write nothing: the old home page
+	// stayed at "/" for good. So a field that is named is written again even when it is what D1 already has, and
+	// copies that a change to every page left behind are remembered until a later call has dropped them.
+	const owed = (await readMeta(db, COPIES_OWED)) === true
+	const everyPage = languagesChanged || hostingChanged || owed
+	const homeAgain = named('home')
 	let copiesLeft = false
 	const drop = async (keys: string[], dropOne: (key: string) => Promise<void>) => {
 		for (const result of await Promise.allSettled(keys.map(dropOne))) {
@@ -666,15 +680,17 @@ export async function updateSettings(env: Env, input: SettingsInput): Promise<{ 
 		const dropped = handles.slice(0, budget)
 		budget -= dropped.length
 		await drop(dropped, (handle) => deleteNamed(env, handle))
-	} else if (next.bio && !bioChanged && homeChanged) {
+	} else if (next.bio && !bioChanged && (homeChanged || homeAgain)) {
 		// Only the two pages that stop or start being the home page say so in their snapshot.
-		const pages = await getPagesByIds(db, [previous.home, next.home].filter(Boolean))
+		const pages = await getPagesByIds(db, [...new Set([previous.home, next.home].filter(Boolean))])
 		const snapshots = await Promise.all(pages.map((page) => snapshotOf(db, page, next)))
 		await putCopies(snapshots.map((snapshot) => (snapshot ? putSnapshot(env, snapshot) : null)))
 	}
 	// The home page's copy is in the "site" record, so this is also what brings "/" up to date. The time zone is
 	// in that record and nowhere else in KV; visits elsewhere ask for it (siteTimeZone).
-	if (!bioChanged && (everyPage || homeChanged || timezoneChanged || previous.homeUrl !== next.homeUrl)) await writeSite(env, next)
+	const siteNamed = homeAgain || named('timezone') || named('homeUrl') || named('locale') || named('languages')
+	if (!bioChanged && (everyPage || homeChanged || timezoneChanged || previous.homeUrl !== next.homeUrl || siteNamed)) await writeSite(env, next)
+	if (copiesLeft !== owed) await writeMetaStatement(db, COPIES_OWED, copiesLeft).run()
 	await deleteFontFiles(env, unusedFonts.slice(0, KV_OPS_AT_ONCE))
 	return { settings: next, copiesLeft }
 }
@@ -691,8 +707,9 @@ async function switchBio(env: Env, previous: Settings, next: Settings): Promise<
 		await Promise.all([storeSite(env, await siteRecord(env.DB, next, await sitePages(env.DB, next))), ...stale.map((handle) => deleteNamed(env, handle))])
 	} catch (error) {
 		console.error('KV refused the bio switch', error)
-		await saveSettingsStatement(env.DB, previous).run()
-		await putCopies([storeSite(env, await siteRecord(env.DB, previous, await sitePages(env.DB, previous)))])
+		// Only the switch goes back: anything else saved meanwhile is someone else's, and stays.
+		const { next: back } = await changeSettings(env.DB, (current) => ({ ...current, bio: previous.bio }))
+		await putCopies([storeSite(env, await siteRecord(env.DB, back, await sitePages(env.DB, back)))])
 		throw new ApiError(503, 'kv', msg('Cloudflare KV 暫時寫不進去，這次的修改沒有儲存，請稍後再試。'))
 	}
 }
@@ -936,6 +953,8 @@ export async function updateLink(env: Env, id: string, patch: LinkPatch): Promis
 		await dropCopies(env, page ? [page.handle] : [], moved ? [row.slug, next.slug] : [row.slug], { home })
 	}
 	await upsertLinkStatement(db, next).run()
+	// An archived link's slug, and the slug a link moved away from, get no copy below.
+	if (row.status === 'active') await dropAgain(env, [...(moved ? [row.slug] : []), ...(next.status !== 'active' ? [row.slug, next.slug] : [])])
 	const snapshot = page ? await snapshotOf(db, page, settings) : null
 	await putCopies([
 		next.status === 'active' && (routingChanged || moved || row.status !== 'active') ? putLinkRecord(env, next.slug, toLinkRecord(next)) : null,
@@ -954,6 +973,11 @@ export async function linkRecordFromDb(env: Env, slug: string): Promise<LinkReco
 	if (!row || row.status !== 'active') return null
 	const record = toLinkRecord(row)
 	await putCopies([putLinkRecord(env, slug, record)])
+	// The row may have changed between that read and this write: an archived link's copy would then be back for
+	// good. Whoever changed it deleted the name before and after, so a copy put back later than that is taken
+	// away here, by the one who put it.
+	const now = await getLinkBySlug(env.DB, slug)
+	if (!now || now.status !== 'active' || now.id !== row.id || now.updatedAt !== row.updatedAt) await dropAgain(env, [slug])
 	return record
 }
 
@@ -964,7 +988,12 @@ export async function snapshotFromDb(env: Env, handle: string): Promise<Snapshot
 	const page = await getPageByHandle(env.DB, handle)
 	if (!page?.published) return null
 	const snapshot = await snapshotOf(env.DB, page, await loadSettings(env.DB))
-	if (snapshot) await putCopies([putSnapshot(env, snapshot)])
+	if (snapshot) {
+		await putCopies([putSnapshot(env, snapshot)])
+		// As for a link: a page deleted, renamed or published again meanwhile must not keep this copy.
+		const now = await getPageByHandle(env.DB, handle)
+		if (!now?.published || now.id !== page.id || now.publishedAt !== page.publishedAt) await dropAgain(env, [handle])
+	}
 	return snapshot
 }
 

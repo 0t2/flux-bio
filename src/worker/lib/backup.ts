@@ -168,7 +168,9 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 
 	// Every old KV copy goes first, so nothing outdated is left for visitors if a later step fails.
 	// A short link that comes back as it was keeps its copy: on the free plan a delete uses up the same 1,000 a day as a write.
-	const incoming = new Map(rows.map((row) => [row.slug, JSON.stringify(toLinkRecord(row))]))
+	// Only one that comes back live: a link the backup has archived redirects nowhere, and a copy kept for it
+	// would go on redirecting, with nothing in D1 left to change that would take it away.
+	const incoming = new Map(rows.filter((row) => row.status === 'active' && !row.slug.startsWith('~')).map((row) => [row.slug, JSON.stringify(toLinkRecord(row))]))
 	await dropCopies(
 		env,
 		oldHandles,

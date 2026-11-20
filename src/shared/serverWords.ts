@@ -140,6 +140,7 @@ export const ENGLISH: Record<string, string> = {
 	"第 {n} 個社群圖示的網址格式不正確": "Social icon {n} has an invalid URL",
 	"第 {n} 項 {name} 還沒填帳號": "Item {n} ({name}): no account yet",
 	"第 {n} 項 {name}：找不到 {name} 帳號，請貼上你的 {name} 網址": "Item {n} ({name}): that isn’t a {name} account. Paste the address of your {name} page",
+	"第 {n} 項和第 {m} 項的 id 一樣，請改掉其中一個": "Items {m} and {n} have the same id: change one of them",
 	"第 {n} 項商品卡：「看全部商品」的連結格式不正確": "Item {n} (product cards): the “See all products” link is invalid",
 	"第 {n} 項商品卡：第 {product} 個商品的連結格式不正確": "Item {n} (product cards): product {product} has an invalid link",
 	"第 {n} 項商品卡：第 {product} 個商品還沒有名稱": "Item {n} (product cards): product {product} has no name yet",

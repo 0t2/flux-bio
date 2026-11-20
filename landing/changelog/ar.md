@@ -5,6 +5,19 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.6 - 2026-11-20
+
+### الأمان
+- لم يعد رابط معاينة المسودة يعرض عنوان رابط محمي بكلمة مرور أو رابط أُخفي عنوانه. يمر هذا الزر هناك عبر رابطه القصير، كما في الصفحة المنشورة. [#54](https://github.com/0t2/flux-bio/pull/54)
+- تقبل كلمة مرور الرابط عشر محاولات خاطئة خلال 15 دقيقة، ثم لا تقبل شيئًا حتى ينقضي ذلك الوقت. لم يكن هناك حد من قبل. [#54](https://github.com/0t2/flux-bio/pull/54)
+- لم يعد العنوان غير الموجود يكلّف أكثر كلما كان أطول. كان البحث عن عنوان قريب قد يستغرق أضعاف حد الوقت المسموح للطلب في موقع كبير، وكان بإمكان أي شخص طلب عناوين كهذه. [#54](https://github.com/0t2/flux-bio/pull/54)
+
+### إصلاحات
+- كان الرابط القصير المؤرشف أو الصفحة المحذوفة أو العنوان القديم لصفحة قد يعود ويبقى إذا زار أحدهم الموقع في لحظة التغيير نفسها. [#54](https://github.com/0t2/flux-bio/pull/54)
+- لم تعد استعادة نسخة احتياطية تترك رابطًا مؤرشفًا في النسخة يواصل إعادة التوجيه. [#54](https://github.com/0t2/flux-bio/pull/54)
+- الإعداد الذي يُحفظ أثناء حفظ شيء آخر يبقى، والتغيير الذي وصل إلى قاعدة البيانات ولم يصل إلى زوارك يُرسل إليهم عندما تجريه مرة أخرى. [#54](https://github.com/0t2/flux-bio/pull/54)
+- يُرفض عند النشر وجود عنصرين لهما المعرّف id نفسه في صفحة واحدة: كان الرابط القصير لأحدهما لن يعمل. [#54](https://github.com/0t2/flux-bio/pull/54)
+
 ## 0.4.5 - 2026-11-20
 
 ### إصلاحات

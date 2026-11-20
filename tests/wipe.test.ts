@@ -18,7 +18,7 @@ beforeAll(async () => {
 	await env.DB.batch([
 		env.DB.prepare('CREATE TABLE leftover (id TEXT PRIMARY KEY)'),
 		env.DB.prepare("INSERT INTO leftover VALUES ('x')"),
-		env.DB.prepare("UPDATE _meta SET value = '99' WHERE key = 'schema_version'"),
+		env.DB.prepare("UPDATE _meta SET value = '99' WHERE key = 'schema'"),
 	])
 	expect((await api('/data', { method: 'DELETE', json: { confirm: 'DELETE' } })).status).toBe(200)
 })
@@ -26,7 +26,7 @@ beforeAll(async () => {
 it('drops every table, leftovers included, and creates the current ones again', async () => {
 	const tables = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE '_cf_%'").all<{ name: string }>()
 	expect(tables.results.map((row) => row.name).sort()).toEqual(['_meta', 'api_tokens', 'links', 'page_versions', 'pages', 'stats'])
-	const version = await env.DB.prepare("SELECT value FROM _meta WHERE key = 'schema_version'").first<{ value: string }>()
+	const version = await env.DB.prepare("SELECT value FROM _meta WHERE key = 'schema'").first<{ value: string }>()
 	expect(Number(version?.value)).toBe(SCHEMA_VERSION)
 })
 
