@@ -334,7 +334,7 @@
 	"掃描進來也算一次點擊，來源會記成「QR Code」。樣式會跟著這個短網址儲存。": "Klik dari pindaian dicatat dengan sumber “QR Code”. Gayanya disimpan bersama tautan pendek ini.",
 	"排程": "Terjadwal",
 	"接上之後，可以這樣說": "Setelah terhubung, kamu bisa bilang",
-	"接著輸入新密碼，至少 12 個字元。如果 Worker 改過名字，把指令裡的 flux-bio 換掉。": "Lalu masukkan kata sandi baru, minimal 12 karakter. Kalau nama Worker pernah diganti, ganti flux-bio di perintah itu.",
+	"它會設一組新密碼，存在資料夾裡的 .secrets.env。所有人會被登出，原本的 API token 也會失效。": "Perintah ini membuat kata sandi baru dan menyimpannya di .secrets.env dalam folder itu. Semua orang akan keluar, dan token API yang lama berhenti berfungsi.",
 	"提前下單，到店直接拿": "Pesan dulu, langsung ambil di toko",
 	"換一張圖片": "Ganti gambar",
 	"換一張頭像": "Ganti foto profil",

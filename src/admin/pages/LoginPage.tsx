@@ -8,8 +8,8 @@ import { t } from '../i18n'
 import { CopyButton } from '../components/ui'
 import '../styles/library.css'
 
-// Prompts for the new value without echoing it, so it stays out of the shell history.
-const RESET_COMMAND = 'pnpm exec cf workers secrets update ADMIN_PASSWORD --worker flux-bio --type secret_text'
+// Makes a new password for the Worker this folder deploys, and writes it to a file there without printing it.
+const RESET_COMMAND = `pnpm reset-password --site ${location.origin}`
 
 /** Where to go after signing in: a path inside the dashboard, never another site ("//evil.example"). */
 function nextPath(search: string): string {
@@ -130,7 +130,7 @@ export function LoginPage() {
 								</code>
 								<CopyButton text={RESET_COMMAND} className="btn square lib-compact" />
 							</div>
-							<p>{t('接著輸入新密碼，至少 12 個字元。如果 Worker 改過名字，把指令裡的 flux-bio 換掉。')}</p>
+							<p>{t('它會設一組新密碼，存在資料夾裡的 .secrets.env。所有人會被登出，原本的 API token 也會失效。')}</p>
 						</div>
 					</details>
 				</div>

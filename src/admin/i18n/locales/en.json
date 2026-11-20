@@ -334,7 +334,7 @@
 	"掃描進來也算一次點擊，來源會記成「QR Code」。樣式會跟著這個短網址儲存。": "Clicks from scans are counted with “QR Code” as the source. The style is saved with this short link.",
 	"排程": "Scheduled",
 	"接上之後，可以這樣說": "Once connected, try saying",
-	"接著輸入新密碼，至少 12 個字元。如果 Worker 改過名字，把指令裡的 flux-bio 換掉。": "Then enter the new password (at least 12 characters). If you renamed the Worker, replace flux-bio in the command.",
+	"它會設一組新密碼，存在資料夾裡的 .secrets.env。所有人會被登出，原本的 API token 也會失效。": "It sets a new password and saves it in .secrets.env in that folder. Everyone is signed out, and the API tokens made before stop working.",
 	"提前下單，到店直接拿": "Order ahead and skip the wait",
 	"換一張圖片": "Change image",
 	"換一張頭像": "Change profile photo",

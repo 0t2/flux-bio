@@ -5,6 +5,15 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.0 - 2026-11-20
+
+### ต้องดำเนินการ
+- หากคุณเคยแก้ `cloudflare.config.ts` (เปลี่ยน `WORKER_NAME` เพิ่มโดเมนของตัวเอง หรือเอา `ANALYTICS` ออก) ให้ย้ายการตั้งค่านั้นไปไว้ใน `worker.json` ในโฟลเดอร์ FluxBio ของคุณก่อน deploy เวอร์ชันนี้ เช่น `{ "name": "my-links" }` ไฟล์นี้ไม่ใช่ส่วนหนึ่งของโค้ด การอัปเดตครั้งต่อไปจึงไม่แตะต้องมัน หากลืม การ deploy จะหยุดและบอกชื่อที่ต้องเขียน [#45](https://github.com/0t2/flux-bio/pull/45)
+
+### ใหม่
+- `pnpm run deploy` จะถาม Cloudflare ว่ามีอะไรทำงานอยู่ก่อนอัปโหลด และหยุดการ deploy ที่จะสร้างเว็บไซต์เปล่าอีกแห่ง ทำให้เว็บไซต์ของคุณแห่งหนึ่งออฟไลน์ เขียนทับ Worker อื่น หรือเปลี่ยนรหัสผ่านของคุณ ใช้คำสั่งนี้แทน `cf deploy` [#45](https://github.com/0t2/flux-bio/pull/45)
+- `pnpm reset-password` ตั้งรหัสผ่านผู้ดูแลใหม่และสร้าง API token ใหม่ให้แต่ละเว็บไซต์ของคุณ โดยไม่แสดงทั้งสองอย่างบนหน้าจอ “ลืมรหัสผ่าน?” ในหน้าเข้าสู่ระบบตอนนี้ให้คำสั่งนี้ [#45](https://github.com/0t2/flux-bio/pull/45)
+
 ## 0.3.2 - 2026-11-20
 
 ### ใหม่

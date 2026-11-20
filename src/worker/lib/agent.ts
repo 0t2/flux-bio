@@ -61,7 +61,7 @@ export function guideSite(env: Env): GuideSite {
 
 export function guideNames(origin: string, workerName?: string, site: GuideSite = { id: MAIN_SITE, others: [] }): GuideNames {
 	// The WORKER_NAME binding; without it, ask rather than guess: a wrong name would change another deployment's password.
-	const worker = workerName || '<the Worker name: WORKER_NAME in cloudflare.config.ts>'
+	const worker = workerName || '<the Worker name: "name" in worker.json, or flux-bio without that file>'
 	const main = site.id === MAIN_SITE
 	return {
 		origin,

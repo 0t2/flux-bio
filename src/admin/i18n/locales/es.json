@@ -334,7 +334,7 @@
 	"掃描進來也算一次點擊，來源會記成「QR Code」。樣式會跟著這個短網址儲存。": "Los clics por escaneo se registran con origen “QR Code”. El estilo se guarda con este enlace corto.",
 	"排程": "Programado",
 	"接上之後，可以這樣說": "Una vez conectada, puedes pedirle cosas como",
-	"接著輸入新密碼，至少 12 個字元。如果 Worker 改過名字，把指令裡的 flux-bio 換掉。": "Luego escribe la nueva contraseña (mínimo 12 caracteres). Si le cambiaste el nombre al Worker, reemplaza flux-bio en el comando.",
+	"它會設一組新密碼，存在資料夾裡的 .secrets.env。所有人會被登出，原本的 API token 也會失效。": "Establece una contraseña nueva y la guarda en .secrets.env, en esa carpeta. Se cierra la sesión de todos y los tokens de API anteriores dejan de funcionar.",
 	"提前下單，到店直接拿": "Haz tu pedido antes y retíralo en la tienda",
 	"換一張圖片": "Cambiar imagen",
 	"換一張頭像": "Cambiar foto de perfil",
