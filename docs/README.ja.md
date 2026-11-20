@@ -127,7 +127,7 @@ pnpm exec cf auth login          # 初回は Cloudflare にログイン
 
 # 管理画面のパスワード（ADMIN_PASSWORD、12文字以上）を生成してデプロイ
 printf 'ADMIN_PASSWORD=%s\n' "$(openssl rand -base64 30 | tr -dc 'A-Za-z0-9' | head -c 24)" > .secrets.env
-pnpm exec cf deploy --secrets-file .secrets.env
+pnpm run deploy --secrets-file .secrets.env
 cat .secrets.env && rm .secrets.env   # パスワードを控えておく
 ```
 

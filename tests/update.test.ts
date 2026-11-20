@@ -4,7 +4,7 @@ import { CHANGELOG_URL, newerVersion, RELEASES_SENT, releasesSince, updateFrom }
 import { VERSION } from '../src/worker/lib/version'
 import { parseChangelog } from '../landing/changelog'
 import changelog from '../CHANGELOG.md?raw'
-import { api, apiJson, call } from './helpers'
+import { api, apiJson, call, PASSWORD } from './helpers'
 
 // A site is its owner's copy of the code, so nothing tells it when FluxBio moves on. GET /api/update reads the
 // project's changelog from GitHub and says what the site is behind by, so its owner's AI can say a fix is waiting.
@@ -157,5 +157,16 @@ describe('reading the changelog for what is newer', () => {
 		expect(update.releases[0]!.version).toBe(`0.3.${RELEASES_SENT + 5}`)
 		// An "Action needed" in one that wasn't sent still counts.
 		expect(updateFrom(`${many}\n## 0.3.0 - 2026-11-19\n`.replace('- Fix 44.', '- Fix 44.\n\n### Action needed\n- Do it.'), '0.3.0').actionNeeded).toBe(true)
+	})
+})
+
+describe('the dashboard', () => {
+	it('may ask too, signed in as the owner: Settings says when a newer version is out', async () => {
+		vi.stubGlobal('fetch', async (input: RequestInfo | URL) => (String(input) === CHANGELOG_URL ? new Response(changelog) : new Response('', { status: 503 })))
+		const login = await call('/api/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: PASSWORD }) })
+		const cookie = login.headers.get('set-cookie')!.split(';')[0]!
+		const answer = await call('/api/update', { headers: { cookie } })
+		expect(answer.status).toBe(200)
+		expect(((await answer.json()) as UpdateResponse).version).toBe(VERSION)
 	})
 })

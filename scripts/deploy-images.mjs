@@ -70,7 +70,8 @@ for (const [id, hosts] of Object.entries(sites)) {
 }
 
 if (opts.deploy) {
-	const deploy = spawn('pnpm', ['exec', 'cf', 'deploy', ...(opts.mode ? ['--mode', opts.mode] : [])], { stdio: 'inherit' })
+	// Through the checks a plain deploy gets (scripts/deploy.mjs).
+	const deploy = spawn(process.execPath, ['scripts/deploy.mjs', ...(opts.mode ? ['--mode', opts.mode] : [])], { stdio: 'inherit' })
 	deploy.on('exit', (code) => process.exit(code ?? 1))
 }
 

@@ -127,7 +127,7 @@ pnpm exec cf auth login          # lần đầu cần đăng nhập Cloudflare
 
 # tạo mật khẩu quản trị (ADMIN_PASSWORD, ít nhất 12 ký tự), rồi triển khai
 printf 'ADMIN_PASSWORD=%s\n' "$(openssl rand -base64 30 | tr -dc 'A-Za-z0-9' | head -c 24)" > .secrets.env
-pnpm exec cf deploy --secrets-file .secrets.env
+pnpm run deploy --secrets-file .secrets.env
 cat .secrets.env && rm .secrets.env   # cất mật khẩu cho kỹ
 ```
 

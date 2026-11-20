@@ -5,6 +5,20 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.1 - 2026-11-20
+
+### Nouveautés
+- La page Paramètres du tableau de bord vous prévient quand une version plus récente de FluxBio est sortie, signale d’abord si elle contient un correctif de sécurité et donne la phrase à dire à votre IA pour mettre à jour. GitHub n’est consulté que lorsque vous ouvrez cette page, et quand votre site est à jour, c’est indiqué à côté de la version, en bas de page. [#48](https://github.com/0t2/flux-bio/pull/48)
+
+## 0.4.0 - 2026-11-20
+
+### Action requise
+- Si vous avez modifié `cloudflare.config.ts` (un autre `WORKER_NAME`, un domaine personnalisé ou le retrait de `ANALYTICS`), mettez cela dans `worker.json`, dans votre dossier FluxBio, avant de déployer cette version ; par exemple `{ "name": "my-links" }`. Ce fichier ne fait pas partie du code : les mises à jour n’y touchent donc plus. En cas d’oubli, le déploiement s’arrête et vous indique le nom à écrire. [#45](https://github.com/0t2/flux-bio/pull/45)
+
+### Nouveautés
+- `pnpm run deploy` demande à Cloudflare ce qui tourne avant d’envoyer quoi que ce soit, et arrête un déploiement qui créerait un second site vide, mettrait l’un de vos sites hors ligne, remplacerait un autre Worker ou remplacerait votre mot de passe. Utilisez-le à la place de `cf deploy`. [#45](https://github.com/0t2/flux-bio/pull/45)
+- `pnpm reset-password` définit un nouveau mot de passe d’administration et crée un nouveau jeton d’API pour chacun de vos sites, sans afficher ni l’un ni l’autre. Le lien « Mot de passe oublié ? » de la page de connexion donne désormais cette commande. [#45](https://github.com/0t2/flux-bio/pull/45)
+
 ## 0.3.2 - 2026-11-20
 
 ### Nouveautés

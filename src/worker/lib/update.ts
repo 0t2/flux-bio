@@ -3,7 +3,7 @@ import { VERSION } from './version'
 
 // Whether a newer FluxBio is out. A site is its owner's copy of the code and nothing tells it when the project moves on,
 // so an owner would never hear of a security fix. GET /api/update reads the project's changelog from GitHub and says
-// what this site is behind by. It runs only when the owner's AI asks, never for a visitor, and sends GitHub nothing
+// what this site is behind by. It runs only when the owner's AI asks or the owner opens Settings, never for a visitor, and sends GitHub nothing
 // about the site but the request itself.
 
 /** FluxBio's changelog where the project keeps it. A release there is a "## <version> - <date>" heading. */

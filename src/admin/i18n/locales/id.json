@@ -334,7 +334,7 @@
 	"掃描進來也算一次點擊，來源會記成「QR Code」。樣式會跟著這個短網址儲存。": "Klik dari pindaian dicatat dengan sumber “QR Code”. Gayanya disimpan bersama tautan pendek ini.",
 	"排程": "Terjadwal",
 	"接上之後，可以這樣說": "Setelah terhubung, kamu bisa bilang",
-	"接著輸入新密碼，至少 12 個字元。如果 Worker 改過名字，把指令裡的 flux-bio 換掉。": "Lalu masukkan kata sandi baru, minimal 12 karakter. Kalau nama Worker pernah diganti, ganti flux-bio di perintah itu.",
+	"它會設一組新密碼，存在資料夾裡的 .secrets.env。所有人會被登出，原本的 API token 也會失效。": "Perintah ini membuat kata sandi baru dan menyimpannya di .secrets.env dalam folder itu. Semua orang akan keluar, dan token API yang lama berhenti berfungsi.",
 	"提前下單，到店直接拿": "Pesan dulu, langsung ambil di toko",
 	"換一張圖片": "Ganti gambar",
 	"換一張頭像": "Ganti foto profil",
@@ -996,5 +996,13 @@
 	"社群圖示的位置": "Letak ikon sosial",
 	"連結上方": "Di atas tautan",
 	"連結下方": "Di bawah tautan",
-	"一排小圖示，在名稱下方或連結下方。要換位置或整排關掉，請到「外觀」。": "Deretan ikon kecil, di bawah nama atau di bawah tautan. Untuk memindahkan atau mematikan semuanya, buka “Tampilan”."
+	"一排小圖示，在名稱下方或連結下方。要換位置或整排關掉，請到「外觀」。": "Deretan ikon kecil, di bawah nama atau di bawah tautan. Untuk memindahkan atau mematikan semuanya, buka “Tampilan”.",
+	"有新版本": "Ada versi baru",
+	"FluxBio {latest} 出了，這個網站還在 {version}。": "FluxBio {latest} sudah dirilis, dan situs ini masih di {version}.",
+	"其中有安全性修正，請盡快更新。": "Versi ini memuat perbaikan keamanan, jadi segera perbarui.",
+	"這次更新除了重新部署，還有別的步驟，你的 AI 會帶你做。": "Pembaruan ini memerlukan langkah lain selain deploy, dan AI Anda akan memandu Anda.",
+	"更新是在你的電腦上做的。對你的 AI 說：": "Pembaruan dilakukan di komputer Anda. Katakan kepada AI Anda:",
+	"幫我把 FluxBio 更新到最新版": "Perbarui FluxBio saya ke versi terbaru",
+	"看看改了什麼": "Lihat apa yang berubah",
+	"已是最新版": "Sudah versi terbaru"
 }

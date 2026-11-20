@@ -127,7 +127,7 @@ pnpm exec cf auth login          # 第一次需要登录 Cloudflare
 
 # 生成后台密码（ADMIN_PASSWORD，至少 12 个字符），然后部署
 printf 'ADMIN_PASSWORD=%s\n' "$(openssl rand -base64 30 | tr -dc 'A-Za-z0-9' | head -c 24)" > .secrets.env
-pnpm exec cf deploy --secrets-file .secrets.env
+pnpm run deploy --secrets-file .secrets.env
 cat .secrets.env && rm .secrets.env   # 把密码保存好
 ```
 

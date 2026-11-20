@@ -5,6 +5,20 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.1 - 2026-11-20
+
+### Mới
+- Trang Cài đặt trong bảng điều khiển cho bạn biết khi có bản FluxBio mới hơn, báo trước nếu bản đó có sửa lỗi bảo mật, và đưa ra câu để nói với AI của bạn khi muốn cập nhật. Trang chỉ hỏi GitHub khi bạn mở nó, và khi trang web của bạn đã là bản mới nhất thì điều đó được ghi cạnh số phiên bản ở cuối trang. [#48](https://github.com/0t2/flux-bio/pull/48)
+
+## 0.4.0 - 2026-11-20
+
+### Cần thực hiện
+- Nếu bạn đã sửa `cloudflare.config.ts` (đổi `WORKER_NAME`, thêm tên miền riêng hoặc bỏ `ANALYTICS`), hãy ghi các thiết lập đó vào `worker.json` trong thư mục FluxBio của bạn trước khi triển khai phiên bản này, ví dụ `{ "name": "my-links" }`. Tệp này không thuộc mã nguồn, nên từ nay các bản cập nhật sẽ không đụng đến nó. Nếu bạn quên, việc triển khai sẽ dừng lại và cho biết tên cần ghi. [#45](https://github.com/0t2/flux-bio/pull/45)
+
+### Mới
+- `pnpm run deploy` hỏi Cloudflare xem đang chạy gì trước khi tải lên, và dừng một lần triển khai sẽ tạo thêm một trang web trống, làm một trang web của bạn ngừng hoạt động, ghi đè một Worker khác hoặc thay mật khẩu của bạn. Hãy dùng lệnh này thay cho `cf deploy`. [#45](https://github.com/0t2/flux-bio/pull/45)
+- `pnpm reset-password` đặt mật khẩu quản trị mới và tạo API token mới cho từng trang web của bạn mà không hiển thị cả hai. Mục “Quên mật khẩu?” trên trang đăng nhập giờ đưa ra lệnh này. [#45](https://github.com/0t2/flux-bio/pull/45)
+
 ## 0.3.2 - 2026-11-20
 
 ### Mới

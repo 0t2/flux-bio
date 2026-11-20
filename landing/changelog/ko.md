@@ -5,6 +5,20 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.1 - 2026-11-20
+
+### 새 기능
+- 대시보드의 ‘설정’에서 FluxBio 새 버전이 나왔는지 알려 줍니다. 보안 수정이 있으면 먼저 알리고, 업데이트하려면 AI에게 말할 문장도 보여 줍니다. 이 페이지를 열 때만 GitHub에 확인하며, 사이트가 최신이면 아래쪽 버전 옆에 그렇게 표시됩니다. [#48](https://github.com/0t2/flux-bio/pull/48)
+
+## 0.4.0 - 2026-11-20
+
+### 조치 필요
+- `cloudflare.config.ts`를 수정한 적이 있다면(`WORKER_NAME`을 바꿨거나, 커스텀 도메인을 추가했거나, `ANALYTICS`를 뺀 경우) 이 버전을 배포하기 전에 그 설정을 FluxBio 폴더의 `worker.json`에 적어 주세요. 예: `{ "name": "my-links" }`. 이 파일은 코드의 일부가 아니어서 앞으로 업데이트해도 그대로 남습니다. 잊은 경우에는 배포가 멈추고 적어야 할 이름을 알려 줍니다. [#45](https://github.com/0t2/flux-bio/pull/45)
+
+### 새 기능
+- `pnpm run deploy`는 업로드하기 전에 Cloudflare에서 무엇이 실행 중인지 확인하고, 빈 사이트를 하나 더 만들거나, 사이트 하나를 오프라인으로 만들거나, 다른 Worker를 덮어쓰거나, 비밀번호를 바꿔 버리는 배포를 막습니다. `cf deploy` 대신 사용하세요. [#45](https://github.com/0t2/flux-bio/pull/45)
+- `pnpm reset-password`는 새 관리자 비밀번호를 설정하고 사이트마다 새 API 토큰을 만들며, 둘 다 화면에 표시하지 않습니다. 로그인 페이지의 ‘비밀번호를 잊으셨나요?’에서 이제 이 명령을 안내합니다. [#45](https://github.com/0t2/flux-bio/pull/45)
+
 ## 0.3.2 - 2026-11-20
 
 ### 새 기능

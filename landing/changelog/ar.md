@@ -5,6 +5,20 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.1 - 2026-11-20
+
+### جديد
+- صفحة «الإعدادات» في لوحة التحكم تخبرك عند صدور إصدار أحدث من FluxBio، وتذكر أولًا إن كان يتضمن إصلاحًا أمنيًا، وتعطيك الجملة التي تقولها لمساعدك الذكي للتحديث. لا يُسأل GitHub إلا عند فتح هذه الصفحة، وعندما يكون موقعك محدَّثًا يُذكر ذلك بجانب رقم الإصدار أسفل الصفحة. [#48](https://github.com/0t2/flux-bio/pull/48)
+
+## 0.4.0 - 2026-11-20
+
+### إجراء مطلوب
+- إذا كنت قد عدّلت `cloudflare.config.ts` (قيمة أخرى لـ `WORKER_NAME`، أو نطاق مخصص، أو حذف `ANALYTICS`)، فضع ذلك في `worker.json` داخل مجلد FluxBio قبل نشر هذا الإصدار، مثل `{ "name": "my-links" }`. هذا الملف ليس جزءًا من الشيفرة، لذا لن تمسّه التحديثات بعد الآن. وإن نسيت، يتوقف النشر ويخبرك بالاسم الذي عليك كتابته. [#45](https://github.com/0t2/flux-bio/pull/45)
+
+### جديد
+- يسأل `pnpm run deploy` خدمة Cloudflare عمّا يعمل الآن قبل رفع أي شيء، ويوقف أي نشر من شأنه إنشاء موقع ثانٍ فارغ، أو إيقاف أحد مواقعك، أو استبدال Worker آخر، أو استبدال كلمة مرورك. استخدمه بدلًا من `cf deploy`. [#45](https://github.com/0t2/flux-bio/pull/45)
+- يعيّن `pnpm reset-password` كلمة مرور جديدة للإدارة وينشئ رمز API جديدًا لكل موقع من مواقعك، دون عرض أيٍّ منهما. وأصبح رابط «نسيت كلمة المرور؟» في صفحة تسجيل الدخول يعرض هذا الأمر. [#45](https://github.com/0t2/flux-bio/pull/45)
+
 ## 0.3.2 - 2026-11-20
 
 ### جديد
