@@ -439,13 +439,16 @@ Rules worth knowing:
   still be edited and published through the API. A page's handle stays taken, so switching back on can't clash.
 - **Bio links vs. standalone links.** Bio links are the links on a page. Their URL, title and
   schedule change only through the draft and publish; `PATCH /api/links/:id` refuses those fields
-  for bio links. A slug is different, like a page's own address: `PATCH` or `PUT /api/pages/:id/links/:itemId/short` changes it at once, in the draft and what's published too, and the second also makes the short link of a link that hasn't been published yet. Renaming a live one is two KV writes and two deletes, because the page's copy changes too. Removing a link from the page archives its short link.
+  for bio links. A slug is different, like a page's own address: `PATCH` or `PUT /api/pages/:id/links/:itemId/short` changes it at once, in the draft and what's published too, and the second also makes the short link of a link that hasn't been published yet. Renaming a live one is two KV writes and three deletes: the page's copy changes too, and the old slug is deleted before D1 changes and once more after. Removing a link from the page archives its short link.
 - **QR code pictures.** A link's `qr.logo` of `default`, which is also what a link with no saved style has, shows its page's `qrLogo`, else the site's
   `qrLogo`, else nothing. Codes are drawn in the dashboard, or for an agent by `GET /api/links/:id/qr` (an SVG file, at most one KV read for its picture), so these cost visitors nothing and write no KV. Changing one changes codes in the dashboard and new
   downloads, not files already saved or printed.
 - **A link's password** is hashed fast, since a slow hash would cost every visit its 10 ms, so what stops guessing is a
   count: ten wrong tries in 15 minutes (`takePasswordTry` in `lib/db.ts`, one row in `_meta`), then the link reads no password
-  until the time is up, at one row read and nothing written. A right try is given back. A draft's preview link shows a link
+  until the time is up, at one row read and nothing written. A try is counted before it is looked at, and given back when it
+  was right or was turned away unread, so only wrong tries that were looked at stay counted. The count is the link's, for
+  every visitor together, since nothing here knows one visitor from another: guessing locks the link for the people it is
+  for too. Setting the password again clears it. A draft's preview link shows a link
   behind a password, or with `hideUrl`, as its short link, as the live page does (`keepPrivate` in `render.ts`).
 - **Smart routing** (per short link): `lineExternal` adds `openExternalBrowser=1` inside LINE;
   `inAppPrompt` shows Instagram, Threads and Facebook users how to open the link in their browser
@@ -647,8 +650,11 @@ tests/                  Vitest tests (run in workerd)
   falls between a change's delete and its write to D1 reads the old row. So a change deletes a name before D1 changes
   (`dropCopies`), deletes it once more afterwards where it writes no fresh copy (`dropAgain`), and a visit that rebuilds a
   copy looks at D1 again and takes back what is already out of date (`linkRecordFromDb`). `tests/review-data.test.ts` puts a
-  visit in that gap. A setting that is named in a request is written to KV again even when D1 already has it, since the
-  request before may have saved to D1 and been refused by KV. KV copies aren't parsed when read, so one written by an older
+  visit in that gap. A copy is checked by making it again whole, since a page's is made from its links and the settings
+  too, and after the visitor has their answer (`takeBackIfOld`). A settings change writes what it owes KV in `_meta`
+  (`copies-owed`) before telling KV and takes it out afterwards, so one that reached D1 and not KV, or a site with more
+  pages than one request may drop, is finished by the next settings call, a slice of pages at a time from where the last
+  stopped. KV refusing then is `copiesLeft` in the answer, not an error. KV copies aren't parsed when read, so one written by an older
   version lacks any field added since: anything that changes what a copy holds, a new page content field included, raises
   `COPY_VERSION` in `lib/cache.ts`, which makes older copies count as missing (`tests/copy-version.test.ts` notices new
   content fields). The first visit to each page after such a deploy costs a D1 read and a KV write.

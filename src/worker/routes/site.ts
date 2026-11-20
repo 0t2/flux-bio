@@ -29,12 +29,12 @@ import { renderSystemPage, type SystemPageKind, type SystemPageOptions } from '.
 import { agentGuide, agentSkill, guideSite, workerNameOf } from '../lib/agent'
 import { getLinkRecord, getNamed, getSnapshot, type LinkRecord, type SiteRecord, type Snapshot } from '../lib/cache'
 import { readPreviewToken, sessionKeyOf } from '../lib/auth'
-import { ensureSchema, getPage, listPageLinks, listPublished, loadSettings, passwordLocked, publicNames, returnPasswordTry, takePasswordTry } from '../lib/db'
+import { ensureSchema, getPage, listOwnLinks, listPublished, loadSettings, passwordLocked, publicNames, returnPasswordTry, takePasswordTry } from '../lib/db'
 import { fontKey } from '../lib/fonts'
 import { MEDIA_CACHE, MEDIA_CSP, readMedia } from '../lib/media'
 import { isTestSite } from '../lib/mode'
 import { siteId, sitesOf } from '../lib/sites'
-import { findSite, linkNeedsWorker, linkRecordFromDb, siteFromDb, siteTimeZone, snapshotFromDb, systemSite } from '../lib/ops'
+import { findSite, linkNeedsWorker, linkRecordFromDb, siteFromDb, siteTimeZone, snapshotFromDb, systemSite, type Later } from '../lib/ops'
 import { verifyLinkPassword } from '../lib/password'
 import { pingSignature } from '../lib/domain'
 import { UTM_PARAMS } from '../lib/analytics'
@@ -184,6 +184,12 @@ async function sitemapPages(env: Env): Promise<SitemapPage[]> {
 		.sort((a, b) => Number(b.path === '/') - Number(a.path === '/'))
 }
 
+/** A copy rebuilt for this visit is checked against D1 after the visitor has their answer (takeBackIfOld in lib/ops.ts). */
+const later =
+	(c: SiteContext): Later =>
+	(work) =>
+		c.executionCtx.waitUntil(work)
+
 site.get('/', async (c) => {
 	const record = await findSite(c.env)
 	if (!record.bio) return record.homeUrl ? redirect(record.homeUrl, 302) : systemPage(c, 'short-links', 200, { site: record })
@@ -192,7 +198,7 @@ site.get('/', async (c) => {
 	if (record.home) {
 		// Its copy was taken out for a change whose last write never arrived: the page is served from its own copy
 		// or D1, and the record is written again.
-		const snapshot = (await getSnapshot(c.env, record.home)) ?? (await snapshotFromDb(c.env, record.home))
+		const snapshot = (await getSnapshot(c.env, record.home)) ?? (await snapshotFromDb(c.env, record.home, later(c)))
 		if (snapshot) {
 			c.executionCtx.waitUntil(siteFromDb(c.env).catch((error: unknown) => console.error('Could not rewrite the site record', error)))
 			return serveBio(c, snapshot)
@@ -218,7 +224,9 @@ site.get('/_draft/:token', async (c) => {
 	const nonce = randomString(18)
 	// Whoever holds this link is not the owner. A link behind a password, or one whose address is hidden, shows its
 	// short link here as on the live page, and nothing where it has none yet.
-	const rows = await listPageLinks(c.env.DB, page.id)
+	// Archived rows too: a link taken off the page keeps its password, and has it again when it is published back,
+	// as a version put back does.
+	const rows = await listOwnLinks(c.env.DB, page.id)
 	const slugs = new Map(rows.filter((row) => row.status === 'active' && !row.slug.startsWith('~')).map((row) => [row.id, row.slug]))
 	const html = renderBioPage(page.draft, {
 		mode: 'preview',
@@ -246,7 +254,7 @@ site.get('/_draft/:token/version', async (c) => {
 
 site.get('/_c/:handle/:item/:part', async (c) => {
 	const handle = normalizeSlug(c.req.param('handle'))
-	const snapshot = (await getSnapshot(c.env, handle)) ?? (await snapshotFromDb(c.env, handle))
+	const snapshot = (await getSnapshot(c.env, handle)) ?? (await snapshotFromDb(c.env, handle, later(c)))
 	if (!snapshot) return systemPage(c, 'not-found', 404)
 	const tap = tapOn(snapshot, c.req.param('item'), c.req.param('part'))
 	if (!tap) return c.redirect(snapshot.home ? '/' : `/${encodeURIComponent(snapshot.handle)}`, 302)
@@ -257,7 +265,7 @@ site.get('/_c/:handle/:item/:part', async (c) => {
 // What TAP_SCRIPT and the ping attribute send: the browser is already on its way to the address.
 site.post('/_c/:handle/:item/:part', async (c) => {
 	const handle = normalizeSlug(c.req.param('handle'))
-	const snapshot = (await getSnapshot(c.env, handle)) ?? (await snapshotFromDb(c.env, handle))
+	const snapshot = (await getSnapshot(c.env, handle)) ?? (await snapshotFromDb(c.env, handle, later(c)))
 	const tap = snapshot && tapOn(snapshot, c.req.param('item'), c.req.param('part'))
 	if (snapshot && tap) countTap(c, snapshot, tap)
 	return c.body(null, 204, { 'cache-control': 'no-store' })
@@ -271,7 +279,7 @@ site.get('/:segment', async (c) => {
 	const named = await getNamed(c.env, slug)
 	if (named?.link) return serveLink(c, named.link, slug)
 	if (named?.page) return serveBio(c, named.page)
-	const [stored, page] = await Promise.all([linkRecordFromDb(c.env, slug), snapshotFromDb(c.env, slug)])
+	const [stored, page] = await Promise.all([linkRecordFromDb(c.env, slug, later(c)), snapshotFromDb(c.env, slug, later(c))])
 	if (stored) return serveLink(c, stored, slug)
 	if (page) return serveBio(c, page)
 	// Whether pages are on decides if any address may be suggested, so a site with no record in KV yet gets one made.
@@ -283,22 +291,28 @@ site.get('/:segment', async (c) => {
 site.post('/:segment', async (c) => {
 	const slug = normalizeSlug(c.req.param('segment'))
 	if (slugProblem(slug) === 'format') return systemPage(c, 'not-found', 404)
-	const record = (await getLinkRecord(c.env, slug)) ?? (await linkRecordFromDb(c.env, slug))
+	const record = (await getLinkRecord(c.env, slug)) ?? (await linkRecordFromDb(c.env, slug, later(c)))
 	if (!record) return systemPage(c, 'not-found', 404)
 	const closed = await closedPage(c, record, slug)
 	if (closed) return closed
 	if (!record.passwordHash) return c.redirect(c.req.path, 303)
 	const meta = `${new URL(c.req.url).host}/${slug}`
-	// A link takes ten wrong tries in a quarter of an hour (lib/db.ts). Past that it reads no password at all, and
-	// the check costs one row read and writes nothing, so guessing on can't use up the day's writes either.
+	// A link takes ten wrong tries in a quarter of an hour (lib/db.ts). Past that it reads no password at all: a try
+	// at a locked link costs one row read and writes nothing. Tries sent all at once each cost a write to be counted,
+	// and only the first ten are looked at.
 	await ensureSchema(c.env.DB)
 	const locked = async () => systemPage(c, 'password', 429, { ...(await linkPage(c, record)), lockedPassword: true, meta })
 	if (await passwordLocked(c.env.DB, record.id)) return locked()
-	if (!(await takePasswordTry(c.env.DB, record.id))) return locked()
+	const tried = await takePasswordTry(c.env.DB, record.id)
+	const giveBack = () => c.executionCtx.waitUntil(returnPasswordTry(c.env.DB, record.id, tried.since).catch(() => {}))
+	if (!tried.ok) {
+		giveBack()
+		return locked()
+	}
 	const form = await c.req.parseBody()
 	const password = typeof form.password === 'string' ? form.password : ''
 	if (await verifyLinkPassword(password, record.passwordHash)) {
-		c.executionCtx.waitUntil(returnPasswordTry(c.env.DB, record.id).catch(() => {}))
+		giveBack()
 		return click(c, record, slug, 303)
 	}
 	await scheduler.wait(500)
@@ -573,7 +587,7 @@ const SUGGEST_UP_TO = 64
  * another length are turned away at once, only the cells within `limit` of the diagonal are filled, in three rows
  * that are used again, and it stops at the first row that is already too far.
  */
-function distance(a: string, b: string, limit: number, rows: [Uint16Array, Uint16Array, Uint16Array]): number {
+export function distance(a: string, b: string, limit: number, rows: [Uint16Array, Uint16Array, Uint16Array]): number {
 	const far = limit + 1
 	if (Math.abs(a.length - b.length) > limit) return far
 	let [before, last, row] = rows

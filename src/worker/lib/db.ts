@@ -279,6 +279,15 @@ export async function publishedHandles(db: D1Database): Promise<string[]> {
 	return results.map((row) => row.handle)
 }
 
+/** Published pages' handles in order, after one: a slice of them, for work that is done a slice at a time. */
+export async function publishedHandlesAfter(db: D1Database, after: string, limit: number): Promise<string[]> {
+	const { results } = await db
+		.prepare('SELECT handle FROM pages WHERE published IS NOT NULL AND handle IS NOT NULL AND handle > ?1 ORDER BY handle LIMIT ?2')
+		.bind(after, limit)
+		.all<{ handle: string }>()
+	return results.map((row) => row.handle)
+}
+
 /** What a page's line in a list needs, worked out by D1 so the Worker doesn't parse every draft (the free plan allows 10 ms of CPU). */
 export interface PageListRow {
 	id: string
@@ -516,23 +525,36 @@ export async function passwordLocked(db: D1Database, linkId: string, now = Date.
  * Counts a try before the password is looked at, and answers whether it may be looked at. Counted first, in one
  * statement, so that a thousand tries sent at once are a thousand counts and not a thousand looks.
  */
-export async function takePasswordTry(db: D1Database, linkId: string, now = Date.now()): Promise<boolean> {
+export async function takePasswordTry(db: D1Database, linkId: string, now = Date.now()): Promise<{ ok: boolean; since: number }> {
 	const row = await db
 		.prepare(
 			`INSERT INTO _meta (key, value) VALUES (?1, json_object('n', 1, 'since', ?2))
 			 ON CONFLICT (key) DO UPDATE SET value = CASE
 				WHEN json_extract(value, '$.since') <= ?3 THEN json_object('n', 1, 'since', ?2)
 				ELSE json_set(value, '$.n', json_extract(value, '$.n') + 1) END
-			 RETURNING json_extract(value, '$.n') AS n`,
+			 RETURNING json_extract(value, '$.n') AS n, json_extract(value, '$.since') AS since`,
 		)
 		.bind(triesKey(linkId), now, now - PASSWORD_WINDOW)
-		.first<{ n: number }>()
-	return (row?.n ?? 1) <= PASSWORD_TRIES
+		.first<{ n: number; since: number }>()
+	return { ok: (row?.n ?? 1) <= PASSWORD_TRIES, since: row?.since ?? now }
 }
 
-/** A try that was right is given back, so the people a link is for don't use up what is kept for guessers. */
-export async function returnPasswordTry(db: D1Database, linkId: string): Promise<void> {
-	await db.prepare(`UPDATE _meta SET value = json_set(value, '$.n', max(0, json_extract(value, '$.n') - 1)) WHERE key = ?1`).bind(triesKey(linkId)).run()
+/**
+ * Gives a try back: one that was right, so the people a link is for don't use up what is kept for guessers, and
+ * one that was counted and never looked at, or the right password sent thirty times at once would leave a link
+ * locked that nobody guessed at. Only wrong tries that were looked at stay counted. `since` is the quarter of an
+ * hour the try was counted in: one given back late must not make room in the next.
+ */
+export async function returnPasswordTry(db: D1Database, linkId: string, since: number): Promise<void> {
+	await db
+		.prepare(`UPDATE _meta SET value = json_set(value, '$.n', max(0, json_extract(value, '$.n') - 1)) WHERE key = ?1 AND json_extract(value, '$.since') = ?2`)
+		.bind(triesKey(linkId), since)
+		.run()
+}
+
+/** A new password starts with no wrong tries: the owner who changes it because it was being guessed isn't locked out with the guessers. */
+export function clearPasswordTriesStatement(db: D1Database, linkId: string): D1PreparedStatement {
+	return db.prepare('DELETE FROM _meta WHERE key = ?1').bind(triesKey(linkId))
 }
 
 export async function loadSettings(db: D1Database): Promise<Settings> {

@@ -21,6 +21,9 @@ export const problemMessage = (problem: Problem): Message => ({ key: problem.key
  * Checks a draft before it goes public. Empty link cards (no URL) are allowed
  * and simply left out; anything half-filled is reported.
  */
+/** Two items with one id. An import lets it by: the page was published that way, and a site's own backup has to go back in. */
+export const SAME_ID = msg('第 {n} 項和第 {m} 項的 id 一樣，請改掉其中一個')
+
 export function publishProblems(content: PageContent, handle: string): Problem[] {
 	const problems: Problem[] = []
 	const report = (path: string, key: string, params: Params) => problems.push({ path, message: fill(key, params), key, params })
@@ -40,7 +43,7 @@ export function publishProblems(content: PageContent, handle: string): Problem[]
 		const at = (field: string) => `items.${i}.${field}`
 		const first = ids.get(item.id)
 		if (first === undefined) ids.set(item.id, n)
-		else report(at('id'), msg('第 {n} 項和第 {m} 項的 id 一樣，請改掉其中一個'), { n, m: first })
+		else report(at('id'), SAME_ID, { n, m: first })
 		switch (item.kind) {
 			case 'link': {
 				const url = item.url.trim()

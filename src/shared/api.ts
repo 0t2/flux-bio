@@ -528,7 +528,7 @@ export interface RestoreVersionResponse {
 /** PUT /api/settings */
 export interface SettingsResponse {
 	settings: Settings
-	/** True when a change to the whole site left copies of some pages for visits to rebuild; absent otherwise. */
+	/** True when the change is saved and KV hasn't all of it yet: more pages than one request may drop, or KV refusing. The next call goes on from there. Absent otherwise. */
 	copiesLeft?: true
 }
 

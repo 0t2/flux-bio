@@ -8,15 +8,15 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.6 - 2026-11-20
 
 ### Segurança
-- O link de prévia de um rascunho não mostra mais o endereço de um link protegido por senha ou com o endereço oculto. Esse botão passa ali pelo link curto, como na página publicada. [#54](https://github.com/0t2/flux-bio/pull/54)
-- A senha de um link aceita dez tentativas erradas em 15 minutos e depois nenhuma até esse tempo passar. Antes não havia limite. [#54](https://github.com/0t2/flux-bio/pull/54)
-- Um endereço que não existe não custa mais quanto mais longo for. Procurar um endereço parecido podia levar várias vezes o limite de tempo de uma requisição em um site grande, e qualquer pessoa podia pedir endereços assim. [#54](https://github.com/0t2/flux-bio/pull/54)
+- O link de prévia de um rascunho não mostra mais o endereço de um link protegido por senha ou com o endereço oculto. Esse botão passa ali pelo link curto, como na página publicada. [#55](https://github.com/0t2/flux-bio/pull/55)
+- A senha de um link aceita dez tentativas erradas em 15 minutos e depois nenhuma até esse tempo passar. Antes não havia limite. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Um endereço que não existe não custa mais quanto mais longo for. Procurar um endereço parecido podia levar várias vezes o limite de tempo de uma requisição em um site grande, e qualquer pessoa podia pedir endereços assim. [#55](https://github.com/0t2/flux-bio/pull/55)
 
 ### Correções
-- Um link curto arquivado, uma página excluída ou o endereço antigo de uma página podiam voltar, e ficar, se alguém visitasse bem no momento da mudança. [#54](https://github.com/0t2/flux-bio/pull/54)
-- Restaurar um backup não deixa mais redirecionando um link que o backup tem como arquivado. [#54](https://github.com/0t2/flux-bio/pull/54)
-- Uma configuração salva enquanto outra coisa era salva é mantida, e uma mudança que chegou ao banco de dados mas não aos seus visitantes é enviada a eles quando você a faz de novo. [#54](https://github.com/0t2/flux-bio/pull/54)
-- Dois itens com o mesmo id em uma página são recusados ao publicar: o link curto de um deles não teria funcionado. [#54](https://github.com/0t2/flux-bio/pull/54)
+- Um link curto arquivado, uma página excluída ou o endereço antigo de uma página podiam voltar, e ficar, se alguém visitasse bem no momento da mudança. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Restaurar um backup não deixa mais redirecionando um link que o backup tem como arquivado. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Uma configuração salva enquanto outra coisa era salva é mantida, e uma mudança que chegou ao banco de dados mas não aos seus visitantes é enviada a eles quando você a faz de novo. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Dois itens com o mesmo id em uma página são recusados ao publicar: o link curto de um deles não teria funcionado. [#55](https://github.com/0t2/flux-bio/pull/55)
 
 ## 0.4.5 - 2026-11-20
 

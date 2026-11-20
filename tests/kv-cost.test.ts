@@ -125,7 +125,7 @@ describe('what things cost in KV', () => {
 		expect(await measure('/wp-admin/setup-config.php')).toMatchObject({ status: 404, reads: 0 })
 	})
 
-	it('Share writes one short link once, and renaming a live one is two writes and two deletes', async () => {
+	it('Share writes one short link once, and renaming a live one is two writes and three deletes', async () => {
 		const made = await measure('/api/pages', { method: 'POST', json: { handle: 'cost-share', name: 'Share' } })
 		const { page } = (await made.response.json()) as { page: PageJson }
 		const link = { ...emptyLink(), id: 'cost-share-link', title: 'Link', url: 'https://example.com/share', slug: 'cost-share-one' }
@@ -135,7 +135,8 @@ describe('what things cost in KV', () => {
 		expect(await share()).toMatchObject({ status: 200, writes: 0, deletes: 0 })
 		await measure(`/api/pages/${page.id}/publish`, { method: 'POST' })
 		const rename = await measure(`/api/pages/${page.id}/links/${link.id}/short`, { method: 'PUT', json: { slug: 'cost-share-two' } })
-		expect(rename).toMatchObject({ status: 200, writes: 2, deletes: 2 })
+		// The old slug goes before D1 changes and once more after, so a visit in between can't leave it redirecting.
+		expect(rename).toMatchObject({ status: 200, writes: 2, deletes: 3 })
 	})
 
 	it('exporting a backup reads D1 only: its images are the only cost', async () => {

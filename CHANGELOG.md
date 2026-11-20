@@ -8,15 +8,15 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.6 - 2026-11-20
 
 ### Security
-- A draft's preview link no longer shows the address of a link that is behind a password or has its address hidden. Such a button goes through its short link there, as it does on the live page. [#54](https://github.com/0t2/flux-bio/pull/54)
-- A link's password takes ten wrong tries in 15 minutes, then none until that time is up. There was no limit before. [#54](https://github.com/0t2/flux-bio/pull/54)
-- An address that doesn't exist no longer costs more the longer it is. Looking for a near match could take many times a request's time limit on a large site, and anyone could ask for such addresses. [#54](https://github.com/0t2/flux-bio/pull/54)
+- A draft's preview link no longer shows the address of a link that is behind a password or has its address hidden. Such a button goes through its short link there, as it does on the live page. [#55](https://github.com/0t2/flux-bio/pull/55)
+- A link's password takes ten wrong tries in 15 minutes, then none until that time is up. There was no limit before. [#55](https://github.com/0t2/flux-bio/pull/55)
+- An address that doesn't exist no longer costs more the longer it is. Looking for a near match could take many times a request's time limit on a large site, and anyone could ask for such addresses. [#55](https://github.com/0t2/flux-bio/pull/55)
 
 ### Fixed
-- An archived short link, a deleted page or a page's old address could come back, and stay, if someone visited at the very moment of the change. [#54](https://github.com/0t2/flux-bio/pull/54)
-- Restoring a backup no longer leaves a link redirecting that the backup has archived. [#54](https://github.com/0t2/flux-bio/pull/54)
-- A setting saved while something else was being saved is kept, and a change that reached the database but not your visitors is sent to them when you make it again. [#54](https://github.com/0t2/flux-bio/pull/54)
-- Two items with the same id on one page are refused when publishing: one of their short links would not have worked. [#54](https://github.com/0t2/flux-bio/pull/54)
+- An archived short link, a deleted page or a page's old address could come back, and stay, if someone visited at the very moment of the change. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Restoring a backup no longer leaves a link redirecting that the backup has archived. [#55](https://github.com/0t2/flux-bio/pull/55)
+- A setting saved while something else was being saved is kept, and a change that reached the database but not your visitors is sent to them when you make it again. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Two items with the same id on one page are refused when publishing: one of their short links would not have worked. [#55](https://github.com/0t2/flux-bio/pull/55)
 
 ## 0.4.5 - 2026-11-20
 

@@ -8,15 +8,15 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.6 - 2026-11-20
 
 ### Seguridad
-- El enlace de vista previa de un borrador ya no muestra la dirección de un enlace protegido con contraseña o con la dirección oculta. Ese botón pasa allí por su enlace corto, igual que en la página publicada. [#54](https://github.com/0t2/flux-bio/pull/54)
-- La contraseña de un enlace admite diez intentos fallidos en 15 minutos y después ninguno hasta que pase ese tiempo. Antes no había límite. [#54](https://github.com/0t2/flux-bio/pull/54)
-- Una dirección que no existe ya no cuesta más cuanto más larga es. Buscar una dirección parecida podía llevar varias veces el límite de tiempo de una petición en un sitio grande, y cualquiera podía pedir direcciones así. [#54](https://github.com/0t2/flux-bio/pull/54)
+- El enlace de vista previa de un borrador ya no muestra la dirección de un enlace protegido con contraseña o con la dirección oculta. Ese botón pasa allí por su enlace corto, igual que en la página publicada. [#55](https://github.com/0t2/flux-bio/pull/55)
+- La contraseña de un enlace admite diez intentos fallidos en 15 minutos y después ninguno hasta que pase ese tiempo. Antes no había límite. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Una dirección que no existe ya no cuesta más cuanto más larga es. Buscar una dirección parecida podía llevar varias veces el límite de tiempo de una petición en un sitio grande, y cualquiera podía pedir direcciones así. [#55](https://github.com/0t2/flux-bio/pull/55)
 
 ### Correcciones
-- Un enlace corto archivado, una página eliminada o la dirección antigua de una página podían volver, y quedarse, si alguien visitaba justo en el momento del cambio. [#54](https://github.com/0t2/flux-bio/pull/54)
-- Restaurar una copia de seguridad ya no deja redirigiendo un enlace que la copia tiene archivado. [#54](https://github.com/0t2/flux-bio/pull/54)
-- Un ajuste guardado mientras se guardaba otra cosa se conserva, y un cambio que llegó a la base de datos pero no a tus visitantes se les envía cuando lo haces de nuevo. [#54](https://github.com/0t2/flux-bio/pull/54)
-- Dos elementos con el mismo id en una página se rechazan al publicar: el enlace corto de uno de ellos no habría funcionado. [#54](https://github.com/0t2/flux-bio/pull/54)
+- Un enlace corto archivado, una página eliminada o la dirección antigua de una página podían volver, y quedarse, si alguien visitaba justo en el momento del cambio. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Restaurar una copia de seguridad ya no deja redirigiendo un enlace que la copia tiene archivado. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Un ajuste guardado mientras se guardaba otra cosa se conserva, y un cambio que llegó a la base de datos pero no a tus visitantes se les envía cuando lo haces de nuevo. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Dos elementos con el mismo id en una página se rechazan al publicar: el enlace corto de uno de ellos no habría funcionado. [#55](https://github.com/0t2/flux-bio/pull/55)
 
 ## 0.4.5 - 2026-11-20
 

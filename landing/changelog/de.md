@@ -8,15 +8,15 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.6 - 2026-11-20
 
 ### Sicherheit
-- Der Vorschaulink eines Entwurfs zeigt nicht mehr die Adresse eines Links, der mit einem Passwort geschützt ist oder dessen Adresse verborgen ist. Ein solcher Button führt dort wie auf der veröffentlichten Seite über seinen Kurzlink. [#54](https://github.com/0t2/flux-bio/pull/54)
-- Das Passwort eines Links lässt zehn falsche Versuche in 15 Minuten zu, danach keinen mehr, bis diese Zeit um ist. Bisher gab es keine Grenze. [#54](https://github.com/0t2/flux-bio/pull/54)
-- Eine Adresse, die es nicht gibt, kostet nicht mehr umso mehr, je länger sie ist. Die Suche nach einer ähnlichen Adresse konnte auf einer großen Website ein Vielfaches des Zeitlimits einer Anfrage brauchen, und jeder konnte solche Adressen aufrufen. [#54](https://github.com/0t2/flux-bio/pull/54)
+- Der Vorschaulink eines Entwurfs zeigt nicht mehr die Adresse eines Links, der mit einem Passwort geschützt ist oder dessen Adresse verborgen ist. Ein solcher Button führt dort wie auf der veröffentlichten Seite über seinen Kurzlink. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Das Passwort eines Links lässt zehn falsche Versuche in 15 Minuten zu, danach keinen mehr, bis diese Zeit um ist. Bisher gab es keine Grenze. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Eine Adresse, die es nicht gibt, kostet nicht mehr umso mehr, je länger sie ist. Die Suche nach einer ähnlichen Adresse konnte auf einer großen Website ein Vielfaches des Zeitlimits einer Anfrage brauchen, und jeder konnte solche Adressen aufrufen. [#55](https://github.com/0t2/flux-bio/pull/55)
 
 ### Behoben
-- Ein archivierter Kurzlink, eine gelöschte Seite oder die alte Adresse einer Seite konnten zurückkommen und bleiben, wenn jemand genau im Moment der Änderung zu Besuch kam. [#54](https://github.com/0t2/flux-bio/pull/54)
-- Nach dem Wiederherstellen einer Sicherung leitet ein Link, den die Sicherung als archiviert führt, nicht mehr weiter. [#54](https://github.com/0t2/flux-bio/pull/54)
-- Eine Einstellung, die gespeichert wurde, während etwas anderes gespeichert wurde, bleibt erhalten, und eine Änderung, die in der Datenbank ankam, aber nicht bei Ihren Besuchern, wird ihnen geschickt, wenn Sie sie erneut vornehmen. [#54](https://github.com/0t2/flux-bio/pull/54)
-- Zwei Elemente mit derselben id auf einer Seite werden beim Veröffentlichen abgelehnt: Der Kurzlink eines der beiden hätte nicht funktioniert. [#54](https://github.com/0t2/flux-bio/pull/54)
+- Ein archivierter Kurzlink, eine gelöschte Seite oder die alte Adresse einer Seite konnten zurückkommen und bleiben, wenn jemand genau im Moment der Änderung zu Besuch kam. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Nach dem Wiederherstellen einer Sicherung leitet ein Link, den die Sicherung als archiviert führt, nicht mehr weiter. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Eine Einstellung, die gespeichert wurde, während etwas anderes gespeichert wurde, bleibt erhalten, und eine Änderung, die in der Datenbank ankam, aber nicht bei Ihren Besuchern, wird ihnen geschickt, wenn Sie sie erneut vornehmen. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Zwei Elemente mit derselben id auf einer Seite werden beim Veröffentlichen abgelehnt: Der Kurzlink eines der beiden hätte nicht funktioniert. [#55](https://github.com/0t2/flux-bio/pull/55)
 
 ## 0.4.5 - 2026-11-20
 

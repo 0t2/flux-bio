@@ -8,15 +8,15 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.6 - 2026-11-20
 
 ### 安全性
-- 草稿的預覽連結不再顯示設了密碼或隱藏網址的連結的真正網址。這類按鈕在預覽裡也會走短網址，和正式頁面一樣。 [#54](https://github.com/0t2/flux-bio/pull/54)
-- 連結密碼在 15 分鐘內輸錯十次後，要等時間到才能再試。之前沒有次數限制。 [#54](https://github.com/0t2/flux-bio/pull/54)
-- 不存在的網址不再因為越長就越耗資源。在大型網站上，尋找相近網址可能花掉一次請求時間上限的好幾倍，而任何人都能送出這種網址。 [#54](https://github.com/0t2/flux-bio/pull/54)
+- 草稿的預覽連結不再顯示設了密碼或隱藏網址的連結的真正網址。這類按鈕在預覽裡也會走短網址，和正式頁面一樣。 [#55](https://github.com/0t2/flux-bio/pull/55)
+- 連結密碼在 15 分鐘內輸錯十次後，要等時間到才能再試。之前沒有次數限制。 [#55](https://github.com/0t2/flux-bio/pull/55)
+- 不存在的網址不再因為越長就越耗資源。在大型網站上，尋找相近網址可能花掉一次請求時間上限的好幾倍，而任何人都能送出這種網址。 [#55](https://github.com/0t2/flux-bio/pull/55)
 
 ### 修正
-- 封存的短網址、刪除的頁面或頁面的舊網址，如果剛好有人在變更的那一刻來訪，可能會重新出現並一直留著。 [#54](https://github.com/0t2/flux-bio/pull/54)
-- 還原備份後，備份裡已封存的連結不會再繼續轉址。 [#54](https://github.com/0t2/flux-bio/pull/54)
-- 在其他東西儲存的同時存入的設定不會被蓋掉；已寫進資料庫但沒送到訪客面前的變更，再做一次就會送出去。 [#54](https://github.com/0t2/flux-bio/pull/54)
-- 同一頁有兩個相同 id 的項目時，發布會被拒絕：其中一個的短網址原本會失效。 [#54](https://github.com/0t2/flux-bio/pull/54)
+- 封存的短網址、刪除的頁面或頁面的舊網址，如果剛好有人在變更的那一刻來訪，可能會重新出現並一直留著。 [#55](https://github.com/0t2/flux-bio/pull/55)
+- 還原備份後，備份裡已封存的連結不會再繼續轉址。 [#55](https://github.com/0t2/flux-bio/pull/55)
+- 在其他東西儲存的同時存入的設定不會被蓋掉；已寫進資料庫但沒送到訪客面前的變更，再做一次就會送出去。 [#55](https://github.com/0t2/flux-bio/pull/55)
+- 同一頁有兩個相同 id 的項目時，發布會被拒絕：其中一個的短網址原本會失效。 [#55](https://github.com/0t2/flux-bio/pull/55)
 
 ## 0.4.5 - 2026-11-20
 

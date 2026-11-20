@@ -8,15 +8,15 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.6 - 2026-11-20
 
 ### Sécurité
-- Le lien d’aperçu d’un brouillon ne montre plus l’adresse d’un lien protégé par un mot de passe ou dont l’adresse est masquée. Ce bouton passe là aussi par son lien court, comme sur la page publiée. [#54](https://github.com/0t2/flux-bio/pull/54)
-- Le mot de passe d’un lien accepte dix essais erronés en 15 minutes, puis plus aucun jusqu’à la fin de ce délai. Il n’y avait pas de limite auparavant. [#54](https://github.com/0t2/flux-bio/pull/54)
-- Une adresse qui n’existe pas ne coûte plus davantage quand elle est longue. Chercher une adresse proche pouvait prendre plusieurs fois la limite de temps d’une requête sur un grand site, et n’importe qui pouvait demander de telles adresses. [#54](https://github.com/0t2/flux-bio/pull/54)
+- Le lien d’aperçu d’un brouillon ne montre plus l’adresse d’un lien protégé par un mot de passe ou dont l’adresse est masquée. Ce bouton passe là aussi par son lien court, comme sur la page publiée. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Le mot de passe d’un lien accepte dix essais erronés en 15 minutes, puis plus aucun jusqu’à la fin de ce délai. Il n’y avait pas de limite auparavant. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Une adresse qui n’existe pas ne coûte plus davantage quand elle est longue. Chercher une adresse proche pouvait prendre plusieurs fois la limite de temps d’une requête sur un grand site, et n’importe qui pouvait demander de telles adresses. [#55](https://github.com/0t2/flux-bio/pull/55)
 
 ### Corrections
-- Un lien court archivé, une page supprimée ou l’ancienne adresse d’une page pouvaient revenir, et rester, si quelqu’un visitait au moment précis du changement. [#54](https://github.com/0t2/flux-bio/pull/54)
-- La restauration d’une sauvegarde ne laisse plus rediriger un lien que la sauvegarde a archivé. [#54](https://github.com/0t2/flux-bio/pull/54)
-- Un réglage enregistré pendant qu’autre chose s’enregistrait est conservé, et un changement arrivé dans la base de données mais pas jusqu’à vos visiteurs leur est envoyé quand vous le refaites. [#54](https://github.com/0t2/flux-bio/pull/54)
-- Deux éléments portant le même id sur une page sont refusés à la publication : le lien court de l’un d’eux n’aurait pas fonctionné. [#54](https://github.com/0t2/flux-bio/pull/54)
+- Un lien court archivé, une page supprimée ou l’ancienne adresse d’une page pouvaient revenir, et rester, si quelqu’un visitait au moment précis du changement. [#55](https://github.com/0t2/flux-bio/pull/55)
+- La restauration d’une sauvegarde ne laisse plus rediriger un lien que la sauvegarde a archivé. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Un réglage enregistré pendant qu’autre chose s’enregistrait est conservé, et un changement arrivé dans la base de données mais pas jusqu’à vos visiteurs leur est envoyé quand vous le refaites. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Deux éléments portant le même id sur une page sont refusés à la publication : le lien court de l’un d’eux n’aurait pas fonctionné. [#55](https://github.com/0t2/flux-bio/pull/55)
 
 ## 0.4.5 - 2026-11-20
 
