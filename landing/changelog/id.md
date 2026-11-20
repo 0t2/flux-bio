@@ -13,12 +13,12 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.9 - 2026-11-20
 
 ### Keamanan
-- ID harian pengunjung dalam statistik terperinci kini diberi salt dengan nilai acak yang diganti setiap hari, bukan dengan kata sandi admin. Setelah hari itu berakhir, tidak ada yang bisa menguji apakah suatu alamat pernah berkunjung, termasuk pemilik. Jumlah pengunjung harian terlalu tinggi pada hari pembaruan ini. [#58](https://github.com/0t2/flux-bio/pull/58)
+- ID harian pengunjung dalam statistik terperinci kini diberi salt dengan nilai acak yang diganti setiap hari, bukan dengan kata sandi admin. Mengetahui kata sandi tidak lagi bisa dipakai untuk menguji apakah suatu alamat pernah berkunjung. Jumlah pengunjung harian terlalu tinggi pada hari pembaruan ini. [#58](https://github.com/0t2/flux-bio/pull/58)
 
 ### Diperbaiki
 - Menerbitkan saat orang lain menyimpan draf kini menjawab dengan versi draf yang sebenarnya dan menyatakan bahwa draf dipertahankan (`draftKept`); dasbor memakai draf itu atau menanyakan mana yang dipertahankan. [#58](https://github.com/0t2/flux-bio/pull/58)
 - Halaman yang diterbitkan tepat saat dipindahkan, saat salah satu tautannya mendapat alamat pendek lain, atau saat perubahan pengaturan menyalin font-nya tidak lagi menyisakan salinan lama, alamat pendek yang tersesat, atau file font yang salah. [#58](https://github.com/0t2/flux-bio/pull/58)
-- Mengunduh statistik menahan penggabungan hari-hari lama menjadi bulan sampai selesai, sehingga tidak ada hitungan yang jatuh di antara dua halaman unduhan. [#58](https://github.com/0t2/flux-bio/pull/58)
+- Mengunduh statistik saat hari-hari lama digabung menjadi bulan tidak lagi membuat hitungan hilang dari file: unduhan diberi tahu dan mulai dari awal. [#58](https://github.com/0t2/flux-bio/pull/58)
 
 ## 0.4.8 - 2026-11-20
 

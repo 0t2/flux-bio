@@ -80,6 +80,28 @@ describe('a visitor’s id for the day', () => {
 		expect(await id('2026-10-31')).not.toBe(first)
 	})
 
+	it('doesn’t go on with a salt of its own after D1 couldn’t be asked once: the day’s is read the next time', async () => {
+		const held = await salt()
+		let failed = false
+		const DB = new Proxy(env.DB, {
+			get(target, key) {
+				if (key === 'batch') {
+					return (statements: D1PreparedStatement[]) => {
+						if (failed) return target.batch(statements)
+						failed = true
+						return Promise.reject(new Error('D1_ERROR: storage operation exceeded timeout'))
+					}
+				}
+				const value = Reflect.get(target, key)
+				return typeof value === 'function' ? value.bind(target) : value
+			},
+		})
+		const copy = { ...env, DB, SITE: 'a-copy-that-meets-a-failure' } as unknown as Env
+		expect(await daySalt(copy, held.day)).not.toBe(held.salt)
+		expect(failed).toBe(true)
+		expect(await daySalt(copy, held.day)).toBe(held.salt)
+	})
+
 	it('keeps one salt for a day whatever is asked for in between: a visit counted late doesn’t take the day’s away', async () => {
 		const today = await id('2026-11-02')
 		const held = await salt()
@@ -178,38 +200,114 @@ describe('publishing while something else changes the page', () => {
 	})
 })
 
-describe('the stats download', () => {
-	const old = (now: number) => `${addMonths(dayIn('UTC', now).slice(0, 7), -20)}-05`
-	const days = async (day: string) => (await env.DB.prepare('SELECT count(*) AS n FROM stats WHERE day = ?1').bind(day).first<{ n: number }>())!.n
+describe('publishing a page that is deleted meanwhile', () => {
+	it('says the page is gone, and leaves no copy, link or version of it behind', async () => {
+		const id = await made('rl-deleted', [link('rl-gone-1', 'rl-gone', 'https://example.com/gone')])
+		await save(id, { items: [link('rl-gone-1', 'rl-gone', 'https://example.com/gone'), link('rl-gone-2', 'rl-gone-too', 'https://example.com/gone-too')] })
+		await expect(
+			publishPage(
+				meanwhile(async () => expect((await api(`/pages/${id}`, { method: 'DELETE' })).status).toBe(200)),
+				id,
+			),
+		).rejects.toMatchObject({ status: 404 })
+		expect(await status('/rl-deleted')).toBe(404)
+		expect(await status('/rl-gone')).toBe(404)
+		expect(await status('/rl-gone-too')).toBe(404)
+		expect(await env.KV.get(`${NAME_PREFIX}rl-deleted`)).toBeNull()
+		expect(await env.DB.prepare('SELECT count(*) AS n FROM page_versions WHERE page_id = ?1').bind(id).first<{ n: number }>()).toEqual({ n: 0 })
+		expect(await env.DB.prepare("SELECT count(*) AS n FROM links WHERE page_id = ?1 AND status = 'active'").bind(id).first<{ n: number }>()).toEqual({ n: 0 })
+	})
+})
 
-	it('holds the merging of old days into months while it is going on, so no count falls between two pages of it', async () => {
+describe('the home page moved while it is published', () => {
+	it('is at "/" with what it shows by then', async () => {
+		const id = await made('rl-home')
+		expect((await api('/settings', { method: 'PUT', json: { home: id } })).status).toBe(200)
+		await save(id, named('Home, published while it was moving'))
+		const DB = new Proxy(env.DB, {
+			get(target, key) {
+				if (key === 'prepare') {
+					return (text: string) => {
+						const statement = target.prepare(text)
+						if (!text.startsWith('UPDATE pages SET handle')) return statement
+						const bind = statement.bind.bind(statement)
+						statement.bind = ((...values: unknown[]) => {
+							const bound = bind(...values)
+							const run = bound.run.bind(bound)
+							bound.run = (async () => {
+								expect((await api(`/pages/${id}/publish`, { method: 'POST' })).status).toBe(200)
+								return run()
+							}) as typeof bound.run
+							return bound
+						}) as typeof statement.bind
+						return statement
+					}
+				}
+				const value = Reflect.get(target, key)
+				return typeof value === 'function' ? value.bind(target) : value
+			},
+		})
+		try {
+			await renamePage({ ...env, DB } as Env, id, 'rl-home-moved')
+			expect(await (await visit('/')).text()).toContain('Home, published while it was moving')
+		} finally {
+			await api('/settings', { method: 'PUT', json: { home: '' } })
+		}
+	})
+})
+
+describe('the stats download', () => {
+	const month = (now: number) => addMonths(dayIn('UTC', now).slice(0, 7), -20)
+	const total = async () => (await env.DB.prepare('SELECT sum(count) AS n FROM stats').first<{ n: number }>())!.n
+	const all = async () => {
+		let sum = 0
+		let rows = 0
+		let cursor: string | undefined
+		do {
+			const page = await exportStats(env.DB, cursor)
+			for (const row of page.rows) sum += row[7]
+			rows += page.rows.length
+			cursor = page.nextCursor ?? undefined
+		} while (cursor)
+		return { sum, rows }
+	}
+
+	it('starts again when old days were merged into months between two of its pages, so no count is in neither', async () => {
 		await ensureSchema(env.DB)
 		const now = Date.now()
-		const day = old(now)
-		await env.DB.prepare("INSERT INTO stats (day, target, kind, dim, value, count) VALUES (?1, 'rl-page', 'view', 'source', 'direct', 4)").bind(day).run()
+		// More rows than one page of the download, on days old enough to be merged: fifteen hundred pages' views.
+		const insert = env.DB.prepare("INSERT INTO stats (day, target, kind, dim, value, count) VALUES (?1, ?2, 'view', 'source', 'direct', 2)")
+		const rows = Array.from({ length: 1500 }, (_, n) => insert.bind(`${month(now)}-${String((n % 28) + 1).padStart(2, '0')}`, `rl-target-${n}`))
+		for (let n = 0; n < rows.length; n += 90) await env.DB.batch(rows.slice(n, n + 90))
+		const counted = await total()
 		const settings = await loadSettings(env.DB)
-		// A page of the download, and then a visit to the dashboard, which is when old days are merged.
-		await exportStats(env.DB, undefined, undefined, now)
-		await tidyStats(env.DB, settings, now + 60_000)
-		expect(await days(day)).toBe(1)
-		// Each page of it holds again, and five minutes after the last one the merging goes on.
-		await exportStats(env.DB, undefined, undefined, now + 4 * 60_000)
-		await tidyStats(env.DB, settings, now + 8 * 60_000)
-		expect(await days(day)).toBe(1)
-		await tidyStats(env.DB, settings, now + 10 * 60_000)
-		expect(await days(day)).toBe(0)
-		expect(await days(day.slice(0, 7))).toBe(1)
+
+		const first = await exportStats(env.DB, undefined)
+		expect(first.rows).toHaveLength(1000)
+		expect(first.nextCursor).not.toBeNull()
+		// The dashboard is opened, which is when old days are merged: the ones not downloaded yet go into the
+		// month's rows, which sort before where the download has got to.
+		await tidyStats(env.DB, settings, now)
+		await expect(exportStats(env.DB, first.nextCursor!)).rejects.toMatchObject({ status: 409, code: 'stats-changed' })
+		// From the start again, every count is there, as many as the table holds.
+		expect((await all()).sum).toBe(counted)
+		expect(await total()).toBe(counted)
+	}, 60_000)
+
+	it('goes on from page to page when nothing was merged, and takes no cursor made for another shape', async () => {
+		const first = await exportStats(env.DB, undefined)
+		if (first.nextCursor) expect((await exportStats(env.DB, first.nextCursor)).rows.length).toBeGreaterThan(0)
+		const old = btoa(JSON.stringify(['2026-01-01', 'a', 'view', 'source', 'direct']))
+		await expect(exportStats(env.DB, old)).rejects.toMatchObject({ status: 400 })
 	})
 
-	it('doesn’t hold a clearing the owner asks for afterwards: asking says the download is done', async () => {
+	it('starts again when the owner’s clearing of old months deleted rows meanwhile, too', async () => {
 		const now = Date.now()
-		const day = old(now)
-		await env.DB.prepare("INSERT INTO stats (day, target, kind, dim, value, count) VALUES (?1, 'rl-page-2', 'view', 'source', 'direct', 2)").bind(day).run()
 		const settings = await loadSettings(env.DB)
-		await exportStats(env.DB, undefined, undefined, now)
-		await clearStats(env.DB, settings, addMonths(day.slice(0, 7), 1), now)
-		await tidyStats(env.DB, settings, now + 1_000)
-		expect(await days(day)).toBe(0)
-		expect(await days(day.slice(0, 7))).toBe(0)
+		const first = await exportStats(env.DB, undefined)
+		expect(first.nextCursor).not.toBeNull()
+		await clearStats(env.DB, settings, addMonths(month(now), 1), now)
+		await tidyStats(env.DB, settings, now)
+		await expect(exportStats(env.DB, first.nextCursor!)).rejects.toMatchObject({ status: 409, code: 'stats-changed' })
 	})
 })

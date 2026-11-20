@@ -13,12 +13,12 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.9 - 2026-11-20
 
 ### Sicherheit
-- Die Tageskennung eines Besuchers in den detaillierten Statistiken wird jetzt mit einem Zufallswert gesalzen, der täglich ersetzt wird, nicht mehr mit dem Admin-Passwort. Ist der Tag vorbei, kann niemand mehr prüfen, ob eine bestimmte Adresse zu Besuch war, auch der Eigentümer nicht. Die Zahl der Besucher des Tages ist am Tag dieses Updates zu hoch. [#58](https://github.com/0t2/flux-bio/pull/58)
+- Die Tageskennung eines Besuchers in den detaillierten Statistiken wird jetzt mit einem Zufallswert gesalzen, der täglich ersetzt wird, nicht mehr mit dem Admin-Passwort. Wer das Passwort kennt, kann damit nicht mehr prüfen, ob eine bestimmte Adresse zu Besuch war. Die Zahl der Besucher des Tages ist am Tag dieses Updates zu hoch. [#58](https://github.com/0t2/flux-bio/pull/58)
 
 ### Behoben
 - Wird veröffentlicht, während jemand anderes den Entwurf speichert, enthält die Antwort jetzt die tatsächliche Version des Entwurfs und sagt, dass der Entwurf erhalten blieb (`draftKept`); das Dashboard übernimmt diesen Entwurf oder fragt, welcher bleiben soll. [#58](https://github.com/0t2/flux-bio/pull/58)
 - Eine Seite, die im selben Moment veröffentlicht wird, in dem sie verschoben wird, einer ihrer Links eine andere Kurzadresse bekommt oder eine Einstellungsänderung ihre Schriften kopiert, behält keine alte Kopie, keine verwaiste Kurzadresse und keine falschen Schriftdateien mehr. [#58](https://github.com/0t2/flux-bio/pull/58)
-- Beim Herunterladen der Statistiken wird das Zusammenfassen alter Tage zu Monaten angehalten, bis es fertig ist, sodass keine Zahl zwischen zwei Seiten des Downloads fallen kann. [#58](https://github.com/0t2/flux-bio/pull/58)
+- Werden beim Herunterladen der Statistiken alte Tage zu Monaten zusammengefasst, fehlen keine Zahlen mehr in der Datei: Der Download erfährt davon und beginnt von vorn. [#58](https://github.com/0t2/flux-bio/pull/58)
 
 ## 0.4.8 - 2026-11-20
 

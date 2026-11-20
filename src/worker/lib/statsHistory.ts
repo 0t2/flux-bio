@@ -49,13 +49,14 @@ async function loadState(db: D1Database): Promise<State> {
 }
 
 /**
- * While the stats are being downloaded, a thousand rows a request, nothing merges days into months or deletes
- * them: days not downloaded yet would move into a month's row, which sorts before the place the download has got
- * to, and their counts would be in no file. Each page of a download holds the tidying for this long after it.
+ * How many times old rows have been merged into months or deleted: a number in _meta that goes up in the same
+ * transaction as each such change. The stats download is a thousand rows a request, oldest first, and a merge in
+ * between two of its pages moves days it hasn't reached into a month's row, which sorts before where it has got
+ * to: their counts would be in no file. So each page of a download carries this number on, and one that finds it
+ * changed is told to start again (exportStats). Nothing is written for a download, and nothing waits for one.
  */
-const DOWNLOAD_HOLD = 5 * 60_000
-const DOWNLOAD_KEY = 'stats-download'
-const holdStatement = (db: D1Database, now: number) => writeMetaStatement(db, DOWNLOAD_KEY, now + DOWNLOAD_HOLD)
+const REV_KEY = 'stats-rev'
+const bumpRev = (db: D1Database) => db.prepare('INSERT INTO _meta (key, value) VALUES (?1, 1) ON CONFLICT (key) DO UPDATE SET value = value + 1').bind(REV_KEY)
 
 const utcDay = (now: number) => new Date(now).toISOString().slice(0, 10)
 const monthOf = (timeZone: string, now: number) => dayIn(timeZone, now).slice(0, 7)
@@ -83,8 +84,7 @@ const SLICE = 'SELECT day, target, kind, dim, value FROM stats WHERE day >= ?1 A
  * to delete first, then daily rows of whole months past the window into one row per month.
  */
 export async function tidyStats(db: D1Database, settings: Settings, now = Date.now()): Promise<void> {
-	const [state, held] = await Promise.all([loadState(db), readMeta(db, DOWNLOAD_KEY)])
-	if (typeof held === 'number' && held > now) return
+	const state = await loadState(db)
 	const today = utcDay(now)
 	const done = state.day === today ? state.done : 0
 	const room = Math.min(PER_RUN[settings.plan], PER_DAY[settings.plan] - done)
@@ -93,8 +93,8 @@ export async function tidyStats(db: D1Database, settings: Settings, now = Date.n
 
 	if (state.clear) {
 		// A month sorts before its days and after the days of the month before, so `< "YYYY-MM"` is exactly the months before it.
-		const result = await db.prepare(`DELETE FROM stats WHERE (day, target, kind, dim, value) IN (${SLICE})`).bind('', state.clear, room).run()
-		const rows = result.meta.changes ?? 0
+		const [result] = await db.batch([db.prepare(`DELETE FROM stats WHERE (day, target, kind, dim, value) IN (${SLICE})`).bind('', state.clear, room), bumpRev(db)])
+		const rows = result?.meta.changes ?? 0
 		await save(rows < room ? { clear: null, from: state.from < state.clear ? state.clear : state.from } : {}, rows)
 		return
 	}
@@ -123,6 +123,7 @@ export async function tidyStats(db: D1Database, settings: Settings, now = Date.n
 			)
 			.bind(`${month}-01`, until, room, month),
 		db.prepare(`DELETE FROM stats WHERE (day, target, kind, dim, value) IN (${SLICE})`).bind(`${month}-01`, until, room),
+		bumpRev(db),
 	])
 	await save({ from: month }, merged?.meta.changes ?? 0)
 }
@@ -186,11 +187,7 @@ export async function clearStats(db: D1Database, settings: Settings, before: str
 		throw new ApiError(400, 'invalid', { key: msg('只能清除 {month} 以前的點擊數據，比這更新的還會顯示在數據頁'), params: { month: clearableBefore(settings.timezone, now) } })
 	}
 	const state = await loadState(db)
-	// The owner clears after downloading: asking for it says the download is done, and nothing is held for one.
-	await db.batch([
-		writeMetaStatement(db, KEY, { ...state, clear: state.clear && state.clear > before ? state.clear : before } satisfies State),
-		db.prepare('DELETE FROM _meta WHERE key = ?1').bind(DOWNLOAD_KEY),
-	])
+	await writeMetaStatement(db, KEY, { ...state, clear: state.clear && state.clear > before ? state.clear : before } satisfies State).run()
 }
 
 /** One line of the stats download. */
@@ -202,12 +199,14 @@ const EXPORT_PAGE = 1_000
 
 type Key = [string, string, string, string, string]
 
-const encodeCursor = (key: Key) => btoa(JSON.stringify(key)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+/** Where a download has got to, and the number old rows had been tidied to when it began (REV_KEY). */
+const encodeCursor = (key: Key, rev: number) => btoa(JSON.stringify([...key, String(rev)])).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 
-function decodeCursor(cursor: string): Key | null {
+function decodeCursor(cursor: string): { key: Key; rev: number } | null {
 	try {
-		const key = JSON.parse(atob(cursor.replace(/-/g, '+').replace(/_/g, '/'))) as unknown
-		return Array.isArray(key) && key.length === 5 && key.every((part) => typeof part === 'string') ? (key as Key) : null
+		const parts = JSON.parse(atob(cursor.replace(/-/g, '+').replace(/_/g, '/'))) as unknown
+		if (!Array.isArray(parts) || parts.length !== 6 || !parts.every((part) => typeof part === 'string')) return null
+		return { key: parts.slice(0, 5) as Key, rev: Number(parts[5]) }
 	} catch {
 		return null
 	}
@@ -217,28 +216,31 @@ function decodeCursor(cursor: string): Key | null {
  * Every count, oldest first, a thousand at a time: days as "YYYY-MM-DD", merged months as "YYYY-MM". `page` is the
  * page's address for its views, its links and the clicks inside it; `slug` and `title` are a short link's.
  */
-export async function exportStats(db: D1Database, cursor: string | undefined, before?: string, now = Date.now()): Promise<{ rows: ExportRow[]; nextCursor: string | null }> {
+export async function exportStats(db: D1Database, cursor: string | undefined, before?: string): Promise<{ rows: ExportRow[]; nextCursor: string | null }> {
 	const after = cursor ? decodeCursor(cursor) : null
 	if (cursor && !after) throw new ApiError(400, 'invalid', msg('查詢參數不正確'))
-	// Held first, in the same trip as the read: a slice of tidying that starts after this finds it held.
-	const [, read] = await db.batch<{ day: string; kind: string; target: string; dim: string; value: string; count: number; handle: string | null; slug: string | null; title: string | null }>([
-		holdStatement(db, now),
+	// The number and the rows in one transaction, so the rows are as they were at that number.
+	const [tidied, read] = await db.batch<Record<string, unknown>>([
+		db.prepare('SELECT value FROM _meta WHERE key = ?1').bind(REV_KEY),
 		db
-		.prepare(
-			`SELECT s.day, s.kind, s.target, s.dim, s.value, s.count, p.handle, l.slug, l.title
-			FROM stats s
-			LEFT JOIN links l ON l.id = s.target
-			LEFT JOIN pages p ON p.id = COALESCE(s.page, l.page_id, CASE WHEN s.kind = 'view' THEN s.target END)
-			WHERE (s.day, s.target, s.kind, s.dim, s.value) > (?1, ?2, ?3, ?4, ?5) AND s.day < ?6
-			ORDER BY s.day, s.target, s.kind, s.dim, s.value LIMIT ?7`,
-		)
-		.bind(...(after ?? ['', '', '', '', '']), before ?? '9999', EXPORT_PAGE + 1),
+			.prepare(
+				`SELECT s.day, s.kind, s.target, s.dim, s.value, s.count, p.handle, l.slug, l.title
+				FROM stats s
+				LEFT JOIN links l ON l.id = s.target
+				LEFT JOIN pages p ON p.id = COALESCE(s.page, l.page_id, CASE WHEN s.kind = 'view' THEN s.target END)
+				WHERE (s.day, s.target, s.kind, s.dim, s.value) > (?1, ?2, ?3, ?4, ?5) AND s.day < ?6
+				ORDER BY s.day, s.target, s.kind, s.dim, s.value LIMIT ?7`,
+			)
+			.bind(...(after?.key ?? ['', '', '', '', '']), before ?? '9999', EXPORT_PAGE + 1),
 	])
-	const results = read?.results ?? []
+	const rev = Number(tidied?.results[0]?.value ?? 0)
+	// Old days were merged into months, or deleted, since this download began: what it has may be short of them.
+	if (after && after.rev !== rev) throw new ApiError(409, 'stats-changed', msg('舊的點擊數據在下載途中被整理過，請從頭再下載一次'))
+	const results = (read?.results ?? []) as { day: string; kind: string; target: string; dim: string; value: string; count: number; handle: string | null; slug: string | null; title: string | null }[]
 	const page = results.slice(0, EXPORT_PAGE)
 	const last = page.at(-1)
 	return {
 		rows: page.map((row) => [row.day, row.kind, row.target, row.handle ?? '', row.slug?.startsWith('~') ? '' : (row.slug ?? ''), row.title ?? '', row.value, row.count]),
-		nextCursor: results.length > EXPORT_PAGE && last ? encodeCursor([last.day, last.target, last.kind, last.dim, last.value]) : null,
+		nextCursor: results.length > EXPORT_PAGE && last ? encodeCursor([last.day, last.target, last.kind, last.dim, last.value], rev) : null,
 	}
 }

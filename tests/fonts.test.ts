@@ -4,7 +4,7 @@ import type { FontsResponse, PageJson, StateResponse } from '../src/shared/api'
 import { emptyContent, newItem, PageContentSchema, storedContent, type PageContent } from '../src/shared/content'
 import { findFont, fontAxis, GOOGLE_TEXT_LIMIT, headingWeight, searchFonts, FEATURED_FONTS, googleFonts } from '../src/shared/fonts'
 import { charactersFor, pageCharacters, pageWebFonts, parseFaces } from '../src/worker/lib/fonts'
-import { updateSettings } from '../src/worker/lib/ops'
+import { publishPage, updateSettings } from '../src/worker/lib/ops'
 import { resolveAppearance } from '../src/templates/themes'
 import { api, apiJson, visit } from './helpers'
 
@@ -308,6 +308,41 @@ describe('fonts on published pages', () => {
 		const files = fontFiles(await (await visit(`/${handle}`)).text())
 		expect(files.length).toBeGreaterThan(0)
 		for (const file of files) expect((await visit(file)).status).toBe(200)
+	})
+
+	it('are still there for a publish that read the page before a change of settings and lands after it', async () => {
+		const before = fontFiles(await (await visit(`/${handle}`)).text())
+		expect(before.length).toBeGreaterThan(0)
+		// The publish has read the page and found its fonts fit what it shows, so it keeps their list. Before it
+		// saves, another language is turned on, which copies the page's fonts again under new names.
+		let fired = false
+		const DB = new Proxy(env.DB, {
+			get(target, key) {
+				if (key === 'batch') {
+					return async (statements: D1PreparedStatement[]) => {
+						if (!fired) {
+							fired = true
+							expect((await updateSettings(env, { languages: ['ko'] })).copiesLeft).toBe(false)
+						}
+						return target.batch(statements)
+					}
+				}
+				const value = Reflect.get(target, key)
+				return typeof value === 'function' ? value.bind(target) : value
+			},
+		})
+		await publishPage({ ...env, DB } as Env, pageId)
+		expect(fired).toBe(true)
+		// The page names the list the publish kept, and its files were not deleted under it.
+		const named = fontFiles(await (await visit(`/${handle}`)).text())
+		expect(named).toEqual(before)
+		for (const file of named) expect((await visit(file)).status).toBe(200)
+		// The next change of settings deletes the files of the list that lost, and leaves these.
+		await updateSettings(env, {})
+		for (const file of named) expect((await visit(file)).status).toBe(200)
+		expect(await env.DB.prepare("SELECT count(*) AS n FROM _meta WHERE key LIKE 'fonts-old:%'").first<{ n: number }>()).toEqual({ n: 0 })
+		await updateSettings(env, { languages: [] })
+		await updateSettings(env, {})
 	})
 
 	it('go back to Google, and their files away, when the switch is turned off', async () => {

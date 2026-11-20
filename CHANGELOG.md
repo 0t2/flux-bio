@@ -13,12 +13,12 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.9 - 2026-11-20
 
 ### Security
-- A visitor's id for the day in the detailed stats is now salted with a random value that is replaced each day, not with the admin password. Once the day is over, nobody can test whether a given address visited, the owner included. The count of the day's visitors is too high on the day of this update. [#58](https://github.com/0t2/flux-bio/pull/58)
+- A visitor's id for the day in the detailed stats is now salted with a random value that is replaced each day, not with the admin password, so knowing the password is no longer a way to test whether a given address visited. The count of the day's visitors is too high on the day of this update. [#58](https://github.com/0t2/flux-bio/pull/58)
 
 ### Fixed
 - Publishing while someone else saves the draft now answers with the draft's real version and says the draft was kept (`draftKept`); the dashboard takes that draft, or asks which to keep. [#58](https://github.com/0t2/flux-bio/pull/58)
 - A page published at the same moment as it is moved, as one of its links gets another short address, or as a settings change copies its fonts, no longer keeps an old copy, a stray short address or the wrong font files. [#58](https://github.com/0t2/flux-bio/pull/58)
-- Downloading the stats holds the merging of old days into months until it is done, so no count can fall between two pages of the download. [#58](https://github.com/0t2/flux-bio/pull/58)
+- Downloading the stats while old days are merged into months no longer leaves counts out of the file: the download is told, and starts again. [#58](https://github.com/0t2/flux-bio/pull/58)
 
 ## 0.4.8 - 2026-11-20
 

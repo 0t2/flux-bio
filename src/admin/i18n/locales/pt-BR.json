@@ -1009,5 +1009,6 @@
 	"已經儲存，但 Cloudflare KV 暫時寫不進去，訪客還看不到這次的修改。請稍後再儲存一次。": "Salvo, mas o Cloudflare KV não está aceitando gravações agora, então os visitantes ainda não veem esta alteração. Salve de novo mais tarde.",
 	"這一頁的內容有 {size} KB，不能超過 {limit} KB。最佔空間的是翻譯和自訂的 HTML。": "O conteúdo desta página tem {size} KB, e o limite é {limit} KB. O que mais ocupa espaço são as traduções e o HTML personalizado.",
 	"已經儲存。網站的頁面很多，還有一些沒更新完，請稍後再儲存一次。": "Salvo. Este site tem muitas páginas e algumas ainda não estão atualizadas. Salve de novo daqui a pouco.",
-	"已經儲存。網站的頁面很多，還有一些頁面還沒下線，重新整理這一頁會繼續。": "Salvo. Este site tem muitas páginas e algumas ainda estão no ar. Recarregar esta página continua o processo."
+	"已經儲存。網站的頁面很多，還有一些頁面還沒下線，重新整理這一頁會繼續。": "Salvo. Este site tem muitas páginas e algumas ainda estão no ar. Recarregar esta página continua o processo.",
+	"舊的點擊數據在下載途中被整理過，請從頭再下載一次": "Os dados antigos foram reorganizados durante o download. Comece o download de novo."
 }

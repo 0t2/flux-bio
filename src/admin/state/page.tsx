@@ -302,8 +302,11 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 				const result = await request<PublishResponse>(`/pages/${id}/publish`, { method: 'POST', headers: { 'if-match': String(version.current) } })
 				version.current = result.draftUpdatedAt
 				// The server filled in short link slugs, and that is the saved draft now. Unless the draft was saved
-				// elsewhere while this was publishing: then it was kept, and what is saved is not known here.
-				if (!result.draftKept) savedJson.current = JSON.stringify(result.content)
+				// elsewhere while this was publishing: then it was kept, and what is saved is not known here. No save
+				// of ours goes over it until that is settled below, which this holds from this moment: a save queued
+				// behind the publish would otherwise carry the version just given, and be taken.
+				if (result.draftKept) inConflict.current = true
+				else savedJson.current = JSON.stringify(result.content)
 				return { result, sent }
 			})
 			queue.current = done.then(
@@ -316,11 +319,19 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 			const unchanged = JSON.stringify(latest.current) === sent
 			if (result.draftKept) {
 				// Someone else, the owner's AI or another window, saved the draft while this was publishing. Theirs is
-				// the draft now. With nothing typed here since, it is taken; with something, the owner is asked which
-				// to keep, as when a save finds the draft changed: the next save would otherwise write over theirs.
-				if (unchanged) adopt(await readLatest())
+				// the draft now, and what went live is in the list as published.
+				app.patchPage(id, {
+					...summaryOf(result.content),
+					publishedAt: result.publishedAt,
+					draftUpdatedAt: result.draftUpdatedAt,
+					dirty: true,
+					untranslated: Object.values(result.untranslated).reduce((sum, texts) => sum + texts.length, 0),
+				})
+				// With nothing typed here since, theirs is taken. With something, or if theirs can't be read, the
+				// owner is asked which to keep, as when a save finds the draft changed.
+				const theirs = unchanged ? await readLatest().catch(() => null) : null
+				if (theirs && JSON.stringify(latest.current) === sent) adopt(theirs)
 				else {
-					inConflict.current = true
 					setConflict(true)
 					setSaveStatus('error')
 				}

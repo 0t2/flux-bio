@@ -1,5 +1,5 @@
 import type { StatsExportResponse } from '../../../shared/api'
-import { request } from '../../api'
+import { ApiError, request } from '../../api'
 import { t } from '../../i18n'
 import { downloadCsv } from '../../lib/format'
 
@@ -14,17 +14,30 @@ function statsFileName(host: string, at = new Date()): string {
  * the months before it: what clearing them would delete. Resolves once the file is saved.
  */
 export async function downloadStats(onProgress: (rows: number) => void, before?: string): Promise<number> {
-	const rows: StatsExportResponse['rows'] = []
+	let rows: StatsExportResponse['rows'] = []
 	let cursor: string | null = null
-	do {
+	// Old days being merged into months while this goes on would leave some of them out of the file, so the site
+	// says when that happened and this starts again. A few times: the merging is a slice per dashboard visit.
+	let again = 0
+	for (;;) {
 		const query = new URLSearchParams()
 		if (cursor) query.set('cursor', cursor)
 		if (before) query.set('before', before)
-		const page: StatsExportResponse = await request<StatsExportResponse>(`/stats/export${query.size ? `?${query}` : ''}`)
+		let page: StatsExportResponse
+		try {
+			page = await request<StatsExportResponse>(`/stats/export${query.size ? `?${query}` : ''}`)
+		} catch (error) {
+			if (!(error instanceof ApiError) || error.code !== 'stats-changed' || ++again > 5) throw error
+			rows = []
+			cursor = null
+			onProgress(0)
+			continue
+		}
 		rows.push(...page.rows)
 		cursor = page.nextCursor
 		onProgress(rows.length)
-	} while (cursor)
+		if (!cursor) break
+	}
 	const kind = (value: string) => (value === 'view' ? t('瀏覽') : value === 'click' ? t('點擊') : value)
 	downloadCsv(
 		[

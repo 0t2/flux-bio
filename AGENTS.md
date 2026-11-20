@@ -694,8 +694,10 @@ tests/                  Vitest tests (run in workerd)
     Days are kept for 13 whole months (6 once the database passes 70% of the plan's size), then each month becomes one row whose
     `day` is `YYYY-MM`, which sorts before that month's days and so is never in a range of days (`lib/statsHistory.ts`).
     That, and deleting the months the owner asks to clear, happens a slice at a time after `GET /api/state`, within a daily
-    budget of rows written, and not while the stats are being downloaded: each page of `GET /api/stats/export` holds it for
-    five minutes, or days not downloaded yet would move into a month's row that sorts before where the download has got to. `GET /api/stats/export` downloads every row; `GET /api/usage` says how full the database is.
+    budget of rows written. Each such change puts a number in `_meta` up by one in the same transaction (`stats-rev`), and
+    a page of `GET /api/stats/export` carries it on in its cursor: a download that finds it changed answers 409
+    `stats-changed` and starts again, since days it hadn't reached would have moved into a month's row, which sorts
+    before where it had got to. `GET /api/stats/export` downloads every row; `GET /api/usage` says how full the database is.
     The Worker can't see the owner's Cloudflare plan, so `settings.plan` (`free` or `paid`) says it.
   - *Workers Analytics Engine, detailed, last 90 days.* One raw event per hit in the instance's own
     dataset (`ANALYTICS`, named after the Worker). The blob order is `EVENT_FIELDS` in
@@ -708,9 +710,11 @@ tests/                  Vitest tests (run in workerd)
     `lib/analytics.ts` reads them through the Analytics SQL binding (`ANALYTICS_SQL`, no API token);
     its sampling column is `sampleInterval`, not `_sample_interval`.
   - *The daily visitor hash* is of the day, the IP and the browser, salted with a random value kept in `_meta` for that
-    day and written over by the next day's (`daySalt` in `lib/analytics.ts`). Not with anything that lasts, the admin
-    password or the deployment's secret: whoever knows the salt can try addresses against an id, so no one must once
-    the day is over.
+    day and written over by a later day's (`daySalt` in `lib/analytics.ts`). Not with anything that lasts, the admin
+    password or the deployment's secret: whoever knows the salt can try addresses against an id. The row only moves on
+    to a later day, so a visit counted late can't give a day two salts. It is gone as far as the code goes: D1's Time
+    Travel takes a database back to any minute of the last 30 days (7 on the free plan), for whoever has the Cloudflare
+    account, and past those days it is gone for them too.
   - *Never store anything that identifies a person.* That means no IP address, no user-agent string
     and no precise coordinates: Cloudflare's estimate of where the IP is (a city's position, not
     GPS) is rounded to 0.1°, about a town. `tests/analytics.test.ts` checks this; keep it passing. Cloudflare's per-request Workers Logs would record request headers, so they stay off (`invocationLogs: false`), and only `console.error` is logged.
