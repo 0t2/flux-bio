@@ -17,19 +17,45 @@ export function cf(args) {
 	})
 }
 
-/** The bindings of the version of a Worker that is running, or null when the account has no Worker of that name. */
-export async function runningWorker(name) {
+const parsed = (text) => {
+	try {
+		return JSON.parse(text)
+	} catch {
+		return null
+	}
+}
+
+/**
+ * The bindings of the newest version of a Worker, or null when the account has no Worker of that name. Enough to
+ * tell whether a Worker is FluxBio, which no version of one stops being.
+ */
+export async function newestVersion(name) {
 	const { ok, stdout, stderr } = await cf(['workers', 'versions', 'list', '--worker-id', name, '--per-page', '1'])
 	// 10007: "This Worker does not exist on your account."
 	if (!ok && stderr.includes('[10007]')) return null
-	let versions
-	try {
-		versions = ok ? JSON.parse(stdout) : null
-	} catch {
-		versions = null
-	}
+	const versions = ok ? parsed(stdout) : null
 	if (!Array.isArray(versions)) throw new Error(stderr.trim() || 'Cloudflare gave no answer.')
 	return { bindings: Array.isArray(versions[0]?.bindings) ? versions[0].bindings : [] }
+}
+
+/**
+ * The bindings of the version of a Worker that is running, or null when the account has no Worker of that name.
+ * That is the version its last deployment names, which is not always the newest: after a rollback in Cloudflare's
+ * dashboard an older one runs, and its sites and password are the ones a deploy would change.
+ */
+export async function runningWorker(name) {
+	const { ok, stdout, stderr } = await cf(['workers', 'deployments', 'list', '--worker', name, '--per-page', '1'])
+	if (!ok && stderr.includes('[10007]')) return null
+	const deployments = ok ? parsed(stdout)?.deployments : null
+	if (!Array.isArray(deployments)) throw new Error(stderr.trim() || 'Cloudflare gave no answer.')
+	// A deployment can split visits between two versions: the one most of them reach is the one to go by.
+	const version = [...(deployments[0]?.versions ?? [])].sort((a, b) => (b?.percentage ?? 0) - (a?.percentage ?? 0))[0]?.version_id
+	// A Worker that was uploaded and never deployed has no deployment, only versions.
+	if (typeof version !== 'string') return newestVersion(name)
+	const got = await cf(['workers', 'versions', 'get', version, '--worker-id', name])
+	const running = got.ok ? parsed(got.stdout) : null
+	if (!running || typeof running !== 'object') throw new Error(got.stderr.trim() || 'Cloudflare gave no answer.')
+	return { bindings: Array.isArray(running.bindings) ? running.bindings : [] }
 }
 
 const textOf = (bindings, name) => bindings.find((binding) => binding.name === name && binding.type === 'plain_text')?.text
@@ -73,7 +99,7 @@ export async function otherFluxBios(except) {
 	for (let at = 0; at < names.length; at += atOnce) {
 		await Promise.all(names.slice(at, at + atOnce).map(async (name) => {
 			try {
-				const worker = await runningWorker(name)
+				const worker = await newestVersion(name)
 				if (worker && isFluxBio(worker.bindings) && textOf(worker.bindings, 'TEST_SITE') !== 'true') found.push(name)
 			} catch {
 				unread.push(name)
