@@ -996,5 +996,13 @@
 	"社群圖示的位置": "Onde ficam os ícones sociais",
 	"連結上方": "Acima dos links",
 	"連結下方": "Abaixo dos links",
-	"一排小圖示，在名稱下方或連結下方。要換位置或整排關掉，請到「外觀」。": "Uma fileira de ícones pequenos, abaixo do seu nome ou dos links. Para mudar de lugar ou ocultar, vá em “Aparência”."
+	"一排小圖示，在名稱下方或連結下方。要換位置或整排關掉，請到「外觀」。": "Uma fileira de ícones pequenos, abaixo do seu nome ou dos links. Para mudar de lugar ou ocultar, vá em “Aparência”.",
+	"有新版本": "Há uma versão nova",
+	"FluxBio {latest} 出了，這個網站還在 {version}。": "O FluxBio {latest} saiu, e este site ainda está na {version}.",
+	"其中有安全性修正，請盡快更新。": "Ela inclui uma correção de segurança: atualize logo.",
+	"這次更新除了重新部署，還有別的步驟，你的 AI 會帶你做。": "Esta atualização tem um passo além do deploy, e sua IA vai guiar você.",
+	"更新是在你的電腦上做的。對你的 AI 說：": "A atualização é feita no seu computador. Diga à sua IA:",
+	"幫我把 FluxBio 更新到最新版": "Atualize meu FluxBio para a versão mais recente",
+	"看看改了什麼": "Ver o que mudou",
+	"已是最新版": "Atualizado"
 }
