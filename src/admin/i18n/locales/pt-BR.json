@@ -334,7 +334,7 @@
 	"掃描進來也算一次點擊，來源會記成「QR Code」。樣式會跟著這個短網址儲存。": "Cliques por leitura são registrados com origem “QR Code”. O estilo fica salvo com este link curto.",
 	"排程": "Agendado",
 	"接上之後，可以這樣說": "Depois de conectar, experimente pedir",
-	"接著輸入新密碼，至少 12 個字元。如果 Worker 改過名字，把指令裡的 flux-bio 換掉。": "Depois digite a nova senha (mínimo de 12 caracteres). Se o Worker tiver outro nome, troque flux-bio no comando.",
+	"它會設一組新密碼，存在資料夾裡的 .secrets.env。所有人會被登出，原本的 API token 也會失效。": "Ele define uma nova senha e a salva em .secrets.env, nessa pasta. Todos são desconectados, e os tokens de API anteriores param de funcionar.",
 	"提前下單，到店直接拿": "Peça antes e retire na loja",
 	"換一張圖片": "Trocar imagem",
 	"換一張頭像": "Trocar foto de perfil",
@@ -996,5 +996,13 @@
 	"社群圖示的位置": "Onde ficam os ícones sociais",
 	"連結上方": "Acima dos links",
 	"連結下方": "Abaixo dos links",
-	"一排小圖示，在名稱下方或連結下方。要換位置或整排關掉，請到「外觀」。": "Uma fileira de ícones pequenos, abaixo do seu nome ou dos links. Para mudar de lugar ou ocultar, vá em “Aparência”."
+	"一排小圖示，在名稱下方或連結下方。要換位置或整排關掉，請到「外觀」。": "Uma fileira de ícones pequenos, abaixo do seu nome ou dos links. Para mudar de lugar ou ocultar, vá em “Aparência”.",
+	"有新版本": "Há uma versão nova",
+	"FluxBio {latest} 出了，這個網站還在 {version}。": "O FluxBio {latest} saiu, e este site ainda está na {version}.",
+	"其中有安全性修正，請盡快更新。": "Ela inclui uma correção de segurança: atualize logo.",
+	"這次更新除了重新部署，還有別的步驟，你的 AI 會帶你做。": "Esta atualização tem um passo além do deploy, e sua IA vai guiar você.",
+	"更新是在你的電腦上做的。對你的 AI 說：": "A atualização é feita no seu computador. Diga à sua IA:",
+	"幫我把 FluxBio 更新到最新版": "Atualize meu FluxBio para a versão mais recente",
+	"看看改了什麼": "Ver o que mudou",
+	"已是最新版": "Atualizado"
 }

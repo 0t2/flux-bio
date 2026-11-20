@@ -5,6 +5,20 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.1 - 2026-11-20
+
+### Novedades
+- Configuración, en el panel, te avisa cuando hay una versión más reciente de FluxBio, te dice primero si incluye una corrección de seguridad y te da la frase que decirle a tu IA para actualizar. Solo consulta a GitHub cuando abres esa página, y cuando tu sitio está al día lo indica junto a la versión, al pie. [#48](https://github.com/0t2/flux-bio/pull/48)
+
+## 0.4.0 - 2026-11-20
+
+### Acción necesaria
+- Si cambiaste `cloudflare.config.ts` (otro `WORKER_NAME`, un dominio propio o quitaste `ANALYTICS`), pon eso en `worker.json`, en tu carpeta de FluxBio, antes de desplegar esta versión; por ejemplo, `{ "name": "my-links" }`. Ese archivo no forma parte del código, así que las actualizaciones ya no lo tocan. Si se te olvida, el despliegue se detiene y te dice qué nombre escribir. [#45](https://github.com/0t2/flux-bio/pull/45)
+
+### Novedades
+- `pnpm run deploy` pregunta a Cloudflare qué está en marcha antes de subir nada, y detiene un despliegue que crearía un segundo sitio vacío, dejaría sin conexión uno de tus sitios, reemplazaría otro Worker o reemplazaría tu contraseña. Úsalo en lugar de `cf deploy`. [#45](https://github.com/0t2/flux-bio/pull/45)
+- `pnpm reset-password` establece una nueva contraseña de administración y crea un nuevo token de API para cada uno de tus sitios, sin mostrar ninguno de los dos. El «¿Olvidaste tu contraseña?» de la página de inicio de sesión ahora da este comando. [#45](https://github.com/0t2/flux-bio/pull/45)
+
 ## 0.3.2 - 2026-11-20
 
 ### Novedades

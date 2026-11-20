@@ -1,5 +1,6 @@
 import { bindings, defineConfig } from 'cf/config'
 import { listedSites } from './sites.config.ts'
+import { workerSettings } from './worker.config.ts'
 
 /**
  * Cloudflare configuration for FluxBio, read by the `cf` CLI and the Vite plugin.
@@ -13,12 +14,18 @@ import { listedSites } from './sites.config.ts'
  * named after this one, with its own D1, KV and stats, kept out of search engines.
  */
 
-/** This site's Worker. If the name is taken on your account, change it here. */
-const WORKER_NAME = 'flux-bio'
+// What is one deployment's own is not written here, where the next update would replace it: the Worker's name, its
+// custom domains and whether it has detailed stats are in worker.json (worker.config.ts), and its other sites in
+// sites.json (sites.config.ts).
 
 export default defineConfig(({ mode }) => {
 	const staging = mode === 'staging'
-	const name = staging ? `${WORKER_NAME}-staging` : WORKER_NAME
+	const own = workerSettings()
+	const name = staging ? `${own.name}-staging` : own.name
+	// Not in `cf dev`: the SQL binding reaches Cloudflare and wants a sign-in, and that is what would stop someone
+	// trying FluxBio on their own computer before they have an account. The Worker runs without them. Nor on an
+	// account where Analytics Engine can't be turned on, which worker.json says with "analytics": false.
+	const analytics = mode !== 'development' && own.analytics
 	// Analytics Engine datasets are account-wide, so each instance writes to its own.
 	const dataset = name.replace(/-/g, '_')
 	// The test site is one site: the others' hostnames belong to the live Worker, so nothing could reach them here.
@@ -32,7 +39,7 @@ export default defineConfig(({ mode }) => {
 				return [
 					[`DB_${suffix}`, bindings.d1({ name: `${name}-${id}` })],
 					[`KV_${suffix}`, bindings.kv({})],
-					...(mode === 'development' ? [] : [[`ANALYTICS_${suffix}`, bindings.analyticsEngineDataset({ name: `${dataset}_${id.replaceAll('-', '_')}` })]]),
+					...(analytics ? [[`ANALYTICS_${suffix}`, bindings.analyticsEngineDataset({ name: `${dataset}_${id.replaceAll('-', '_')}` })]] : []),
 				]
 			}),
 	)
@@ -46,6 +53,8 @@ export default defineConfig(({ mode }) => {
 			compatibilityFlags: ['global_fetch_strictly_public'],
 			entrypoint: 'src/worker/index.ts',
 			workersDev: true,
+			// A domain added in Cloudflare's dashboard needs no line here and stays through a deploy. The test site has none.
+			...(staging || !own.domains.length ? {} : { domains: own.domains }),
 			// One URL per instance is enough; per-version preview URLs would expose the dashboard twice.
 			previewUrls: false,
 			observability: {
@@ -65,16 +74,14 @@ export default defineConfig(({ mode }) => {
 				DB: bindings.d1({ name }),
 				KV: bindings.kv({}),
 				ASSETS: bindings.assets(),
-				// Not in `cf dev`: the SQL binding reaches Cloudflare and wants a sign-in, and that is what would stop
-				// someone trying FluxBio on their own computer before they have an account. The Worker runs without them.
-				...(mode === 'development'
-					? {}
-					: {
+				...(analytics
+					? {
 							/** Raw visit and click events (Workers Analytics Engine). Created on first write. */
 							ANALYTICS: bindings.analyticsEngineDataset({ name: dataset }),
 							/** Reads those events with SQL, without an API token. */
 							ANALYTICS_SQL: bindings.analytics(),
-						}),
+						}
+					: {}),
 				ANALYTICS_DATASET: bindings.text(dataset),
 				/** The Worker's own name, for the commands the agent guide gives (a custom domain hides it). */
 				WORKER_NAME: bindings.text(name),

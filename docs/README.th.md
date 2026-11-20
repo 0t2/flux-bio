@@ -127,7 +127,7 @@ pnpm exec cf auth login          # ครั้งแรกต้องเข้
 
 # สร้างรหัสผ่านแดชบอร์ด (ADMIN_PASSWORD อย่างน้อย 12 ตัวอักษร) แล้วดีพลอย
 printf 'ADMIN_PASSWORD=%s\n' "$(openssl rand -base64 30 | tr -dc 'A-Za-z0-9' | head -c 24)" > .secrets.env
-pnpm exec cf deploy --secrets-file .secrets.env
+pnpm run deploy --secrets-file .secrets.env
 cat .secrets.env && rm .secrets.env   # เก็บรหัสผ่านไว้ให้ดี
 ```
 

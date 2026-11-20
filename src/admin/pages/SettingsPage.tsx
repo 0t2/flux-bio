@@ -10,6 +10,7 @@ import { BioSection } from './settings/BioSection'
 import { ConnectAi } from './settings/ConnectAi'
 import { DangerSection } from './settings/DangerSection'
 import { StatsDataSection } from './settings/StatsDataSection'
+import { UpdateSection, useUpdate } from './settings/UpdateSection'
 import { UsageSection } from './settings/UsageSection'
 import { REPO_URL } from './settings/util'
 import '../styles/settings.css'
@@ -18,6 +19,7 @@ export function SettingsPage() {
 	const app = useApp()
 	const [, navigate] = useLocation()
 	const [leaving, setLeaving] = useState(false)
+	const update = useUpdate()
 
 	async function logout() {
 		if (leaving) return
@@ -42,6 +44,7 @@ export function SettingsPage() {
 				</span>
 			</div>
 			<div className="set-stack wide">
+				<UpdateSection update={update} />
 				<BioSection />
 				<ConnectAi />
 				<UsageSection />
@@ -50,6 +53,12 @@ export function SettingsPage() {
 				<DangerSection />
 				<p className="set-footer">
 					<span>FluxBio v{app.version}</span>
+					{update?.latest && update.behind === 0 && (
+						<>
+							<span aria-hidden="true">·</span>
+							<span>{t('已是最新版')}</span>
+						</>
+					)}
 					<span aria-hidden="true">·</span>
 					<a href={REPO_URL} target="_blank" rel="noopener noreferrer">
 						GitHub

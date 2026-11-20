@@ -5,6 +5,20 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.1 - 2026-11-20
+
+### Baru
+- Pengaturan di dasbor memberi tahu saat ada FluxBio yang lebih baru, menyebutkan lebih dulu jika ada perbaikan keamanan, dan memberikan kalimat untuk dikatakan kepada AI Anda agar memperbaruinya. GitHub hanya ditanya saat Anda membuka halaman itu, dan saat situs Anda sudah versi terbaru, hal itu tertulis di samping versi di bagian bawah. [#48](https://github.com/0t2/flux-bio/pull/48)
+
+## 0.4.0 - 2026-11-20
+
+### Perlu tindakan
+- Jika Anda pernah mengubah `cloudflare.config.ts` (`WORKER_NAME` lain, domain kustom, atau `ANALYTICS` dihapus), tuliskan itu di `worker.json` dalam folder FluxBio Anda sebelum men-deploy versi ini, misalnya `{ "name": "my-links" }`. File itu bukan bagian dari kode, jadi pembaruan tidak lagi menyentuhnya. Jika lupa, deploy berhenti dan memberi tahu nama yang harus ditulis. [#45](https://github.com/0t2/flux-bio/pull/45)
+
+### Baru
+- `pnpm run deploy` menanyakan kepada Cloudflare apa yang sedang berjalan sebelum mengunggah apa pun, dan menghentikan deploy yang akan membuat situs kedua yang kosong, membuat salah satu situs Anda offline, menimpa Worker lain, atau mengganti kata sandi Anda. Gunakan perintah ini sebagai pengganti `cf deploy`. [#45](https://github.com/0t2/flux-bio/pull/45)
+- `pnpm reset-password` membuat kata sandi admin baru dan token API baru untuk setiap situs Anda, tanpa menampilkan keduanya. “Lupa kata sandi?” di halaman masuk kini memberikan perintah ini. [#45](https://github.com/0t2/flux-bio/pull/45)
+
 ## 0.3.2 - 2026-11-20
 
 ### Baru

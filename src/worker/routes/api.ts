@@ -433,7 +433,8 @@ const FREE_DAILY: NonNullable<UsageResponse['dailyLimits']> = {
 	databases: { count: D1_STORAGE.databases, bytes: D1_STORAGE.account },
 }
 
-// The owner's AI asks this, the dashboard and visitors never: it is the one route that reads from GitHub by itself.
+// The owner's AI asks this, and the dashboard when the owner opens Settings; a visitor never does. It is the one route
+// that reads from GitHub by itself.
 api.get('/update', async (c) => c.json<UpdateResponse>(await checkUpdate()))
 
 api.get('/usage', async (c) => {

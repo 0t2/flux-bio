@@ -5,6 +5,20 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.1 - 2026-11-20
+
+### 新功能
+- 儀表板的「設定」頁會告訴你 FluxBio 有沒有新版，有安全性修正時會先講，並附上一句可以直接對 AI 說的更新指令。只有打開這一頁時才會問 GitHub；網站已是最新版時，頁尾的版號旁會寫出來。 [#48](https://github.com/0t2/flux-bio/pull/48)
+
+## 0.4.0 - 2026-11-20
+
+### 需要處理
+- 如果你改過 `cloudflare.config.ts`（換了 `WORKER_NAME`、加了自訂網域，或拿掉 `ANALYTICS`），部署這一版之前，請把那些設定寫進 FluxBio 資料夾裡的 `worker.json`，例如 `{ "name": "my-links" }`。這個檔案不屬於程式碼，之後更新都不會動到它。忘了寫的話，部署會停下來，告訴你該寫哪個名稱。 [#45](https://github.com/0t2/flux-bio/pull/45)
+
+### 新功能
+- `pnpm run deploy` 上傳前會先問 Cloudflare 現在跑的是什麼；會多出一個空網站、讓你的某個網站斷線、蓋掉別的 Worker 或換掉密碼的部署，都會被擋下來。請用它取代 `cf deploy`。 [#45](https://github.com/0t2/flux-bio/pull/45)
+- `pnpm reset-password` 會設一組新的管理密碼，並替每個網站建立新的 API token，兩者都不會顯示在畫面上。登入頁的「忘記密碼？」現在給的就是這個指令。 [#45](https://github.com/0t2/flux-bio/pull/45)
+
 ## 0.3.2 - 2026-11-20
 
 ### 新功能

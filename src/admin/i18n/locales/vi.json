@@ -334,7 +334,7 @@
 	"掃描進來也算一次點擊，來源會記成「QR Code」。樣式會跟著這個短網址儲存。": "Lượt nhấp từ quét mã được ghi nguồn là “QR Code”. Kiểu mã sẽ được lưu cùng liên kết rút gọn này.",
 	"排程": "Đã lên lịch",
 	"接上之後，可以這樣說": "Sau khi kết nối, bạn có thể nói",
-	"接著輸入新密碼，至少 12 個字元。如果 Worker 改過名字，把指令裡的 flux-bio 換掉。": "Sau đó nhập mật khẩu mới, ít nhất 12 ký tự. Nếu Worker đã đổi tên, hãy thay flux-bio trong lệnh.",
+	"它會設一組新密碼，存在資料夾裡的 .secrets.env。所有人會被登出，原本的 API token 也會失效。": "Lệnh này đặt mật khẩu mới và lưu vào .secrets.env trong thư mục đó. Mọi người sẽ bị đăng xuất, và các API token cũ sẽ ngừng hoạt động.",
 	"提前下單，到店直接拿": "Đặt trước, đến lấy ngay",
 	"換一張圖片": "Đổi ảnh",
 	"換一張頭像": "Đổi ảnh đại diện",
@@ -996,5 +996,13 @@
 	"社群圖示的位置": "Vị trí biểu tượng mạng xã hội",
 	"連結上方": "Phía trên liên kết",
 	"連結下方": "Phía dưới liên kết",
-	"一排小圖示，在名稱下方或連結下方。要換位置或整排關掉，請到「外觀」。": "Một hàng biểu tượng nhỏ, dưới tên hoặc dưới các liên kết. Muốn đổi vị trí hay tắt cả hàng, hãy vào “Giao diện”."
+	"一排小圖示，在名稱下方或連結下方。要換位置或整排關掉，請到「外觀」。": "Một hàng biểu tượng nhỏ, dưới tên hoặc dưới các liên kết. Muốn đổi vị trí hay tắt cả hàng, hãy vào “Giao diện”.",
+	"有新版本": "Có phiên bản mới",
+	"FluxBio {latest} 出了，這個網站還在 {version}。": "FluxBio {latest} đã ra mắt, và trang web này vẫn đang ở {version}.",
+	"其中有安全性修正，請盡快更新。": "Bản này có một bản sửa lỗi bảo mật, hãy cập nhật sớm.",
+	"這次更新除了重新部署，還有別的步驟，你的 AI 會帶你做。": "Lần cập nhật này có thêm bước ngoài việc triển khai lại, và AI của bạn sẽ hướng dẫn bạn.",
+	"更新是在你的電腦上做的。對你的 AI 說：": "Việc cập nhật được thực hiện trên máy tính của bạn. Hãy nói với AI của bạn:",
+	"幫我把 FluxBio 更新到最新版": "Cập nhật FluxBio của tôi lên phiên bản mới nhất",
+	"看看改了什麼": "Xem có gì thay đổi",
+	"已是最新版": "Đã là bản mới nhất"
 }

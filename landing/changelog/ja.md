@@ -5,6 +5,20 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.1 - 2026-11-20
+
+### 新機能
+- ダッシュボードの「設定」で、FluxBio の新しいバージョンが出ているかがわかるようになりました。セキュリティ修正がある場合は最初に知らせ、更新のために AI に伝える一文も表示します。GitHub に問い合わせるのはこのページを開いたときだけで、サイトが最新のときは、ページ下部のバージョンの横にそう表示されます。 [#48](https://github.com/0t2/flux-bio/pull/48)
+
+## 0.4.0 - 2026-11-20
+
+### 要対応
+- `cloudflare.config.ts` を変更していた場合（`WORKER_NAME` を変えた、カスタムドメインを追加した、`ANALYTICS` を外したなど）は、このバージョンをデプロイする前に、その設定を FluxBio フォルダーの `worker.json` に書いてください。例: `{ "name": "my-links" }`。このファイルはコードの一部ではないため、今後の更新で上書きされません。書き忘れた場合は、デプロイが止まり、書くべき名前を知らせます。 [#45](https://github.com/0t2/flux-bio/pull/45)
+
+### 新機能
+- `pnpm run deploy` は、アップロードの前に Cloudflare で何が動いているかを確認し、空のサイトをもう 1 つ作る、サイトの 1 つをオフラインにする、別の Worker を置き換える、パスワードを置き換える、といったデプロイを止めます。`cf deploy` の代わりに使ってください。 [#45](https://github.com/0t2/flux-bio/pull/45)
+- `pnpm reset-password` は、新しい管理パスワードを設定し、各サイトの新しい API トークンを作ります。どちらも画面には表示しません。ログインページの「パスワードをお忘れですか？」は、このコマンドを案内するようになりました。 [#45](https://github.com/0t2/flux-bio/pull/45)
+
 ## 0.3.2 - 2026-11-20
 
 ### 新機能
