@@ -1004,5 +1004,7 @@
 	"更新是在你的電腦上做的。對你的 AI 說：": "Pembaruan dilakukan di komputer Anda. Katakan kepada AI Anda:",
 	"幫我把 FluxBio 更新到最新版": "Perbarui FluxBio saya ke versi terbaru",
 	"看看改了什麼": "Lihat apa yang berubah",
-	"已是最新版": "Sudah versi terbaru"
+	"已是最新版": "Sudah versi terbaru",
+	"第 {n} 項和第 {m} 項的 id 一樣，請改掉其中一個": "Item {m} dan {n} memiliki id yang sama: ubah salah satunya",
+	"已經儲存，但 Cloudflare KV 暫時寫不進去，訪客還看不到這次的修改。請稍後再儲存一次。": "Tersimpan, tetapi Cloudflare KV sedang tidak menerima penulisan, jadi pengunjung belum melihat perubahan ini. Simpan lagi nanti."
 }

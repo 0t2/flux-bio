@@ -43,6 +43,8 @@ export interface RenderOptions {
 	blockHref?: (item: { id: string }, part: string) => string
 	/** Links whose button has to use the short link, because something there needs the Worker: a password, device routing, UTM tags. */
 	viaShortLink?: readonly string[]
+	/** A preview for someone other than the owner: links whose address the live page hides are hidden here too. */
+	keepPrivate?: boolean
 	badgeHref?: string
 	/** Fonts this Worker serves for the page; left out, they come from Google. See headHtml(). */
 	fonts?: readonly HostedFont[]
@@ -743,6 +745,9 @@ function counted(ctx: Context, item: { id: string }, part: string, url: string):
 
 function linkAttributes(ctx: Context, link: LinkItem): string {
 	const url = link.url.trim()
+	// A draft's preview link goes to people who aren't the owner. What the live page keeps from a visitor it keeps
+	// too: a link behind a password or with its address hidden goes through its short link, or nowhere yet.
+	if (!ctx.live && ctx.options.keepPrivate && (link.hideUrl || ctx.options.viaShortLink?.includes(link.id))) return `href="${esc(ctx.options.linkHref?.(link) ?? '#')}"`
 	const short = ctx.live ? ctx.options.linkHref?.(link) : undefined
 	if (!short) return `href="${esc(link.url)}"`
 	return link.hideUrl || ctx.options.viaShortLink?.includes(link.id) || !isHttpUrl(url) ? `href="${esc(short)}"` : counted(ctx, link, LINK_PART, url)

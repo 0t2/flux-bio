@@ -5,6 +5,19 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.6 - 2026-11-20
+
+### 보안
+- 초안의 미리보기 링크에서 비밀번호가 걸렸거나 주소를 숨긴 링크의 실제 주소가 더 이상 보이지 않습니다. 이런 버튼은 실제 페이지와 마찬가지로 미리보기에서도 단축 링크를 거칩니다. [#55](https://github.com/0t2/flux-bio/pull/55)
+- 링크 비밀번호는 15분 안에 열 번 틀리면 그 시간이 지날 때까지 입력을 받지 않습니다. 이전에는 횟수 제한이 없었습니다. [#55](https://github.com/0t2/flux-bio/pull/55)
+- 존재하지 않는 주소가 길수록 더 많은 자원을 쓰는 일이 없어졌습니다. 큰 사이트에서는 비슷한 주소를 찾는 데 요청 시간 한도의 몇 배가 걸릴 수 있었고, 그런 주소는 누구나 보낼 수 있었습니다. [#55](https://github.com/0t2/flux-bio/pull/55)
+
+### 수정
+- 보관한 단축 링크, 삭제한 페이지, 페이지의 예전 주소가 변경하는 바로 그 순간에 누군가 방문하면 되살아나 계속 남을 수 있었습니다. [#55](https://github.com/0t2/flux-bio/pull/55)
+- 백업을 복원한 뒤, 백업에서 보관 처리된 링크가 계속 리디렉션되는 일이 없어졌습니다. [#55](https://github.com/0t2/flux-bio/pull/55)
+- 다른 것이 저장되는 동안 저장한 설정이 덮어써지지 않습니다. 데이터베이스에는 들어갔지만 방문자에게 전달되지 않은 변경은 같은 변경을 다시 하면 전달됩니다. [#55](https://github.com/0t2/flux-bio/pull/55)
+- 한 페이지에 id가 같은 항목이 둘 있으면 게시가 거부됩니다. 둘 중 하나의 단축 링크가 작동하지 않았기 때문입니다. [#55](https://github.com/0t2/flux-bio/pull/55)
+
 ## 0.4.5 - 2026-11-20
 
 ### 수정

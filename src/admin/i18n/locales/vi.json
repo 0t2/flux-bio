@@ -1004,5 +1004,7 @@
 	"更新是在你的電腦上做的。對你的 AI 說：": "Việc cập nhật được thực hiện trên máy tính của bạn. Hãy nói với AI của bạn:",
 	"幫我把 FluxBio 更新到最新版": "Cập nhật FluxBio của tôi lên phiên bản mới nhất",
 	"看看改了什麼": "Xem có gì thay đổi",
-	"已是最新版": "Đã là bản mới nhất"
+	"已是最新版": "Đã là bản mới nhất",
+	"第 {n} 項和第 {m} 項的 id 一樣，請改掉其中一個": "Mục {m} và mục {n} có cùng id: hãy đổi một trong hai",
+	"已經儲存，但 Cloudflare KV 暫時寫不進去，訪客還看不到這次的修改。請稍後再儲存一次。": "Đã lưu, nhưng Cloudflare KV hiện chưa ghi được nên khách truy cập chưa thấy thay đổi này. Hãy lưu lại sau."
 }

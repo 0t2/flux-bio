@@ -4,7 +4,7 @@ import { isHttpUrl, MEDIA_ID } from '../../shared/content'
 import { otherLanguages } from '../../shared/locale'
 import { normalizeSlug, slugProblem } from '../../shared/slug'
 import { isValidTimeZone } from '../../shared/time'
-import { problemMessage, publishProblems } from '../../shared/validate'
+import { problemMessage, publishProblems, SAME_ID } from '../../shared/validate'
 import { msg } from '../../templates/msg'
 import { ApiError } from '../types'
 import {
@@ -22,7 +22,7 @@ import {
 } from './db'
 import { NAME_PREFIX, SITE_KEY, toLinkRecord } from './cache'
 import { KV_OPS_AT_ONCE } from './mode'
-import { dropCopies, forgetSite, rebuildCache } from './ops'
+import { dropAgain, dropCopies, forgetSite, rebuildCache } from './ops'
 
 export async function exportData(env: Env): Promise<Backup> {
 	const [pages, rows, settings, themes] = await Promise.all([
@@ -115,7 +115,7 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 		pageIds.add(page.id)
 		claim(handle, msg('網址代稱'))
 		// Published content goes straight to visitors, so it has to pass the same checks as the publish button.
-		const problem = page.published ? publishProblems(page.published, handle)[0] : undefined
+		const problem = page.published ? publishProblems(page.published, handle).find((found) => found.key !== SAME_ID) : undefined
 		if (problem) {
 			throw new ApiError(400, 'invalid', { key: msg('備份檔裡「{handle}」已發布的內容有問題：{problem}'), params: { handle, problem: problemMessage(problem) } })
 		}
@@ -168,15 +168,16 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 
 	// Every old KV copy goes first, so nothing outdated is left for visitors if a later step fails.
 	// A short link that comes back as it was keeps its copy: on the free plan a delete uses up the same 1,000 a day as a write.
-	const incoming = new Map(rows.map((row) => [row.slug, JSON.stringify(toLinkRecord(row))]))
-	await dropCopies(
-		env,
-		oldHandles,
-		oldLinks
+	// Only one that comes back live: a link the backup has archived redirects nowhere, and a copy kept for it
+	// would go on redirecting, with nothing in D1 left to change that would take it away.
+	const incoming = new Map(rows.filter((row) => row.status === 'active' && !row.slug.startsWith('~')).map((row) => [row.slug, JSON.stringify(toLinkRecord(row))]))
+	const dropped = [
+		...oldHandles,
+		...oldLinks
 			.filter((row) => row.status === 'active' && !row.slug.startsWith('~') && incoming.get(row.slug) !== JSON.stringify(toLinkRecord(row)))
 			.map((row) => row.slug),
-		{ home: true },
-	)
+	]
+	await dropCopies(env, dropped, [], { home: true })
 	await db.batch([
 		db.prepare('DELETE FROM page_versions'),
 		db.prepare('DELETE FROM pages'),
@@ -209,6 +210,12 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 		saveThemesStatement(db, backup.themes),
 	])
 
+	// None of those names gets a fresh copy here, so each is deleted once more (dropAgain): a visit while the copies
+	// were going read the old rows and may have put one back. As far as one request's KV operations go, and the
+	// names the backup doesn't have first: a page it removed must not stay public.
+	const comingBack = new Set([...backup.pages.map((page) => normalizeSlug(page.handle)), ...incoming.keys()])
+	const again = [...dropped.filter((name) => !comingBack.has(name)), ...dropped.filter((name) => comingBack.has(name))]
+	await dropAgain(env, again.slice(0, Math.max(0, KV_OPS_AT_ONCE - dropped.length)))
 	await rebuildCache(env)
 	return { pages: backup.pages.length, shortLinks: rows.length }
 }

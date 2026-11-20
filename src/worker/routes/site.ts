@@ -29,12 +29,12 @@ import { renderSystemPage, type SystemPageKind, type SystemPageOptions } from '.
 import { agentGuide, agentSkill, guideSite, workerNameOf } from '../lib/agent'
 import { getLinkRecord, getNamed, getSnapshot, type LinkRecord, type SiteRecord, type Snapshot } from '../lib/cache'
 import { readPreviewToken, sessionKeyOf } from '../lib/auth'
-import { ensureSchema, getPage, listPublished, loadSettings, publicNames } from '../lib/db'
+import { ensureSchema, getPage, listOwnLinks, listPublished, loadSettings, passwordLocked, publicNames, returnPasswordTry, takePasswordTry } from '../lib/db'
 import { fontKey } from '../lib/fonts'
 import { MEDIA_CACHE, MEDIA_CSP, readMedia } from '../lib/media'
 import { isTestSite } from '../lib/mode'
 import { siteId, sitesOf } from '../lib/sites'
-import { findSite, linkRecordFromDb, siteFromDb, siteTimeZone, snapshotFromDb, systemSite } from '../lib/ops'
+import { findSite, linkNeedsWorker, linkRecordFromDb, siteFromDb, siteTimeZone, snapshotFromDb, systemSite, type Later } from '../lib/ops'
 import { verifyLinkPassword } from '../lib/password'
 import { pingSignature } from '../lib/domain'
 import { UTM_PARAMS } from '../lib/analytics'
@@ -145,7 +145,7 @@ site.get('/skill.md', (c) =>
 
 // For search engines. Neither can be a page or a short link: slugs can't contain dots.
 site.get('/robots.txt', async (c) => {
-	const pages = ((await systemSite(c.env)) ?? (await findSite(c.env))).bio
+	const pages = ((await systemSite(c.env)) ?? (await findSite(c.env, later(c)))).bio
 	return c.text(robotsTxt(new URL(c.req.url).origin, pages, isTestSite(c.env)), 200, { 'cache-control': 'public, max-age=3600' })
 })
 site.get('/sitemap.xml', async (c) => {
@@ -184,15 +184,21 @@ async function sitemapPages(env: Env): Promise<SitemapPage[]> {
 		.sort((a, b) => Number(b.path === '/') - Number(a.path === '/'))
 }
 
+/** A copy rebuilt for this visit is checked against D1 after the visitor has their answer (takeBackIfOld in lib/ops.ts). */
+const later =
+	(c: SiteContext): Later =>
+	(work) =>
+		c.executionCtx.waitUntil(work)
+
 site.get('/', async (c) => {
-	const record = await findSite(c.env)
+	const record = await findSite(c.env, later(c))
 	if (!record.bio) return record.homeUrl ? redirect(record.homeUrl, 302) : systemPage(c, 'short-links', 200, { site: record })
 	// The home page comes with the record, so this is the only read.
 	if (record.page) return serveBio(c, record.page)
 	if (record.home) {
 		// Its copy was taken out for a change whose last write never arrived: the page is served from its own copy
 		// or D1, and the record is written again.
-		const snapshot = (await getSnapshot(c.env, record.home)) ?? (await snapshotFromDb(c.env, record.home))
+		const snapshot = (await getSnapshot(c.env, record.home)) ?? (await snapshotFromDb(c.env, record.home, later(c)))
 		if (snapshot) {
 			c.executionCtx.waitUntil(siteFromDb(c.env).catch((error: unknown) => console.error('Could not rewrite the site record', error)))
 			return serveBio(c, snapshot)
@@ -216,8 +222,17 @@ site.get('/_draft/:token', async (c) => {
 	if (!page || !settings.bio) return systemPage(c, 'not-found', 404)
 	if (page.draft.custom) return customPageResponse(page.draft.custom, draftHeaders)
 	const nonce = randomString(18)
+	// Whoever holds this link is not the owner. A link behind a password, or one whose address is hidden, shows its
+	// short link here as on the live page, and nothing where it has none yet.
+	// Archived rows too: a link taken off the page keeps its password, and has it again when it is published back,
+	// as a version put back does.
+	const rows = await listOwnLinks(c.env.DB, page.id)
+	const slugs = new Map(rows.filter((row) => row.status === 'active' && !row.slug.startsWith('~')).map((row) => [row.id, row.slug]))
 	const html = renderBioPage(page.draft, {
 		mode: 'preview',
+		keepPrivate: true,
+		viaShortLink: rows.filter(linkNeedsWorker).map((row) => row.id),
+		linkHref: (link) => (slugs.has(link.id) ? `/${encodeURIComponent(slugs.get(link.id)!)}` : '#'),
 		locale: requestedLocale(c.req.query('lang'), settings.locale, settings.languages, c.req.header('accept-language')),
 		mediaUrl: (id) => `/media/${id}`,
 		timeZone: settings.timezone,
@@ -239,7 +254,7 @@ site.get('/_draft/:token/version', async (c) => {
 
 site.get('/_c/:handle/:item/:part', async (c) => {
 	const handle = normalizeSlug(c.req.param('handle'))
-	const snapshot = (await getSnapshot(c.env, handle)) ?? (await snapshotFromDb(c.env, handle))
+	const snapshot = (await getSnapshot(c.env, handle)) ?? (await snapshotFromDb(c.env, handle, later(c)))
 	if (!snapshot) return systemPage(c, 'not-found', 404)
 	const tap = tapOn(snapshot, c.req.param('item'), c.req.param('part'))
 	if (!tap) return c.redirect(snapshot.home ? '/' : `/${encodeURIComponent(snapshot.handle)}`, 302)
@@ -250,7 +265,7 @@ site.get('/_c/:handle/:item/:part', async (c) => {
 // What TAP_SCRIPT and the ping attribute send: the browser is already on its way to the address.
 site.post('/_c/:handle/:item/:part', async (c) => {
 	const handle = normalizeSlug(c.req.param('handle'))
-	const snapshot = (await getSnapshot(c.env, handle)) ?? (await snapshotFromDb(c.env, handle))
+	const snapshot = (await getSnapshot(c.env, handle)) ?? (await snapshotFromDb(c.env, handle, later(c)))
 	const tap = snapshot && tapOn(snapshot, c.req.param('item'), c.req.param('part'))
 	if (snapshot && tap) countTap(c, snapshot, tap)
 	return c.body(null, 204, { 'cache-control': 'no-store' })
@@ -264,11 +279,11 @@ site.get('/:segment', async (c) => {
 	const named = await getNamed(c.env, slug)
 	if (named?.link) return serveLink(c, named.link, slug)
 	if (named?.page) return serveBio(c, named.page)
-	const [stored, page] = await Promise.all([linkRecordFromDb(c.env, slug), snapshotFromDb(c.env, slug)])
+	const [stored, page] = await Promise.all([linkRecordFromDb(c.env, slug, later(c)), snapshotFromDb(c.env, slug, later(c))])
 	if (stored) return serveLink(c, stored, slug)
 	if (page) return serveBio(c, page)
 	// Whether pages are on decides if any address may be suggested, so a site with no record in KV yet gets one made.
-	const record = (await systemSite(c.env)) ?? (await findSite(c.env).catch(() => undefined))
+	const record = (await systemSite(c.env)) ?? (await findSite(c.env, later(c)).catch(() => undefined))
 	return systemPage(c, 'not-found', 404, { site: record, suggestions: await suggestionsFor(c.env, slug, record), meta: `${new URL(c.req.url).host}/${slug}` })
 })
 
@@ -276,16 +291,32 @@ site.get('/:segment', async (c) => {
 site.post('/:segment', async (c) => {
 	const slug = normalizeSlug(c.req.param('segment'))
 	if (slugProblem(slug) === 'format') return systemPage(c, 'not-found', 404)
-	const record = (await getLinkRecord(c.env, slug)) ?? (await linkRecordFromDb(c.env, slug))
+	const record = (await getLinkRecord(c.env, slug)) ?? (await linkRecordFromDb(c.env, slug, later(c)))
 	if (!record) return systemPage(c, 'not-found', 404)
 	const closed = await closedPage(c, record, slug)
 	if (closed) return closed
 	if (!record.passwordHash) return c.redirect(c.req.path, 303)
+	const meta = `${new URL(c.req.url).host}/${slug}`
+	// A link takes ten wrong tries in a quarter of an hour (lib/db.ts). Past that it reads no password at all: a try
+	// at a locked link costs one row read and writes nothing. Tries sent all at once each cost a write to be counted,
+	// and only the first ten are looked at.
+	await ensureSchema(c.env.DB)
+	const locked = async () => systemPage(c, 'password', 429, { ...(await linkPage(c, record)), lockedPassword: true, meta })
+	if (await passwordLocked(c.env.DB, record.id)) return locked()
+	const tried = await takePasswordTry(c.env.DB, record.id)
+	const giveBack = () => c.executionCtx.waitUntil(returnPasswordTry(c.env.DB, record.id, tried.since).catch(() => {}))
+	if (!tried.ok) {
+		giveBack()
+		return locked()
+	}
 	const form = await c.req.parseBody()
 	const password = typeof form.password === 'string' ? form.password : ''
-	if (await verifyLinkPassword(password, record.passwordHash)) return click(c, record, slug, 303)
+	if (await verifyLinkPassword(password, record.passwordHash)) {
+		giveBack()
+		return click(c, record, slug, 303)
+	}
 	await scheduler.wait(500)
-	return systemPage(c, 'password', 401, { ...(await linkPage(c, record)), wrongPassword: true, meta: `${new URL(c.req.url).host}/${slug}` })
+	return systemPage(c, 'password', 401, { ...(await linkPage(c, record)), wrongPassword: true, meta })
 })
 
 function sourceOf(c: SiteContext): string {
@@ -466,7 +497,7 @@ async function closedPage(c: SiteContext, record: LinkRecord, slug: string): Pro
 /** The page a bio link sits on, so its system pages wear that page's look and can point back to it. */
 async function linkPage(c: SiteContext, record: LinkRecord): Promise<Pick<SystemPageOptions, 'page' | 'appearance'> & { site?: SiteRecord }> {
 	if (!record.page) return {}
-	const site = (await systemSite(c.env)) ?? (await findSite(c.env))
+	const site = (await systemSite(c.env)) ?? (await findSite(c.env, later(c)))
 	// With pages off there is nothing to point back to.
 	if (!site.bio) return { site }
 	const page = await getPage(c.env.DB, record.page)
@@ -546,18 +577,38 @@ function click(c: SiteContext, record: LinkRecord, slug: string, status: 302 | 3
 	return redirect(location, status)
 }
 
-/** Edit distance where swapping two neighbors counts as one typo ("lnes" → "lens"), for "did you mean". */
-function distance(a: string, b: string): number {
-	const d = Array.from({ length: a.length + 1 }, (_, i) => Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)))
+/** No address is longer than this, and one that is longer than any name by more than a typo or two is near none. */
+const SUGGEST_UP_TO = 64
+
+/**
+ * Edit distance where swapping two neighbors counts as one typo ("lnes" → "lens"), for "did you mean": the distance
+ * when it is at most `limit`, and `limit + 1` for anything further. Every address that doesn't exist asks this of
+ * every public name, and anyone can ask for such addresses all day, so it has to cost next to nothing: names of
+ * another length are turned away at once, only the cells within `limit` of the diagonal are filled, in three rows
+ * that are used again, and it stops at the first row that is already too far.
+ */
+export function distance(a: string, b: string, limit: number, rows: [Uint16Array, Uint16Array, Uint16Array]): number {
+	const far = limit + 1
+	if (Math.abs(a.length - b.length) > limit) return far
+	let [before, last, row] = rows
+	for (let j = 0; j <= b.length; j++) last[j] = j
 	for (let i = 1; i <= a.length; i++) {
-		for (let j = 1; j <= b.length; j++) {
+		const from = Math.max(1, i - limit)
+		const to = Math.min(b.length, i + limit)
+		row[from - 1] = from === 1 ? i : far
+		let least = row[from - 1]!
+		for (let j = from; j <= to; j++) {
 			const cost = a[i - 1] === b[j - 1] ? 0 : 1
-			let best = Math.min(d[i - 1]![j]! + 1, d[i]![j - 1]! + 1, d[i - 1]![j - 1]! + cost)
-			if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) best = Math.min(best, d[i - 2]![j - 2]! + 1)
-			d[i]![j] = best
+			let best = Math.min(last[j]! + 1, row[j - 1]! + 1, last[j - 1]! + cost)
+			if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) best = Math.min(best, before[j - 2]! + 1)
+			row[j] = Math.min(best, far)
+			if (row[j]! < least) least = row[j]!
 		}
+		if (to < b.length) row[to + 1] = far
+		if (least > limit) return far
+		;[before, last, row] = [last, row, before]
 	}
-	return d[a.length]![b.length]!
+	return Math.min(last[b.length]!, far)
 }
 
 /**
@@ -567,20 +618,22 @@ function distance(a: string, b: string): number {
  */
 async function suggestionsFor(env: Env, slug: string, site: SiteRecord | undefined): Promise<string[]> {
 	// With pages off there are no public addresses to suggest.
-	if (slugProblem(slug) || slug.length < 2 || site?.bio === false) return []
+	if (slugProblem(slug) || slug.length < 2 || slug.length > SUGGEST_UP_TO || site?.bio === false) return []
 	try {
 		await ensureSchema(env.DB)
 		const now = Date.now()
-		const names = new Set(
-			(await publicNames(env.DB, now)).filter((entry) => (entry.startsAt === null || entry.startsAt <= now) && (entry.endsAt === null || entry.endsAt > now)).map((entry) => entry.name),
-		)
 		const limit = slug.length <= 4 ? 1 : 2
-		return [...names]
-			.map((name) => ({ name, d: distance(slug, name) }))
-			.filter((entry) => entry.d <= limit && entry.d > 0)
-			.sort((a, b) => a.d - b.d)
+		const rows: [Uint16Array, Uint16Array, Uint16Array] = [new Uint16Array(SUGGEST_UP_TO + limit + 2), new Uint16Array(SUGGEST_UP_TO + limit + 2), new Uint16Array(SUGGEST_UP_TO + limit + 2)]
+		const near = new Map<string, number>()
+		for (const entry of await publicNames(env.DB, now)) {
+			if ((entry.startsAt !== null && entry.startsAt > now) || (entry.endsAt !== null && entry.endsAt <= now) || near.has(entry.name)) continue
+			const d = distance(slug, entry.name, limit, rows)
+			if (d > 0 && d <= limit) near.set(entry.name, d)
+		}
+		return [...near]
+			.sort((a, b) => a[1] - b[1])
 			.slice(0, 2)
-			.map((entry) => entry.name)
+			.map(([name]) => name)
 	} catch {
 		return []
 	}
@@ -589,7 +642,7 @@ async function suggestionsFor(env: Env, slug: string, site: SiteRecord | undefin
 export async function systemPage(
 	c: SiteContext,
 	kind: SystemPageKind,
-	status: 200 | 401 | 403 | 404 | 410,
+	status: 200 | 401 | 403 | 404 | 410 | 429,
 	extra: Partial<SystemPageOptions> & { site?: SiteRecord } = {},
 ): Promise<Response> {
 	const { site: known, ...options } = extra

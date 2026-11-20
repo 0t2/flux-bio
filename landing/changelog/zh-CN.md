@@ -5,6 +5,19 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.6 - 2026-11-20
+
+### 安全
+- 草稿的预览链接不再显示设了密码或隐藏网址的链接的真实网址。这类按钮在预览里也会走短链接，和正式页面一样。 [#55](https://github.com/0t2/flux-bio/pull/55)
+- 链接密码在 15 分钟内输错十次后，要等时间到了才能再试。之前没有次数限制。 [#55](https://github.com/0t2/flux-bio/pull/55)
+- 不存在的网址不再因为越长就越耗资源。在大型站点上，查找相近网址可能花掉一次请求时间上限的好几倍，而任何人都能发出这种网址。 [#55](https://github.com/0t2/flux-bio/pull/55)
+
+### 修复
+- 已归档的短链接、已删除的页面或页面的旧网址，如果恰好有人在变更的那一刻访问，可能会重新出现并一直保留。 [#55](https://github.com/0t2/flux-bio/pull/55)
+- 还原备份后，备份里已归档的链接不会再继续跳转。 [#55](https://github.com/0t2/flux-bio/pull/55)
+- 在其他内容保存的同时存入的设置不会被覆盖；已写入数据库但没有送到访客面前的变更，再做一次就会送出去。 [#55](https://github.com/0t2/flux-bio/pull/55)
+- 同一页有两个相同 id 的项目时，发布会被拒绝：其中一个的短链接原本会失效。 [#55](https://github.com/0t2/flux-bio/pull/55)
+
 ## 0.4.5 - 2026-11-20
 
 ### 修复

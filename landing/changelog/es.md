@@ -5,6 +5,19 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.6 - 2026-11-20
+
+### Seguridad
+- El enlace de vista previa de un borrador ya no muestra la dirección de un enlace protegido con contraseña o con la dirección oculta. Ese botón pasa allí por su enlace corto, igual que en la página publicada. [#55](https://github.com/0t2/flux-bio/pull/55)
+- La contraseña de un enlace admite diez intentos fallidos en 15 minutos y después ninguno hasta que pase ese tiempo. Antes no había límite. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Una dirección que no existe ya no cuesta más cuanto más larga es. Buscar una dirección parecida podía llevar varias veces el límite de tiempo de una petición en un sitio grande, y cualquiera podía pedir direcciones así. [#55](https://github.com/0t2/flux-bio/pull/55)
+
+### Correcciones
+- Un enlace corto archivado, una página eliminada o la dirección antigua de una página podían volver, y quedarse, si alguien visitaba justo en el momento del cambio. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Restaurar una copia de seguridad ya no deja redirigiendo un enlace que la copia tiene archivado. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Un ajuste guardado mientras se guardaba otra cosa se conserva, y un cambio que llegó a la base de datos pero no a tus visitantes se les envía cuando lo haces de nuevo. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Dos elementos con el mismo id en una página se rechazan al publicar: el enlace corto de uno de ellos no habría funcionado. [#55](https://github.com/0t2/flux-bio/pull/55)
+
 ## 0.4.5 - 2026-11-20
 
 ### Correcciones

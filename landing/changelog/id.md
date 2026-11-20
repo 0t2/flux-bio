@@ -5,6 +5,19 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.6 - 2026-11-20
+
+### Keamanan
+- Tautan pratinjau sebuah draf tidak lagi menampilkan alamat tautan yang dilindungi kata sandi atau yang alamatnya disembunyikan. Tombol seperti itu di sana melewati tautan pendeknya, sama seperti di halaman yang sudah terbit. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Kata sandi sebuah tautan menerima sepuluh percobaan salah dalam 15 menit, lalu tidak menerima lagi sampai waktu itu habis. Sebelumnya tidak ada batas. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Alamat yang tidak ada tidak lagi makin mahal ketika makin panjang. Mencari alamat yang mirip bisa memakan beberapa kali batas waktu satu permintaan di situs besar, dan siapa pun bisa meminta alamat seperti itu. [#55](https://github.com/0t2/flux-bio/pull/55)
+
+### Diperbaiki
+- Tautan pendek yang diarsipkan, halaman yang dihapus, atau alamat lama sebuah halaman bisa muncul kembali dan menetap jika seseorang berkunjung tepat pada saat perubahan. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Memulihkan cadangan tidak lagi membiarkan tautan yang diarsipkan dalam cadangan itu terus mengalihkan. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Pengaturan yang disimpan saat hal lain sedang disimpan tetap terjaga, dan perubahan yang sampai ke database tetapi belum sampai ke pengunjung dikirim kepada mereka ketika Anda melakukannya lagi. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Dua item dengan id yang sama di satu halaman ditolak saat diterbitkan: tautan pendek salah satunya tidak akan berfungsi. [#55](https://github.com/0t2/flux-bio/pull/55)
+
 ## 0.4.5 - 2026-11-20
 
 ### Diperbaiki

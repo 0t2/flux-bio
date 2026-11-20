@@ -26,6 +26,7 @@ import {
 	putLinkRecord,
 	putSite,
 	putSnapshot,
+	SITE_KEY,
 	toLinkRecord,
 	type LinkRecord,
 	type SiteRecord,
@@ -46,12 +47,17 @@ import {
 	listPageLinks,
 	getPageByHandle,
 	insertPageStatement,
+	changeSettings,
+	homeIfNoneStatement,
 	loadSettings,
+	loadSettingsWith,
+	noLongerHomeStatement,
+	clearPasswordTriesStatement,
+	publishedHandlesAfter,
 	ownersOf,
 	pageExists,
 	publishedHandles,
 	recentlyPublishedPages,
-	saveSettingsStatement,
 	upsertLinkStatement,
 	type LinkRow,
 	type PageRow,
@@ -126,7 +132,7 @@ function assertNameFree(name: string, taken: Set<string>, label: string): void {
 }
 
 /** A password, device routing and UTM tags only happen in a redirect, so a button that skipped it would skip them. */
-function linkNeedsWorker(link: LinkRow): boolean {
+export function linkNeedsWorker(link: LinkRow): boolean {
 	return Boolean(link.passwordHash || link.iosUrl || link.androidUrl || link.lineExternal || link.inAppPrompt || link.utmSource || link.utmMedium || link.utmCampaign || link.utmContent)
 }
 
@@ -182,6 +188,66 @@ async function dropHomeCopy(env: Env): Promise<void> {
 	await storeSite(env, rest)
 }
 
+/**
+ * After D1 has changed, the names that get no fresh copy are deleted once more. A visit between the first delete
+ * and the change read the old row, and may have put its copy back: an archived link that redirects again, a deleted
+ * page that is public again, and nothing would ever take that copy away. A failure here is only logged, since D1 is
+ * right by now. What a visit rebuilds after this delete it checks against D1 itself (stillThere).
+ */
+/**
+ * What KV still has to be told after a settings change. It is written to _meta before KV is told and taken out when
+ * KV has been, so a change that reached D1 and not KV (the day's writes used up, a request cut short) is finished
+ * by the next settings call, whatever that one asks for.
+ */
+interface Owed {
+	/** The "site" record is to be written again. */
+	site: boolean
+	/** Pages whose own copy is to be written again: the ones that stopped or started being the home page. */
+	pages: string[]
+	/** Every page's copy after this handle is to be dropped, a slice a call: "" is all of them, null none. */
+	after: string | null
+}
+const COPIES_OWED = 'copies-owed'
+const NOTHING_OWED: Owed = { site: false, pages: [], after: null }
+const owesNothing = (owed: Owed) => !owed.site && !owed.pages.length && owed.after === null
+function owedFrom(stored: unknown): Owed {
+	if (!stored || typeof stored !== 'object') return NOTHING_OWED
+	const { site, pages, after } = stored as Partial<Record<keyof Owed, unknown>>
+	return { site: site === true, pages: Array.isArray(pages) ? pages.filter((id): id is string => typeof id === 'string').sort() : [], after: typeof after === 'string' ? after : null }
+}
+
+/** Something to be done after the response has left: `waitUntil`, where there is a request to hang it on. */
+export type Later = (work: Promise<unknown>) => void
+
+/**
+ * A copy rebuilt from D1 is checked against D1 once it is in KV, and taken back if D1 has moved on: the row may have
+ * changed between the read and the write, and whoever changed it has done their deletes by then. Where it can, this
+ * waits for nobody (`later`), which also means a visitor who leaves early doesn't leave the copy unchecked. If D1
+ * can't be asked the copy goes, and the next visit asks again.
+ */
+async function takeBackIfOld(later: Later | undefined, old: () => Promise<boolean>, takeBack: () => Promise<unknown>): Promise<void> {
+	const work = old()
+		.catch(() => true)
+		.then((is) => (is ? takeBack() : undefined))
+		.catch((error: unknown) => console.error('Could not take back an old copy', error))
+	if (later) later(work)
+	else await work
+}
+
+export async function dropAgain(env: Env, names: string[]): Promise<void> {
+	await putCopies([...new Set(names)].map((name) => deleteNamed(env, name)))
+}
+
+/** Whether a rebuilt copy reached KV. One that didn't is nothing to check, or to take back. */
+const put = (write: Promise<unknown>): Promise<boolean> =>
+	write.then(
+		() => true,
+		(error: unknown) => {
+			console.error('KV refused a write', error)
+			return false
+		},
+	)
+
 /** Writes fresh KV copies; see dropCopies for why a failure here only costs speed. */
 export async function putCopies(writes: (Promise<unknown> | null)[]): Promise<void> {
 	for (const result of await Promise.allSettled(writes)) {
@@ -232,18 +298,31 @@ async function siteRecord(db: D1Database, settings: Settings, pages: PageRow[]):
 }
 
 /** Builds the "site" record from D1 when KV doesn't have it, or has it without the home page's copy. */
-export async function siteFromDb(env: Env): Promise<SiteRecord> {
+export async function siteFromDb(env: Env, later?: Later): Promise<SiteRecord> {
 	await ensureSchema(env.DB)
-	const settings = await loadSettings(env.DB)
-	const site = await siteRecord(env.DB, settings, await sitePages(env.DB, settings))
-	await putCopies([storeSite(env, site)])
+	const build = async () => {
+		const settings = await loadSettings(env.DB)
+		return siteRecord(env.DB, settings, await sitePages(env.DB, settings))
+	}
+	const site = await build()
+	if (!(await put(storeSite(env, site)))) return site
+	// As for a page's copy (snapshotFromDb): the home page published again meanwhile must not stay as it was at "/".
+	const copy = JSON.stringify(site)
+	await takeBackIfOld(
+		later,
+		async () => JSON.stringify(await build()) !== copy,
+		async () => {
+			siteMemos.delete(siteId(env))
+			await env.KV.delete(SITE_KEY)
+		},
+	)
 	return site
 }
 
 /** The "site" record as it is now: KV first, then D1. This is the read "/" costs. */
-export async function findSite(env: Env): Promise<SiteRecord> {
+export async function findSite(env: Env, later?: Later): Promise<SiteRecord> {
 	const site = await getSite(env)
-	if (!site) return siteFromDb(env)
+	if (!site) return siteFromDb(env, later)
 	rememberSite(env, site)
 	return site
 }
@@ -475,6 +554,9 @@ export async function publishPage(env: Env, pageId: string, { by = null, seen }:
 	await dropCopies(env, [page.handle], replaced.map((row) => row.slug), { home: settings.home === pageId })
 	await db.batch(statements)
 	forgetPublicNames()
+	// The slugs that left the page or changed are written nowhere below.
+	const written = new Set(freshLinks.map((row) => row.slug))
+	await dropAgain(env, replaced.map((row) => row.slug).filter((slug) => !written.has(slug)))
 
 	// With pages off, the published version waits in D1 until they are on again.
 	const snapshot = await snapshotOf(db, { ...page, published: content, publishedAt: now, draft: content, fonts }, settings)
@@ -536,9 +618,9 @@ export async function createPage(env: Env, input: NewPage): Promise<PageRow> {
 	// The first page is also the home page.
 	const settings = await loadSettings(db)
 	const first = last === null
-	if (first) statements.push(saveSettingsStatement(db, { ...settings, home: page.id }))
+	if (first) statements.push(homeIfNoneStatement(db, settings, page.id))
 	await db.batch(statements)
-	if (first) await putCopies([writeSite(env, { ...settings, home: page.id }, [page])])
+	if (first) await putCopies([writeSite(env, await loadSettings(db), [page])])
 	return page
 }
 
@@ -556,6 +638,7 @@ export async function renamePage(env: Env, id: string, input: string): Promise<P
 	await dropCopies(env, [page.handle, handle], [], { home: settings.home === id })
 	await db.prepare('UPDATE pages SET handle = ?1 WHERE id = ?2').bind(handle, id).run()
 	forgetPublicNames()
+	await dropAgain(env, [page.handle])
 	const renamed = { ...page, handle }
 	const snapshot = await snapshotOf(env.DB, renamed, settings)
 	await putCopies([snapshot ? putSnapshot(env, snapshot) : null, settings.home === id ? writeSite(env, settings) : null])
@@ -576,23 +659,24 @@ export async function deletePage(env: Env, id: string): Promise<void> {
 	const [page, another, own, settings] = await Promise.all([getPage(db, id), hasOtherPage(db, id), listOwnLinks(db, id), loadSettings(db)])
 	if (!page) throw new ApiError(404, 'not-found', msg('找不到這個頁面'))
 	if (!another) throw new ApiError(409, 'last-page', msg('至少要留一個頁面'))
-	const nextSettings = settings.home === id ? { ...settings, home: '' } : settings
-	await dropCopies(
-		env,
-		[page.handle],
-		own.filter((row) => row.status === 'active' && !row.slug.startsWith('~')).map((row) => row.slug),
-		{ home: settings.home === id },
-	)
-	await db.batch([
+	const names = [page.handle, ...own.filter((row) => row.status === 'active' && !row.slug.startsWith('~')).map((row) => row.slug)]
+	await dropCopies(env, [page.handle], names.slice(1), { home: settings.home === id })
+	const done = await db.batch([
+		// Only the home page, and only that field: the settings as they were read above may be older than what
+		// someone else has saved since.
+		noLongerHomeStatement(db, id),
 		db
 			.prepare("UPDATE links SET status = 'archived', slug = '~' || id, updated_at = ?1 WHERE kind = 'bio' AND page_id = ?2")
 			.bind(Date.now(), id),
 		db.prepare('DELETE FROM page_versions WHERE page_id = ?1').bind(id),
 		db.prepare('DELETE FROM pages WHERE id = ?1').bind(id),
-		saveSettingsStatement(db, nextSettings),
 	])
 	forgetPublicNames()
-	await putCopies([settings.home === id ? writeSite(env, nextSettings) : null])
+	await dropAgain(env, names)
+	// Whether it was the home page is what D1 just said, not what was read before: it may have been made the home
+	// page since, and "/" would go on showing it.
+	const wasHome = settings.home === id || (done[0]?.meta.changes ?? 0) > 0
+	await putCopies([wasHome ? writeSite(env, await loadSettings(db)) : null])
 	await deleteFontFiles(env, unusedFontFiles(page.fonts, null))
 }
 
@@ -609,74 +693,174 @@ export function normalizeDomain(value: string): string {
 	}
 }
 
-/** Settings to save; a list of languages, a font switch, the bio switch or its redirect left out keeps the current one. */
-export type SettingsInput = Omit<Settings, 'languages' | 'hostFonts' | 'bio' | 'homeUrl' | 'qrLogo' | 'plan'> & {
-	qrLogo?: string
-	plan?: Settings['plan']
-	languages?: Settings['languages']
-	hostFonts?: boolean
-	bio?: boolean
-	homeUrl?: string
+/** What a request asks to change in the settings. Whatever it leaves out stays as it is now, not as it was when the request began. */
+export type SettingsPatch = Partial<Settings>
+
+export async function updateSettings(env: Env, patch: SettingsPatch): Promise<{ settings: Settings; copiesLeft: boolean }> {
+	const db = env.DB
+	if (patch.timezone !== undefined && !isValidTimeZone(patch.timezone)) throw new ApiError(400, 'invalid', msg('時區格式不正確'))
+	if (patch.home && !(await pageExists(db, patch.home))) throw new ApiError(400, 'invalid', msg('找不到要放在首頁的頁面'))
+	const domain = patch.domain === undefined ? undefined : normalizeDomain(patch.domain)
+	const homeUrl = patch.homeUrl === undefined ? undefined : (optionalUrl(patch.homeUrl, msg('首頁轉址')) ?? '')
+	const change = (current: Settings): Settings => {
+		const asked = { ...current, ...(Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined)) as SettingsPatch) }
+		return { ...asked, languages: otherLanguages(asked.locale, patch.languages ?? current.languages), domain: domain ?? current.domain, homeUrl: homeUrl ?? current.homeUrl }
+	}
+
+	// What the change will owe KV is noted before D1 has the change, from the settings as they are read now: if
+	// anything stops this request after D1 has it, the note is there, and the same request sent again finishes it.
+	// Another request saving in between only makes the note say too much, which costs a write or two and no more.
+	const { settings: seen, other: noted } = await loadSettingsWith(db, COPIES_OWED)
+	const note = owedNote(db, noted)
+	let owed = await note.keep(owedTogether(note.owed(), owedBy(seen, change(seen))))
+
+	// From the settings as they are at this moment: another request may have saved since this one started.
+	const { previous, next } = await changeSettings(db, change)
+	forgetPublicNames()
+	owed = await note.keep(owedTogether(owed, owedBy(previous, next)))
+	const bioChanged = previous.bio !== next.bio
+	// Every snapshot carries the languages and whether fonts are copied, so each has to go. Dropping one takes no
+	// parsing and no D1 read per page, and the page's next visit rebuilds it from D1, so pages nobody visits never
+	// cost a write.
+	const everyPage = previous.locale !== next.locale || previous.languages.join() !== next.languages.join() || previous.hostFonts !== next.hostFonts
+	if (bioChanged) {
+		// Going off takes every page's copy away and none is written while pages are off, so this settles all of it.
+		await switchBio(env, previous, next).catch(async (error: unknown) => {
+			// Refused, and put back. KV may hold half of it, which the note has to go on saying, looked at afresh:
+			// another request may have taken the same note out.
+			await note.keep(owed, true).catch((failed: unknown) => console.error('Could not note what KV is owed', failed))
+			throw error
+		})
+		owed = NOTHING_OWED
+	}
+	// Copying fonts turned on or off, or another language with its own built-in text: published pages' fonts change.
+	const unusedFonts = everyPage ? await refreshFonts(env, previous, next) : []
+
+	let copiesLeft = false
+	let refused: unknown
+	try {
+		// Twice at most: once for what is owed, and once more if someone else saved while KV was being told, since
+		// what this request wrote may then have landed on top of theirs. Past that it stays noted.
+		for (let pass = 0; pass < 2 && !owesNothing(owed) && !refused; pass++) {
+			// From the settings as they are by now, which another request may have changed again.
+			const current = await loadSettings(db)
+			// With pages off KV holds no page, so there is nothing to do for one. It stays noted all the same:
+			// the switch may be someone else's that is yet to be refused and put back, and one that holds settles it.
+			if (current.bio && owed.after !== null) {
+				const handles = await publishedHandlesAfter(db, owed.after, KV_OPS_AT_ONCE + 1)
+				const now = handles.slice(0, KV_OPS_AT_ONCE)
+				const failed = (await Promise.allSettled(now.map((handle) => deleteNamed(env, handle)))).find((result) => result.status === 'rejected')
+				// One refused: the same slice again next time. More than a slice: on from the last one dropped.
+				if (failed) refused = failed.reason
+				else if (handles.length > now.length) {
+					owed = { ...owed, after: now[now.length - 1]! }
+					copiesLeft = true
+				} else owed = { ...owed, after: null }
+			}
+			if (current.bio && owed.pages.length) {
+				const pages = await getPagesByIds(db, owed.pages)
+				const snapshots = await Promise.all(pages.map((page) => snapshotOf(db, page, current)))
+				const failed = (await Promise.allSettled(snapshots.map((snapshot) => snapshot && putSnapshot(env, snapshot)))).find((result) => result.status === 'rejected')
+				if (failed) refused = failed.reason
+				else owed = { ...owed, pages: [] }
+			}
+			if (owed.site) {
+				const site = await siteRecord(db, current, await sitePages(db, current))
+				await storeSite(env, site).then(
+					() => (owed = { ...owed, site: false }),
+					(error: unknown) => (refused = error),
+				)
+			}
+			// What a save since that read owes is owed again by now, whoever told KV last.
+			const since = owedBy(current, await loadSettings(db))
+			if (owesNothing(since)) break
+			copiesLeft = false
+			owed = owedTogether(owed, since)
+		}
+	} finally {
+		// If this can't be saved, what was noted before KV was told still stands, and says at least as much.
+		await note.keep(owed, true).catch((error: unknown) => console.error('Could not note what KV is owed', error))
+	}
+	await deleteFontFiles(env, unusedFonts.slice(0, KV_OPS_AT_ONCE))
+	if (refused) {
+		// D1 has the change and KV doesn't. Said as an error, so that whoever saved it, the dashboard too, is told
+		// that visitors don't see it yet; what is owed is noted, and saving again sends it.
+		console.error('KV kept a copy after a settings change', refused)
+		throw new ApiError(503, 'kv', msg('已經儲存，但 Cloudflare KV 暫時寫不進去，訪客還看不到這次的修改。請稍後再儲存一次。'))
+	}
+	return { settings: next, copiesLeft }
 }
 
-export async function updateSettings(env: Env, input: SettingsInput): Promise<{ settings: Settings; copiesLeft: boolean }> {
-	const db = env.DB
-	if (!isValidTimeZone(input.timezone)) throw new ApiError(400, 'invalid', msg('時區格式不正確'))
-	if (input.home && !(await pageExists(db, input.home))) throw new ApiError(400, 'invalid', msg('找不到要放在首頁的頁面'))
-
-	const previous = await loadSettings(db)
-	const next: Settings = {
-		...input,
-		languages: otherLanguages(input.locale, input.languages ?? previous.languages),
-		domain: normalizeDomain(input.domain),
-		hostFonts: input.hostFonts ?? previous.hostFonts,
-		bio: input.bio ?? previous.bio,
-		homeUrl: input.homeUrl === undefined ? previous.homeUrl : (optionalUrl(input.homeUrl, msg('首頁轉址')) ?? ''),
-		qrLogo: input.qrLogo ?? previous.qrLogo,
-		plan: input.plan ?? previous.plan,
-	}
-	await saveSettingsStatement(db, next).run()
-	forgetPublicNames()
-	const bioChanged = previous.bio !== next.bio
-	if (bioChanged) await switchBio(env, previous, next)
-
-	const languagesChanged = previous.locale !== next.locale || previous.languages.join() !== next.languages.join()
-	const hostingChanged = previous.hostFonts !== next.hostFonts
-	const timezoneChanged = previous.timezone !== next.timezone
-	// Copying fonts turned on or off, or another language with its own built-in text: published pages' fonts change.
-	const unusedFonts = languagesChanged || hostingChanged ? await refreshFonts(env, previous, next) : []
+/** What one change to the settings owes KV. */
+function owedBy(previous: Settings, next: Settings): Owed {
+	// The switch is settled whole by switchBio; until it has been, the "site" record is what says pages are on or off.
+	if (previous.bio !== next.bio) return { site: true, pages: [], after: null }
+	const everyPage = previous.locale !== next.locale || previous.languages.join() !== next.languages.join() || previous.hostFonts !== next.hostFonts
 	const homeChanged = previous.home !== next.home
+	return {
+		// The home page's copy is in the "site" record, so that is also what brings "/" up to date. The time zone is
+		// in that record and nowhere else in KV; visits elsewhere ask for it (siteTimeZone).
+		site: everyPage || homeChanged || previous.timezone !== next.timezone || previous.homeUrl !== next.homeUrl,
+		// Only the two pages that stop or start being the home page say so in their snapshot.
+		pages: homeChanged && next.bio ? [previous.home, next.home].filter(Boolean) : [],
+		after: everyPage && next.bio ? '' : null,
+	}
+}
 
-	// Every snapshot carries these, so each has to go. Dropping one takes no parsing and no D1 read per page, and
-	// the page's next visit rebuilds it from D1, so pages nobody visits never cost a write. Going on or off has dealt with them.
-	const everyPage = languagesChanged || hostingChanged
-	let copiesLeft = false
-	const drop = async (keys: string[], dropOne: (key: string) => Promise<void>) => {
-		for (const result of await Promise.allSettled(keys.map(dropOne))) {
-			if (result.status === 'rejected') {
-				copiesLeft = true
-				console.error('KV kept a copy after a settings change', result.reason)
-			}
+/** Both of two things owed: never less than either. */
+function owedTogether(a: Owed, b: Owed): Owed {
+	return {
+		site: a.site || b.site,
+		pages: [...new Set([...a.pages, ...b.pages])].sort(),
+		// Two different places: from the start again, which is right whatever order the handles are in.
+		after: a.after === null ? b.after : b.after === null || b.after === a.after ? a.after : '',
+	}
+}
+
+/**
+ * The note of what KV is owed, kept so that two requests can't lose each other's: it is saved only over what this
+ * request last saw there. Where another request has written meanwhile, what that one noted stays, with this one's,
+ * and the caller is handed both to do. That can leave noted something already done, which the next call does again.
+ */
+function owedNote(db: D1Database, text: string | null) {
+	const parse = (value: string | null): Owed => {
+		try {
+			return owedFrom(value === null ? null : JSON.parse(value))
+		} catch {
+			return NOTHING_OWED
 		}
 	}
-	let budget = KV_OPS_AT_ONCE
-	if (next.bio && !bioChanged && everyPage) {
-		const handles = await publishedHandles(db)
-		if (handles.length > budget) copiesLeft = true
-		const dropped = handles.slice(0, budget)
-		budget -= dropped.length
-		await drop(dropped, (handle) => deleteNamed(env, handle))
-	} else if (next.bio && !bioChanged && homeChanged) {
-		// Only the two pages that stop or start being the home page say so in their snapshot.
-		const pages = await getPagesByIds(db, [previous.home, next.home].filter(Boolean))
-		const snapshots = await Promise.all(pages.map((page) => snapshotOf(db, page, next)))
-		await putCopies(snapshots.map((snapshot) => (snapshot ? putSnapshot(env, snapshot) : null)))
+	return {
+		owed: () => parse(text),
+		/** `sure` looks at the row before taking it to say what it last said: for when what is owed must not go unsaid. */
+		async keep(want: Owed, sure = false): Promise<Owed> {
+			const read = async () => (await db.prepare('SELECT value FROM _meta WHERE key = ?1').bind(COPIES_OWED).first<{ value: string }>())?.value ?? null
+			if (sure && !owesNothing(want)) {
+				const there = await read()
+				if (there !== text) {
+					text = there
+					want = owedTogether(parse(text), want)
+				}
+			}
+			for (let attempt = 0; ; attempt++) {
+				const next = owesNothing(want) ? null : JSON.stringify(want)
+				if (next === text) return want
+				const saved =
+					text === null
+						? await db.prepare('INSERT OR IGNORE INTO _meta (key, value) VALUES (?1, ?2)').bind(COPIES_OWED, next).run()
+						: next === null
+							? await db.prepare('DELETE FROM _meta WHERE key = ?1 AND value = ?2').bind(COPIES_OWED, text).run()
+							: await db.prepare('UPDATE _meta SET value = ?3 WHERE key = ?1 AND value = ?2').bind(COPIES_OWED, text, next).run()
+				if (saved.meta.changes > 0) {
+					text = next
+					return want
+				}
+				if (attempt >= 5) throw new Error('What KV is owed kept changing while it was being noted.')
+				text = await read()
+				want = owedTogether(parse(text), want)
+			}
+		},
 	}
-	// The home page's copy is in the "site" record, so this is also what brings "/" up to date. The time zone is
-	// in that record and nowhere else in KV; visits elsewhere ask for it (siteTimeZone).
-	if (!bioChanged && (everyPage || homeChanged || timezoneChanged || previous.homeUrl !== next.homeUrl)) await writeSite(env, next)
-	await deleteFontFiles(env, unusedFonts.slice(0, KV_OPS_AT_ONCE))
-	return { settings: next, copiesLeft }
 }
 
 /**
@@ -691,8 +875,20 @@ async function switchBio(env: Env, previous: Settings, next: Settings): Promise<
 		await Promise.all([storeSite(env, await siteRecord(env.DB, next, await sitePages(env.DB, next))), ...stale.map((handle) => deleteNamed(env, handle))])
 	} catch (error) {
 		console.error('KV refused the bio switch', error)
-		await saveSettingsStatement(env.DB, previous).run()
-		await putCopies([storeSite(env, await siteRecord(env.DB, previous, await sitePages(env.DB, previous)))])
+		// What this request changed goes back, as the answer says nothing was saved: the switch, and a time zone or a
+		// language sent along with it. Only where it is still what this request made it: anything saved meanwhile is
+		// someone else's, and stays.
+		const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
+		const { next: back } = await changeSettings(env.DB, (current) => {
+			const restored = { ...current }
+			for (const key of Object.keys(next) as (keyof Settings)[]) {
+				if (!same(previous[key], next[key]) && same(current[key], next[key])) Object.assign(restored, { [key]: previous[key] })
+			}
+			// The page language is never among the others, whichever of the two went back.
+			restored.languages = otherLanguages(restored.locale, restored.languages)
+			return restored
+		})
+		await putCopies([storeSite(env, await siteRecord(env.DB, back, await sitePages(env.DB, back)))])
 		throw new ApiError(503, 'kv', msg('Cloudflare KV 暫時寫不進去，這次的修改沒有儲存，請稍後再試。'))
 	}
 }
@@ -874,6 +1070,8 @@ export async function setPageLinkSlug(
 	if (!saved.meta.changes) throw draftChanged()
 	await upsertLinkStatement(db, next).run()
 	forgetPublicNames()
+	// The slug it moved away from gets no copy below.
+	if (active && !unchanged) await dropAgain(env, [active.slug])
 	const snapshot = inPublished ? await snapshotOf(db, { ...page, draft, published, draftUpdatedAt }, settings) : null
 	await putCopies([putLinkRecord(env, slug, toLinkRecord(next)), snapshot ? putSnapshot(env, snapshot) : null, home ? writeSite(env, settings) : null])
 	return { row: next, draftUpdatedAt }
@@ -935,7 +1133,9 @@ export async function updateLink(env: Env, id: string, patch: LinkPatch): Promis
 	if (row.status === 'active' && (routingChanged || moved || next.status !== 'active')) {
 		await dropCopies(env, page ? [page.handle] : [], moved ? [row.slug, next.slug] : [row.slug], { home })
 	}
-	await upsertLinkStatement(db, next).run()
+	await db.batch([upsertLinkStatement(db, next), ...(patch.password !== undefined ? [clearPasswordTriesStatement(db, id)] : [])])
+	// An archived link's slug, and the slug a link moved away from, get no copy below.
+	if (row.status === 'active') await dropAgain(env, [...(moved ? [row.slug] : []), ...(next.status !== 'active' ? [row.slug, next.slug] : [])])
 	const snapshot = page ? await snapshotOf(db, page, settings) : null
 	await putCopies([
 		next.status === 'active' && (routingChanged || moved || row.status !== 'active') ? putLinkRecord(env, next.slug, toLinkRecord(next)) : null,
@@ -948,23 +1148,48 @@ export async function updateLink(env: Env, id: string, patch: LinkPatch): Promis
 // ---------------------------------------------------------------- reads that repair KV
 
 /** Falls back to D1 when KV has no record for a slug, and repairs KV. */
-export async function linkRecordFromDb(env: Env, slug: string): Promise<LinkRecord | null> {
+export async function linkRecordFromDb(env: Env, slug: string, later?: Later): Promise<LinkRecord | null> {
 	await ensureSchema(env.DB)
 	const row = await getLinkBySlug(env.DB, slug)
 	if (!row || row.status !== 'active') return null
 	const record = toLinkRecord(row)
-	await putCopies([putLinkRecord(env, slug, record)])
+	if (!(await put(putLinkRecord(env, slug, record)))) return record
+	// The row may have changed between that read and this write: an archived link's copy would then be back for
+	// good. Whoever changed it deleted the name before and after, so a copy put back later than that is taken
+	// away here, by the one who put it.
+	const copy = JSON.stringify(record)
+	await takeBackIfOld(
+		later,
+		async () => {
+			const now = await getLinkBySlug(env.DB, slug)
+			return !now || now.status !== 'active' || JSON.stringify(toLinkRecord(now)) !== copy
+		},
+		() => deleteNamed(env, slug),
+	)
 	return record
 }
 
 /** Falls back to D1 when KV has no snapshot for a handle, and repairs KV. */
-export async function snapshotFromDb(env: Env, handle: string): Promise<Snapshot | null> {
+export async function snapshotFromDb(env: Env, handle: string, later?: Later): Promise<Snapshot | null> {
 	await ensureSchema(env.DB)
 	// Most misses are addresses that were never anything, so the settings are only read for a page that exists.
 	const page = await getPageByHandle(env.DB, handle)
 	if (!page?.published) return null
 	const snapshot = await snapshotOf(env.DB, page, await loadSettings(env.DB))
-	if (snapshot) await putCopies([putSnapshot(env, snapshot)])
+	if (snapshot && (await put(putSnapshot(env, snapshot)))) {
+		// As for a link. A page's copy is made from more than its own row: which of its links go through their short
+		// link, the languages, whether pages are on at all. So it is made again whole and compared, and a link given
+		// a password meanwhile doesn't leave its address on the page.
+		const copy = JSON.stringify(snapshot)
+		await takeBackIfOld(
+			later,
+			async () => {
+				const [now, settings] = await Promise.all([getPageByHandle(env.DB, handle), loadSettings(env.DB)])
+				return JSON.stringify(now ? await snapshotOf(env.DB, now, settings) : null) !== copy
+			},
+			() => deleteNamed(env, handle),
+		)
+	}
 	return snapshot
 }
 

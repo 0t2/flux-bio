@@ -641,8 +641,9 @@ api.put('/settings', async (c) => {
 			if (!check.ok) throw new ApiError(400, 'domain', { key: check.key, params: check.params })
 		}
 	}
-	const { home = current.home, timezone = current.timezone, locale = current.locale } = input
-	const { settings, copiesLeft } = await updateSettings(c.env, { ...input, home, timezone, locale, domain })
+	// Only what was asked for is handed on. What it leaves out is read again when it is saved, not taken from the
+	// settings read above: checking a domain can take seconds, and someone else may have saved in that time.
+	const { settings, copiesLeft } = await updateSettings(c.env, input.domain === undefined ? input : { ...input, domain })
 	return c.json<SettingsResponse>({ settings, ...(copiesLeft ? { copiesLeft } : {}) })
 })
 

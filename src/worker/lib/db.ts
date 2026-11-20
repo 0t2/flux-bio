@@ -124,22 +124,40 @@ export function ensureSchema(db: D1Database): Promise<void> {
  * question is one trip to D1, not two: whoever waits for it, a visitor to a page with opening hours or the
  * dashboard's first request, waits that much less.
  */
-export async function migrate(db: D1Database): Promise<void> {
-	const [, read] = await db.batch<{ value: string }>([
-		db.prepare('CREATE TABLE IF NOT EXISTS _meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)'),
-		db.prepare("SELECT value FROM _meta WHERE key = 'schema_version'"),
-	])
-	const row = read?.results[0]
-	for (let version = row ? Number(row.value) : 0; version < MIGRATIONS.length; version++) {
-		const statements = (MIGRATIONS[version] ?? []).map((sql) => db.prepare(sql))
-		statements.push(
-			db
-				.prepare(
-					"INSERT INTO _meta (key, value) VALUES ('schema_version', ?1) ON CONFLICT (key) DO UPDATE SET value = excluded.value",
-				)
-				.bind(String(version + 1)),
-		)
-		await db.batch(statements)
+export async function migrate(db: D1Database, migrations: string[][] = MIGRATIONS): Promise<void> {
+	for (let attempt = 0; attempt < 5; attempt++) {
+		const [, read] = await db.batch<{ key: string; value: string }>([
+			db.prepare('CREATE TABLE IF NOT EXISTS _meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)'),
+			db.prepare("SELECT key, value FROM _meta WHERE key IN ('schema', 'schema_version')"),
+		])
+		const stored = new Map((read?.results ?? []).map((row) => [row.key, row.value]))
+		// How far a database has come is in "schema". Before 0.4.6 it was in "schema_version", whose numbers mean two
+		// things: the migrations were made into one in November 2026, and a database from before that says 10 where
+		// one made since says 1, for the same tables. Counted on from 10, the next nine migrations would be passed
+		// over without a word. Either number means the first migration has run, and nothing more.
+		const known = stored.get('schema')
+		const version = known !== undefined ? Number(known) : stored.has('schema_version') ? 1 : 0
+		if (known !== undefined && version >= migrations.length) return
+		// Two copies of the Worker can both find a migration to run. The second must not run it again, which for one
+		// that changes rows would change them twice: malformed JSON is an error, and an error undoes the whole batch,
+		// so a batch stops unless the database is still where it was read to be.
+		const still = (value: string | null) =>
+			db.prepare("SELECT json(CASE WHEN (SELECT value FROM _meta WHERE key = 'schema') IS ?1 THEN '1' ELSE '{' END)").bind(value)
+		const arrive = (at: number) =>
+			db.prepare("INSERT INTO _meta (key, value) VALUES ('schema', ?1) ON CONFLICT (key) DO UPDATE SET value = excluded.value").bind(String(at))
+		try {
+			let from = known ?? null
+			for (let at = version; at < migrations.length; at++) {
+				await db.batch([still(from), ...(migrations[at] ?? []).map((sql) => db.prepare(sql)), arrive(at + 1)])
+				from = String(at + 1)
+			}
+			// A database from before "schema" that needs nothing run still has to say where it is under that name.
+			if (from === null) await db.batch([still(null), arrive(version)])
+			return
+		} catch (error) {
+			// Another copy got there first: look again at where the database is. Anything else is a real failure.
+			if (!String(error instanceof Error ? error.message : error).includes('malformed JSON') || attempt === 4) throw error
+		}
 	}
 }
 
@@ -258,6 +276,15 @@ export async function pageExists(db: D1Database, id: string): Promise<boolean> {
 /** Handles of published pages, for dropping their KV copies. */
 export async function publishedHandles(db: D1Database): Promise<string[]> {
 	const { results } = await db.prepare('SELECT handle FROM pages WHERE published IS NOT NULL AND handle IS NOT NULL').all<{ handle: string }>()
+	return results.map((row) => row.handle)
+}
+
+/** Published pages' handles in order, after one: a slice of them, for work that is done a slice at a time. */
+export async function publishedHandlesAfter(db: D1Database, after: string, limit: number): Promise<string[]> {
+	const { results } = await db
+		.prepare('SELECT handle FROM pages WHERE published IS NOT NULL AND handle IS NOT NULL AND handle > ?1 ORDER BY handle LIMIT ?2')
+		.bind(after, limit)
+		.all<{ handle: string }>()
 	return results.map((row) => row.handle)
 }
 
@@ -479,12 +506,117 @@ export function writeMetaStatement(db: D1Database, key: string, value: unknown):
 		.bind(key, JSON.stringify(value))
 }
 
+/**
+ * Wrong tries at a link's password: ten in a quarter of an hour, then the link takes none until that time is up.
+ * A link's password is hashed fast, because a slow hash would cost every visitor the 10 ms a request has, so
+ * what stops someone trying every word is this count and not the hash.
+ */
+export const PASSWORD_TRIES = 10
+export const PASSWORD_WINDOW = 15 * 60_000
+const triesKey = (linkId: string) => `tries:${linkId}`
+
+/** Whether a link has had its wrong tries for now. One row read, and nothing written. */
+export async function passwordLocked(db: D1Database, linkId: string, now = Date.now()): Promise<boolean> {
+	const tries = (await readMeta(db, triesKey(linkId))) as { n?: number; since?: number } | undefined
+	return typeof tries?.n === 'number' && typeof tries.since === 'number' && now - tries.since < PASSWORD_WINDOW && tries.n >= PASSWORD_TRIES
+}
+
+/**
+ * Counts a try before the password is looked at, and answers whether it may be looked at. Counted first, in one
+ * statement, so that a thousand tries sent at once are a thousand counts and not a thousand looks.
+ */
+export async function takePasswordTry(db: D1Database, linkId: string, now = Date.now()): Promise<{ ok: boolean; since: number }> {
+	const row = await db
+		.prepare(
+			`INSERT INTO _meta (key, value) VALUES (?1, json_object('n', 1, 'since', ?2))
+			 ON CONFLICT (key) DO UPDATE SET value = CASE
+				WHEN json_extract(value, '$.since') <= ?3 THEN json_object('n', 1, 'since', ?2)
+				ELSE json_set(value, '$.n', json_extract(value, '$.n') + 1) END
+			 RETURNING json_extract(value, '$.n') AS n, json_extract(value, '$.since') AS since`,
+		)
+		.bind(triesKey(linkId), now, now - PASSWORD_WINDOW)
+		.first<{ n: number; since: number }>()
+	return { ok: (row?.n ?? 1) <= PASSWORD_TRIES, since: row?.since ?? now }
+}
+
+/**
+ * Gives a try back: one that was right, so the people a link is for don't use up what is kept for guessers, and
+ * one that was counted and never looked at, or the right password sent thirty times at once would leave a link
+ * locked that nobody guessed at. Only wrong tries that were looked at stay counted. `since` is the quarter of an
+ * hour the try was counted in: one given back late must not make room in the next.
+ */
+export async function returnPasswordTry(db: D1Database, linkId: string, since: number): Promise<void> {
+	await db
+		.prepare(`UPDATE _meta SET value = json_set(value, '$.n', max(0, json_extract(value, '$.n') - 1)) WHERE key = ?1 AND json_extract(value, '$.since') = ?2`)
+		.bind(triesKey(linkId), since)
+		.run()
+}
+
+/** A new password starts with no wrong tries: the owner who changes it because it was being guessed isn't locked out with the guessers. */
+export function clearPasswordTriesStatement(db: D1Database, linkId: string): D1PreparedStatement {
+	return db.prepare('DELETE FROM _meta WHERE key = ?1').bind(triesKey(linkId))
+}
+
 export async function loadSettings(db: D1Database): Promise<Settings> {
 	const parsed = SettingsSchema.safeParse(await readMeta(db, 'settings'))
 	return parsed.success ? parsed.data : { ...DEFAULT_SETTINGS }
 }
 
+/** The settings and one other row of _meta as it is written there, in one query. */
+export async function loadSettingsWith(db: D1Database, key: string): Promise<{ settings: Settings; other: string | null }> {
+	const { results } = await db.prepare("SELECT key, value FROM _meta WHERE key IN ('settings', ?1)").bind(key).all<{ key: string; value: string }>()
+	const text = (name: string) => results.find((row) => row.key === name)?.value ?? null
+	let stored: unknown
+	try {
+		stored = JSON.parse(text('settings') ?? 'null')
+	} catch {
+		stored = undefined
+	}
+	const parsed = SettingsSchema.safeParse(stored)
+	return { settings: parsed.success ? parsed.data : { ...DEFAULT_SETTINGS }, other: text(key) }
+}
+
 export const saveSettingsStatement = (db: D1Database, settings: Settings) => writeMetaStatement(db, 'settings', settings)
+
+/**
+ * Changes the settings from what they are now, and saves the result only if they are still that. Settings are one
+ * row, and several things change one field of it: whoever read the row, did something slow and wrote all of it
+ * back undid what another had changed meanwhile, a time zone gone back to UTC because a page was deleted.
+ */
+export async function changeSettings(db: D1Database, change: (current: Settings) => Settings): Promise<{ previous: Settings; next: Settings }> {
+	for (let attempt = 0; ; attempt++) {
+		const row = await db.prepare("SELECT value FROM _meta WHERE key = 'settings'").first<{ value: string }>()
+		let stored: unknown
+		try {
+			stored = row ? JSON.parse(row.value) : undefined
+		} catch {
+			stored = undefined
+		}
+		const parsed = SettingsSchema.safeParse(stored)
+		const previous = parsed.success ? parsed.data : { ...DEFAULT_SETTINGS }
+		const next = change(previous)
+		const saved = row
+			? await db.prepare("UPDATE _meta SET value = ?1 WHERE key = 'settings' AND value = ?2").bind(JSON.stringify(next), row.value).run()
+			: await db.prepare("INSERT OR IGNORE INTO _meta (key, value) VALUES ('settings', ?1)").bind(JSON.stringify(next)).run()
+		if (saved.meta.changes > 0) return { previous, next }
+		if (attempt >= 5) throw new Error('The settings kept changing while they were being saved.')
+	}
+}
+
+/** Makes a page the home page if there is none: the first page a site gets. One statement, to go in a batch with the page. */
+export function homeIfNoneStatement(db: D1Database, settings: Settings, pageId: string): D1PreparedStatement {
+	return db
+		.prepare(
+			`INSERT INTO _meta (key, value) VALUES ('settings', ?1)
+			 ON CONFLICT (key) DO UPDATE SET value = json_set(value, '$.home', ?2) WHERE coalesce(json_extract(value, '$.home'), '') = ''`,
+		)
+		.bind(JSON.stringify({ ...settings, home: pageId }), pageId)
+}
+
+/** Takes a page out of being the home page, if it is, and touches nothing else in the settings. */
+export function noLongerHomeStatement(db: D1Database, pageId: string): D1PreparedStatement {
+	return db.prepare("UPDATE _meta SET value = json_set(value, '$.home', '') WHERE key = 'settings' AND json_extract(value, '$.home') = ?1").bind(pageId)
+}
 
 export async function loadThemes(db: D1Database): Promise<SavedTheme[]> {
 	const raw = await readMeta(db, 'themes')

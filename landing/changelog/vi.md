@@ -5,6 +5,19 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.6 - 2026-11-20
+
+### Bảo mật
+- Liên kết xem trước của bản nháp không còn hiển thị địa chỉ của liên kết có mật khẩu hoặc đã ẩn địa chỉ. Nút như vậy ở đó cũng đi qua liên kết rút gọn, giống như trên trang đã xuất bản. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Mật khẩu của một liên kết cho phép nhập sai mười lần trong 15 phút, sau đó không nhận nữa cho đến khi hết thời gian đó. Trước đây không có giới hạn. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Một địa chỉ không tồn tại không còn tốn kém hơn khi nó dài hơn. Việc tìm địa chỉ gần giống có thể mất gấp nhiều lần giới hạn thời gian của một yêu cầu trên trang web lớn, và ai cũng có thể gửi những địa chỉ như vậy. [#55](https://github.com/0t2/flux-bio/pull/55)
+
+### Đã sửa
+- Một liên kết rút gọn đã lưu trữ, một trang đã xóa hoặc địa chỉ cũ của một trang có thể xuất hiện lại và tồn tại mãi nếu có người truy cập đúng vào lúc thay đổi. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Khôi phục bản sao lưu không còn để một liên kết mà bản sao lưu đã lưu trữ tiếp tục chuyển hướng. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Một cài đặt được lưu trong lúc thứ khác đang được lưu sẽ được giữ lại, và một thay đổi đã vào cơ sở dữ liệu nhưng chưa đến với khách truy cập sẽ được gửi đến họ khi bạn thực hiện lại. [#55](https://github.com/0t2/flux-bio/pull/55)
+- Hai mục có cùng id trên một trang sẽ bị từ chối khi xuất bản: liên kết rút gọn của một trong hai mục sẽ không hoạt động. [#55](https://github.com/0t2/flux-bio/pull/55)
+
 ## 0.4.5 - 2026-11-20
 
 ### Đã sửa

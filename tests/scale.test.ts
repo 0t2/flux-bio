@@ -178,7 +178,9 @@ describe(`a site with ${PAGES} pages and ${LINKS} short links`, () => {
 		const cost = await measure('/api/settings', { method: 'PUT', json: { home: 'page-2' } })
 		expect(cost.status).toBe(200)
 		expect(cost.rowsRead).toBeLessThan(100)
-		expect(cost.queries).toBeLessThanOrEqual(12)
+		// Two of these are the note of what KV is owed, written before KV is told and taken out after, and one is a
+		// look at the settings once KV has been told, in case someone else saved meanwhile (Owed in lib/ops.ts).
+		expect(cost.queries).toBeLessThanOrEqual(14)
 		expect(cost.kv).toBeLessThanOrEqual(4)
 	})
 
