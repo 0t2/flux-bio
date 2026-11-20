@@ -245,3 +245,52 @@ test('pnpm reset-password: an address that isn’t a FluxBio site changes nothin
 	assert.match(result.log, /doesn't answer as a FluxBio site/)
 	assert.equal(f.calls().some((args) => args.includes('secrets')), false)
 })
+
+// worker.json is the owner's own file, so what is wrong with it has to be said in words they can act on.
+async function settingsFrom(t, text) {
+	const dir = mkdtempSync(join(tmpdir(), 'fluxbio-worker-json-'))
+	t.after(() => rmSync(dir, { recursive: true, force: true }))
+	cpSync(join(root, 'worker.config.ts'), join(dir, 'worker.config.ts'))
+	if (text !== null) writeFileSync(join(dir, 'worker.json'), text)
+	const { workerSettings } = await import(`${join(dir, 'worker.config.ts')}?${Math.random()}`)
+	return workerSettings
+}
+
+test('worker.json: without the file, the Worker is flux-bio with detailed stats and no domain in the configuration', async (t) => {
+	const env = process.env.FLUXBIO_WORKER
+	delete process.env.FLUXBIO_WORKER
+	t.after(() => {
+		if (env !== undefined) process.env.FLUXBIO_WORKER = env
+	})
+	assert.deepEqual((await settingsFrom(t, null))(), { name: 'flux-bio', domains: [], analytics: true })
+	assert.deepEqual((await settingsFrom(t, '   '))(), { name: 'flux-bio', domains: [], analytics: true })
+	// CI has no file, and says the same in a variable.
+	process.env.FLUXBIO_WORKER = '{ "name": "from-ci" }'
+	assert.equal((await settingsFrom(t, null))().name, 'from-ci')
+	// The file wins: a folder's own settings are not replaced by a leftover variable.
+	assert.equal((await settingsFrom(t, '{ "name": "from-file" }'))().name, 'from-file')
+})
+
+test('worker.json: each setting is read, and each one left out keeps its default', async (t) => {
+	assert.deepEqual((await settingsFrom(t, '{ "name": "my-links", "domains": ["links.example.com", "a.b.example"], "analytics": false }'))(), { name: 'my-links', domains: ['links.example.com', 'a.b.example'], analytics: false })
+	assert.deepEqual((await settingsFrom(t, '{ "analytics": false }'))(), { name: 'flux-bio', domains: [], analytics: false })
+	assert.deepEqual((await settingsFrom(t, '{}'))(), { name: 'flux-bio', domains: [], analytics: true })
+})
+
+for (const [what, text, said] of [
+	['not JSON', '{ name: my-links }', /worker\.json is not JSON\. It reads like \{ "name"/],
+	['a list', '["my-links"]', /has to be an object/],
+	['a name with capitals', '{ "name": "My-Links" }', /"name" is the Worker's name: up to 40 lowercase letters/],
+	['a name that leaves no room for -staging and a second site', `{ "name": "${'a'.repeat(41)}" }`, /up to 40/],
+	['a name that ends in a hyphen', '{ "name": "my-links-" }', /"name" is the Worker's name/],
+	['a domain written as an address', '{ "domains": ["https://links.example.com"] }', /"domains" is a list of hostnames in lowercase/],
+	['a domain without a dot', '{ "domains": ["localhost"] }', /"domains" is a list of hostnames/],
+	['domains as one string', '{ "domains": "links.example.com" }', /"domains" is a list of hostnames/],
+	['analytics as a word', '{ "analytics": "no" }', /"analytics" is true or false/],
+	['a setting that doesn’t exist', '{ "worker": "my-links" }', /"worker" isn't a setting\. There are three: "name", "domains" and "analytics"/],
+]) {
+	test(`worker.json: ${what} stops with what to write instead`, async (t) => {
+		const read = await settingsFrom(t, text)
+		assert.throws(() => read(), said)
+	})
+}

@@ -171,5 +171,7 @@
 	"s215": "Bảo mật",
 	"s216": "Mới",
 	"s217": "Đã thay đổi",
-	"s218": "Đã sửa"
+	"s218": "Đã sửa",
+	"s219": "Làm sao để nhận phiên bản mới?",
+	"s220": "Trang web của bạn không tự cập nhật: nó chạy mã bạn đã triển khai cho đến khi bạn triển khai lại. Hãy hỏi AI của bạn “Có bản FluxBio mới hơn không?”, nó sẽ cho biết có gì thay đổi và cập nhật giúp bạn. Để nhận tin mà không cần hỏi, hãy mở <a href=\"https://github.com/0t2/flux-bio\">dự án trên GitHub</a>, nhấn Watch → Custom → Releases, và GitHub sẽ gửi email cho bạn mỗi khi có bản phát hành. Mọi phiên bản và thay đổi của nó đều có trong <a href=\"/vi/changelog/\">nhật ký thay đổi</a>."
 }

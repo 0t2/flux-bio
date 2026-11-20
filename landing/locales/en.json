@@ -171,5 +171,7 @@
 	"s215": "Security",
 	"s216": "New",
 	"s217": "Changed",
-	"s218": "Fixed"
+	"s218": "Fixed",
+	"s219": "How do I get new versions?",
+	"s220": "Your site doesn’t update by itself: it runs the code you deployed until you deploy again. Ask your AI “Is there a newer FluxBio?” and it tells you what changed and updates for you. To hear about new versions without asking, open <a href=\"https://github.com/0t2/flux-bio\">the project on GitHub</a>, press Watch → Custom → Releases, and GitHub emails you each one. Every version and what it changed is in <a href=\"/en/changelog/\">the changelog</a>."
 }

@@ -171,5 +171,7 @@
 	"s215": "Keamanan",
 	"s216": "Baru",
 	"s217": "Diubah",
-	"s218": "Diperbaiki"
+	"s218": "Diperbaiki",
+	"s219": "Bagaimana cara mendapatkan versi baru?",
+	"s220": "Situs Anda tidak memperbarui dirinya sendiri: ia menjalankan kode yang Anda deploy sampai Anda men-deploy lagi. Tanyakan kepada AI Anda “Apakah ada FluxBio yang lebih baru?”, dan ia akan memberi tahu apa yang berubah lalu memperbaruinya untuk Anda. Agar mendapat kabar tanpa bertanya, buka <a href=\"https://github.com/0t2/flux-bio\">proyeknya di GitHub</a>, tekan Watch → Custom → Releases, dan GitHub akan mengirim email setiap ada rilis. Semua versi dan perubahannya ada di <a href=\"/id/changelog/\">catatan perubahan</a>."
 }
