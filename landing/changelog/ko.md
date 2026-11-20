@@ -5,6 +5,14 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.4 - 2026-11-20
+
+### 수정
+- `pnpm reset-password`가 이제 입력한 주소가 이 폴더가 배포하는 Worker의 것인지 먼저 확인한 뒤에 변경합니다. 이전에는 테스트 사이트나 로컬 사이트의 로그인 페이지에 나온 대로 실행하면 실제 사이트의 비밀번호가 바뀌었습니다. 또한 사이트 목록을 실행 중인 Worker에서 가져오고, 비밀번호를 설정하기 전에 저장하며, 토큰을 받지 못한 사이트를 알려 줍니다. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `pnpm run deploy`가 새 사이트를 만들기 전에 계정의 모든 Worker를 확인합니다. 이전에는 처음 10개만 보았기 때문에 그 뒤에 있는 FluxBio를 놓쳤습니다. 읽을 수 없는 Worker가 있을 때도 멈추며, 존재하지 않는 실제 사이트의 테스트 사이트는 더 이상 만들지 않습니다. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `pnpm update:code`가 새 릴리스가 같은 이름의 파일을 쓰기 시작해도 내 파일을 덮어쓰지 않고, 대소문자만 바뀐 파일을 잃지 않으며, 파일이 폴더로 바뀐 경우에도 중간에 멈추지 않습니다. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `worker.json`에 Cloudflare가 허용하는 모든 Worker 이름을 쓸 수 있습니다. 밑줄을 쓸 수 있고 최대 63자입니다. [#51](https://github.com/0t2/flux-bio/pull/51)
+
 ## 0.4.3 - 2026-11-20
 
 ### 새 기능

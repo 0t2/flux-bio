@@ -5,6 +5,14 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.4 - 2026-11-20
+
+### แก้ไข
+- `pnpm reset-password` จะตรวจก่อนว่าที่อยู่ที่คุณระบุให้บริการโดย Worker ที่โฟลเดอร์ของคุณ deploy จริง แล้วจึงเปลี่ยนแปลง ก่อนหน้านี้ หากรันด้วยที่อยู่ของเว็บไซต์ทดสอบหรือเว็บไซต์ในเครื่องตามที่หน้าเข้าสู่ระบบแสดงไว้ คำสั่งจะเปลี่ยนรหัสผ่านของเว็บไซต์จริง นอกจากนี้ยังดึงรายการเว็บไซต์จาก Worker ที่ทำงานอยู่ บันทึกรหัสผ่านก่อนตั้งค่า และบอกว่าเว็บไซต์ใดไม่ได้รับ token [#51](https://github.com/0t2/flux-bio/pull/51)
+- `pnpm run deploy` จะดู Worker ทั้งหมดในบัญชีก่อนสร้างเว็บไซต์ใหม่ ก่อนหน้านี้เห็นเพียงสิบรายการแรก FluxBio ที่อยู่ถัดลงไปในรายการจึงถูกมองข้าม คำสั่งจะหยุดเมื่ออ่าน Worker ใดไม่ได้ และจะไม่สร้างเว็บไซต์ทดสอบให้เว็บไซต์จริงที่ไม่มีอยู่อีกต่อไป [#51](https://github.com/0t2/flux-bio/pull/51)
+- `pnpm update:code` จะไม่เขียนทับไฟล์ของคุณเองเมื่อรุ่นใหม่เริ่มใช้ชื่อเดียวกัน ไม่ทำให้ไฟล์ที่เปลี่ยนเฉพาะตัวพิมพ์เล็กใหญ่หายไป และไม่หยุดกลางคันเมื่อไฟล์กลายเป็นโฟลเดอร์ [#51](https://github.com/0t2/flux-bio/pull/51)
+- `worker.json` รับชื่อ Worker ทุกแบบที่ Cloudflare รับ ใช้ขีดล่างได้และยาวได้ถึง 63 ตัวอักษร [#51](https://github.com/0t2/flux-bio/pull/51)
+
 ## 0.4.3 - 2026-11-20
 
 ### ใหม่

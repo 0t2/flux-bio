@@ -42,9 +42,10 @@ export function workerSettings(): WorkerSettings {
 	if (!own || typeof own !== 'object' || Array.isArray(own)) throw new Error(`${from} has to be an object, like ${example}.`)
 	for (const [key, value] of Object.entries(own)) {
 		if (key === 'name') {
-			// A Worker's name is at most 63 characters, and a test site adds "-staging" and a second site "-<id>" to it.
-			if (typeof value !== 'string' || !/^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$/.test(value)) {
-				throw new Error(`${from}: "name" is the Worker's name: up to 40 lowercase letters, digits and hyphens, like "my-links".`)
+			// What Cloudflare takes for a Worker's name, since a site made before this file may have any of it. A test site
+			// adds "-staging" to it, which Cloudflare refuses by itself where that makes it too long.
+			if (typeof value !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,62}$/.test(value)) {
+				throw new Error(`${from}: "name" is the Worker's name: up to 63 lowercase letters, digits, hyphens and underscores, like "my-links".`)
 			}
 			settings.name = value
 		} else if (key === 'domains') {

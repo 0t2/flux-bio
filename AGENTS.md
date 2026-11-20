@@ -182,8 +182,9 @@ pnpm run deploy --secrets-file .secrets.env
 
 - `pnpm run deploy` asks Cloudflare what is running before it uploads anything (`scripts/deploy.mjs`), and deploys nothing
   when that would replace a Worker that isn't FluxBio, make a second, empty FluxBio on an account that has one, take a site
-  off a Worker that holds several, or replace a password that is already set. It says what to do instead: do that. `cf deploy`
-  by hand checks nothing, so don't deploy with it.
+  off a Worker that holds several, replace a password that is already set, or make a test site for a live site that isn't on
+  the account. It says what to do instead: do that. Where it can't read a Worker that might be the FluxBio, it stops too.
+  `cf deploy` by hand checks nothing, so don't deploy with it.
 - The first deploy creates the D1 database and the KV namespace from `cloudflare.config.ts`.
 - The Worker creates its database tables on the first request, so there is no migration step.
 - `.secrets.env` is gitignored. Keep it until the hand-over (1.7), then give the password to the human and
@@ -240,8 +241,12 @@ for shortcuts and scripts afterwards.
 pnpm reset-password --site https://<site>
 ```
 
-It makes a password and sets it on the Worker, then makes a full token for each site the Worker holds. It prints neither:
-the password is in `.secrets.env` and the tokens in `.tokens.env`, to hand over and then delete. For a password the owner
+It first checks that the address is served by the Worker this folder deploys, since a site's sign-in page gives this command
+and a test site's or a local one's would otherwise set the live site's password: for a test site add `--mode staging`, and the
+site on a computer has its password in `.dev.vars`. Then it makes a password, sets it on the Worker, and makes a full token
+for each site the running Worker holds, at the first hostname its list has for each; give a site that has none there with a
+second `--site`. It prints neither: the password is in `.secrets.env` and the tokens in `.tokens.env`, to hand over and then
+delete. If it says a site got no token, make that one by hand, because a second run revokes the rest. For a password the owner
 picked, set the secret itself, with the Worker's name:
 `pnpm exec cf workers secrets update ADMIN_PASSWORD --worker <name> --type secret_text --text '<new password>'`.
 
@@ -249,7 +254,8 @@ picked, set the secret itself, with the Worker's name:
 releases between the folder's version and the new one, stops if one of FluxBio's files was changed in the folder (`--overwrite`
 goes on and keeps a copy of each in `changed-before-<version>/`), replaces FluxBio's files and installs. It knows what the files
 were from the release's tag, and where a folder was downloaded from `main` a few commits after a release, it finds that commit.
-The owner's files, which are in no release, stay: `worker.json`, `sites.json`, `.secrets*.env`, `.dev.vars`, pictures. A git
+The owner's files, which are in no release, stay: `worker.json`, `sites.json`, `.secrets*.env`, `.dev.vars`, pictures. One of
+theirs at a path a new release starts to use counts as changed, and stops it like any other. A git
 checkout is updated with `git pull` instead. Then deploy, as the guide's `update` topic says, with a backup first.
 
 **Use a custom domain.** The domain's zone must be on the same Cloudflare account. Either:
@@ -491,7 +497,7 @@ pnpm landing     # builds the landing page, the project's own site; its other co
 pnpm brand       # remakes the favicon, app icons and the landing page's logo pictures from LOGO_PATH in src/templates/icons.ts
 pnpm run deploy  # checks what is running on Cloudflare, then cf deploy (--dry-run, --mode staging; 1.5)
 pnpm deploy:images --site <url>  # deploy with the site's pictures as static files (--no-deploy, --mode staging)
-pnpm reset-password --site <url> # a new admin password, and a new token for each site (1.8)
+pnpm reset-password --site <url> # a new admin password, and a new token for each site (--check, --mode staging; 1.8)
 pnpm update:code # brings this folder's code to the newest release, deploying nothing (--check, --to, --overwrite; 1.8)
 pnpm usage       # today's free KV and D1 quota used and left, and each D1 database's size, on the signed-in Cloudflare account (--date, --days, --json)
 ```

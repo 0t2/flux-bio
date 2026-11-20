@@ -5,6 +5,14 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.4 - 2026-11-20
+
+### Diperbaiki
+- `pnpm reset-password` kini memeriksa bahwa alamat yang Anda berikan memang dilayani oleh Worker yang di-deploy folder Anda sebelum mengubah apa pun. Jika dijalankan dengan alamat situs uji atau situs lokal, seperti yang ditampilkan halaman masuknya, perintah ini mengganti kata sandi situs asli. Perintah ini juga mengambil daftar situs dari Worker yang sedang berjalan, menyimpan kata sandi sebelum menetapkannya, dan menyebutkan situs mana yang tidak mendapat token. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `pnpm run deploy` memeriksa semua Worker di akun sebelum membuat situs baru: sebelumnya hanya sepuluh pertama yang terlihat, sehingga FluxBio yang berada lebih bawah dalam daftar terlewat. Perintah ini juga berhenti jika ada Worker yang tidak bisa dibaca, dan tidak lagi membuat situs uji untuk situs asli yang tidak ada. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `pnpm update:code` tidak lagi menimpa file milik Anda ketika rilis baru mulai memakai nama yang sama, tidak lagi kehilangan file yang hanya berganti huruf besar-kecil, dan tidak lagi berhenti di tengah jalan ketika sebuah file berubah menjadi folder. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `worker.json` menerima nama Worker apa pun yang diterima Cloudflare: boleh memakai garis bawah dan hingga 63 karakter. [#51](https://github.com/0t2/flux-bio/pull/51)
+
 ## 0.4.3 - 2026-11-20
 
 ### Baru

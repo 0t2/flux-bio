@@ -333,7 +333,7 @@ api.use('*', async (c, next) => {
 })
 
 api.get('/auth/info', (c) => {
-	const body: AuthInfo = { setup: adminPasswordProblem(adminPassword(c.env)) }
+	const body: AuthInfo = { setup: adminPasswordProblem(adminPassword(c.env)), testSite: isTestSite(c.env) }
 	return c.json(body)
 })
 

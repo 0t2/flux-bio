@@ -5,6 +5,14 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.4 - 2026-11-20
+
+### Behoben
+- `pnpm reset-password` prüft jetzt, ob die angegebene Adresse von dem Worker ausgeliefert wird, den Ihr Ordner bereitstellt, bevor etwas geändert wird. Mit der Adresse einer Testseite oder einer lokalen Website ausgeführt, so wie deren Anmeldeseiten sie angaben, wurde das Passwort der Live-Website ersetzt. Außerdem wird die Liste der Websites vom laufenden Worker gelesen, das Passwort vor dem Setzen gespeichert und gemeldet, welche Website kein Token erhalten hat. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `pnpm run deploy` sieht sich alle Worker des Kontos an, bevor eine neue Website angelegt wird: Bisher wurden nur die ersten zehn gesehen, sodass ein FluxBio weiter unten in der Liste übersehen wurde. Der Befehl stoppt auch, wenn ein Worker nicht gelesen werden kann, und legt keine Testseite mehr für eine Live-Website an, die es nicht gibt. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `pnpm update:code` ersetzt keine eigene Datei mehr, wenn eine neue Version ihren Namen zu verwenden beginnt, verliert keine Datei mehr, die nur in der Groß- und Kleinschreibung umbenannt wurde, und bleibt nicht mehr mittendrin stehen, wenn aus einer Datei ein Ordner wird. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `worker.json` akzeptiert jeden Worker-Namen, den Cloudflare akzeptiert: mit Unterstrichen und bis zu 63 Zeichen. [#51](https://github.com/0t2/flux-bio/pull/51)
+
 ## 0.4.3 - 2026-11-20
 
 ### Neu

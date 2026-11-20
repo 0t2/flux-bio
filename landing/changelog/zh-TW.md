@@ -5,6 +5,14 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.4 - 2026-11-20
+
+### 修正
+- `pnpm reset-password` 現在會先確認你給的網址確實由這個資料夾部署的 Worker 提供，才會動手改。之前拿測試站或本機站登入頁給的指令照跑，會把正式站的密碼換掉。它也改從執行中的 Worker 取得網站清單、先把密碼存檔再設定，並說明哪個網站沒拿到 token。 [#51](https://github.com/0t2/flux-bio/pull/51)
+- `pnpm run deploy` 建立新網站前會看過帳號裡所有的 Worker。之前只看得到前十個，排在後面的 FluxBio 會被漏掉。有 Worker 讀不到時它也會停下來，而且不再替不存在的正式站建立測試站。 [#51](https://github.com/0t2/flux-bio/pull/51)
+- `pnpm update:code` 不會再覆蓋你自己的檔案（當新版開始使用同一個檔名時），不會再弄丟只改了大小寫的檔案，遇到檔案變成資料夾時也不會做到一半停住。 [#51](https://github.com/0t2/flux-bio/pull/51)
+- `worker.json` 現在接受 Cloudflare 允許的任何 Worker 名稱，可以有底線，最長 63 個字元。 [#51](https://github.com/0t2/flux-bio/pull/51)
+
 ## 0.4.3 - 2026-11-20
 
 ### 新功能

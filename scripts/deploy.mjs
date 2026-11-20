@@ -10,7 +10,7 @@
 import { spawn } from 'node:child_process'
 import { listedSites } from '../sites.config.ts'
 import { workerSettings } from '../worker.config.ts'
-import { deployNotes, deployProblems, otherFluxBios, runningWorker } from './deploy-check.mjs'
+import { deployNotes, deployProblems, otherFluxBios, runningWorker, SHELL } from './deploy-check.mjs'
 
 function fail(message) {
 	console.error(message)
@@ -28,14 +28,21 @@ for (let i = 0; i < args.length; i++) {
 	if (arg === '--') continue
 	else if (arg === '--new') own.makeNew = true
 	else if (arg === '--skip-checks') own.skip = true
-	else if (arg === '--drop-site') own.dropSites.push(args[++i] ?? fail('--drop-site needs the id of a site, as in sites.json.'))
-	else {
-		if (arg === '--mode' || arg === '-m') mode = args[i + 1] ?? null
-		else if (arg.startsWith('--mode=')) mode = arg.slice('--mode='.length)
-		else if (arg === '--secrets-file' || arg.startsWith('--secrets-file=')) secretsFile = true
+	else if (arg === '--drop-site') {
+		// Not the next option: `--drop-site --dry-run` would otherwise drop nothing and deploy for real.
+		const id = args[++i]
+		if (!id || id.startsWith('-')) fail('--drop-site needs the id of a site, as in sites.json.')
+		own.dropSites.push(id)
+	} else {
+		if (arg === '--mode' || arg === '-m') mode = args[i + 1] ?? ''
+		else if (/^(--mode|-m)=/.test(arg)) mode = arg.slice(arg.indexOf('=') + 1)
+		// cf takes its options in camelCase too.
+		else if (/^--secrets-?file(=|$)/i.test(arg)) secretsFile = true
 		rest.push(arg)
 	}
 }
+// Any other mode is the live site to cloudflare.config.ts, so a slip in the word would deploy it.
+if (mode !== null && mode !== 'staging' && mode !== 'production') fail(`There is no mode "${mode}". --mode staging deploys the test site, and without it the live one.`)
 
 let settings
 let sites
@@ -52,23 +59,28 @@ if (own.skip) {
 	console.log('Deploying without the checks.')
 } else {
 	let live
-	let others = []
+	let base = null
+	let others = { found: [], unread: [] }
 	try {
 		live = await runningWorker(name)
-		if (!live && !staging && !own.makeNew) others = await otherFluxBios(name)
+		if (!live && !own.makeNew) {
+			if (staging) base = await runningWorker(settings.name)
+			else others = await otherFluxBios(name)
+		}
 	} catch (error) {
 		fail(
 			`Nothing was deployed: Cloudflare couldn't be asked what is running now.\n  ${error.message.split('\n').join('\n  ')}\n` +
 			'  Sign in with `pnpm exec cf auth login` and try again. To deploy without the checks, pass --skip-checks.',
 		)
 	}
-	const problems = deployProblems({ name, staging, live, others, sites: staging ? {} : sites, secretsFile, dropSites: own.dropSites, makeNew: own.makeNew })
+	const problems = deployProblems({ name, staging, live, others: others.found, unread: others.unread, base, sites: staging ? {} : sites, secretsFile, dropSites: own.dropSites, makeNew: own.makeNew })
 	if (problems.length) fail(`Nothing was deployed.\n\n${problems.join('\n\n')}`)
-	for (const note of deployNotes({ live, analytics: settings.analytics })) console.log(`Note: ${note}`)
+	for (const note of deployNotes({ name, live, analytics: settings.analytics, sites: staging ? {} : sites })) console.log(`Note: ${note}`)
 	const held = Object.keys(staging ? {} : sites).filter((id) => id !== 'main')
 	console.log(`Checked: this ${live ? 'updates' : 'makes'} the Worker "${name}"${held.length ? `, with the sites main, ${held.join(', ')}` : ''}.`)
 }
 
 const cf = process.env.FLUXBIO_CF ? [process.env.FLUXBIO_CF] : ['pnpm', 'exec', 'cf']
-const deploy = spawn(cf[0], [...cf.slice(1), 'deploy', ...rest], { stdio: 'inherit' })
+const deploy = spawn(cf[0], [...cf.slice(1), 'deploy', ...rest], { stdio: 'inherit', shell: SHELL })
+deploy.on('error', (error) => fail(`cf could not be started: ${error.message}`))
 deploy.on('exit', (code) => process.exit(code ?? 1))

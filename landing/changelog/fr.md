@@ -5,6 +5,14 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.4 - 2026-11-20
+
+### Corrections
+- `pnpm reset-password` vérifie désormais que l’adresse indiquée est bien servie par le Worker que déploie votre dossier avant de modifier quoi que ce soit. Lancée avec l’adresse d’un site de test ou d’un site local, telle que la donnait leur page de connexion, la commande remplaçait le mot de passe du site réel. Elle prend aussi la liste des sites auprès du Worker en service, enregistre le mot de passe avant de le définir et indique quel site n’a pas reçu de jeton. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `pnpm run deploy` examine tous les Workers du compte avant de créer un nouveau site : seuls les dix premiers étaient vus, et un FluxBio placé plus loin dans la liste passait inaperçu. La commande s’arrête aussi lorsqu’un Worker ne peut pas être lu, et ne crée plus de site de test pour un site réel qui n’existe pas. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `pnpm update:code` ne remplace plus un fichier à vous lorsqu’une nouvelle version se met à utiliser son nom, ne perd plus un fichier renommé seulement par ses majuscules et ne s’arrête plus en cours de route lorsqu’un fichier devient un dossier. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `worker.json` accepte tout nom de Worker que Cloudflare accepte : avec des tirets bas et jusqu’à 63 caractères. [#51](https://github.com/0t2/flux-bio/pull/51)
+
 ## 0.4.3 - 2026-11-20
 
 ### Nouveautés
