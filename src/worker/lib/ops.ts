@@ -631,7 +631,9 @@ export async function publishPage(env: Env, pageId: string, { by = null, seen }:
 			db.prepare("UPDATE links SET status = 'archived', slug = '~' || id, updated_at = ?1 WHERE kind = 'bio' AND page_id = ?2").bind(Date.now(), pageId),
 			db.prepare('DELETE FROM page_versions WHERE page_id = ?1').bind(pageId),
 		])
-		await dropAgain(env, [page.handle, ...freshLinks.map((row) => row.slug), ...replaced.map((row) => row.slug)])
+		// Every link the batch made live, the ones that didn't change too: a visit meanwhile may have put any back.
+		await dropAgain(env, [page.handle, ...[...live.values()].map((link) => normalizeSlug(link.slug)), ...replaced.map((row) => row.slug)])
+		await deleteFontFiles(env, unusedFontFiles(fonts, page.fonts))
 		throw new ApiError(404, 'not-found', msg('找不到這個頁面'))
 	}
 	const draftKept = !stored.replaced
@@ -1013,7 +1015,7 @@ async function dropFontFiles(env: Env, budget: number): Promise<{ used: number; 
 		)
 		.bind(FONTS_ASIDE, `${FONTS_ASIDE.slice(0, -1)};`, FONT_ROWS_AT_ONCE)
 		.all<{ key: string; listed: string; now: string | null }>()
-	const gone: string[] = []
+	const gone: { key: string; listed: string }[] = []
 	let used = 0
 	let refused: unknown
 	for (const row of results) {
@@ -1026,9 +1028,10 @@ async function dropFontFiles(env: Env, budget: number): Promise<{ used: number; 
 			refused = failed.reason
 			break
 		}
-		gone.push(row.key)
+		gone.push(row)
 	}
-	if (gone.length) await env.DB.prepare(`DELETE FROM _meta WHERE key IN (${gone.map((_, n) => `?${n + 1}`).join(', ')})`).bind(...gone).run()
+	// Each as it was read: a list set aside for the page since then is not forgotten with it.
+	if (gone.length) await env.DB.batch(gone.map((row) => env.DB.prepare('DELETE FROM _meta WHERE key = ?1 AND value = ?2').bind(row.key, row.listed)))
 	return { used, left: gone.length < results.length || results.length === FONT_ROWS_AT_ONCE, refused }
 }
 
@@ -1192,7 +1195,7 @@ async function refreshFonts(env: Env, previous: Settings, next: Settings): Promi
 	}
 	const pages = await recentlyPublishedPages(env.DB, FONT_PAGES_AT_ONCE)
 	const refreshed = await Promise.all(pages.map(async (page) => ({ ...page, fonts: page.published ? await hostFonts(env, { ...page, published: page.published }, next) : page.fonts })))
-	const changed = refreshed.map((page, i) => ({ page, before: pages[i]! })).filter(({ page, before }) => page.fonts !== before.fonts)
+	const changed = refreshed.map((page, i) => ({ page, before: pages[i]! })).filter(({ page, before }) => JSON.stringify(page.fonts) !== JSON.stringify(before.fonts))
 	if (changed.length) {
 		await env.DB.batch(
 			changed.flatMap(({ page, before }) => [

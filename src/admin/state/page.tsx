@@ -332,6 +332,8 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 				const theirs = unchanged ? await readLatest().catch(() => null) : null
 				if (theirs && JSON.stringify(latest.current) === sent) adopt(theirs)
 				else {
+					// What is saved is theirs, whatever it is: "keep mine" has to save this window's again.
+					savedJson.current = ''
 					setConflict(true)
 					setSaveStatus('error')
 				}
