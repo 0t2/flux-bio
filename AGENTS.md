@@ -614,10 +614,13 @@ tests/                  Vitest tests (run in workerd)
   - *Not in the list, and still on you to call out.* A string's pattern, format or length, a number's range, a list's
     length and a default. The bodies of owner-only routes, which the OpenAPI document leaves out. What a response type
     from another file holds (`Settings`, `Params`, `Problem`), since a field only says its name. Whether a response
-    always carries a field of a page's content: that is listed the way a request takes it. And any response a route builds in
-    place, with no interface in `src/shared/api.ts`: about 25 routes answer that way, `PUT /api/pages/:id/draft` with its
-    `{ draftUpdatedAt }` among them, and nothing here says which interface a route answers with. Giving each route a named
-    response there is what would close this.
+    always carries a field of a page's content: that is listed the way a request takes it. Every route that answers with JSON names its type in
+    `OPERATIONS` (`returns`) and answers with it (`c.json<Type>(…)`), which a test holds, so a response built in place is not
+    possible unnoticed: give a new route an interface in `src/shared/api.ts`. Types made from a zod schema (`Settings`,
+    `SavedTheme`, `Backup`) are read from the schema: a field of theirs has its `always` line too, but its type is listed as a
+    request's, a line for each kind of value, so one that takes in more isn't seen. Who may call a route is held to the code by
+    `tests/who-may-call.test.ts`, which calls every route as nobody, with a links token and with a full token.
+  A removal passes only in a release newer than the one before, whose "Action needed" names in `code` something that went.
 - **D1 is the source of truth.** It holds `pages`, `page_versions`, `links`, `stats` and
   `api_tokens`, which the Worker creates and upgrades on first use. To change the schema, append a
   migration to `MIGRATIONS` in `src/worker/lib/db.ts`. Never edit an existing migration.

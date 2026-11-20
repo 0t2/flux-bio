@@ -5,7 +5,8 @@
  */
 import type { Params } from '../templates/msg'
 import type { BaseThemeName, CommunityTheme } from './community'
-import type { Locale, PageContent, SavedTheme, Settings, ThemeId } from './content'
+import type { Backup } from './backup'
+import type { Locale, PageContent, SavedTheme, Settings, ThemeId, ThemePreset } from './content'
 import type { GoogleFont } from './fonts'
 import type { Untranslated } from './translations'
 import type { Problem } from './validate'
@@ -463,4 +464,120 @@ export interface DeletedMediaResponse {
 	deleted: number
 	/** There are more to delete: ask again. */
 	more: boolean
+}
+
+// What each route that answers with JSON answers with. Every one has a name here, and OPERATIONS in
+// src/worker/lib/openapi.ts says which (`returns`), so that tests/api-surface.json holds every field of every
+// response: one built in place in a route would be in no list, and renaming it would break agents unnoticed.
+
+/** GET /api/auth/me */
+export interface AuthResponse {
+	ok: true
+	role: Role
+}
+
+/** Routes that have nothing to say but that it worked. */
+export interface OkResponse {
+	ok: true
+}
+
+/** GET /api/pages */
+export interface PagesResponse {
+	pages: PageSummary[]
+}
+
+/** GET and PATCH /api/pages/:id. The page from GET also has `untranslated`. */
+export interface PageResponse {
+	page: PageJson
+}
+
+/** POST /api/pages. The settings come back because the first page becomes the home page. */
+export interface CreatePageResponse {
+	page: PageJson
+	settings: Settings
+}
+
+/** DELETE /api/pages/:id. The settings come back because deleting the home page changes them. */
+export interface DeletePageResponse {
+	ok: true
+	settings: Settings
+}
+
+/** PUT /api/pages/:id/draft: the draft's new version, to send as If-Match with the next change. */
+export interface DraftResponse {
+	draftUpdatedAt: number
+}
+
+/** GET /api/pages/:id/versions */
+export interface PageVersionsResponse {
+	versions: PageVersionJson[]
+}
+
+/** GET /api/pages/:id/versions/:versionId */
+export interface PageVersionResponse {
+	version: PageVersionJson
+	content: PageContent
+}
+
+/** POST /api/pages/:id/versions/:versionId/restore */
+export interface RestoreVersionResponse {
+	draft: PageContent
+	draftUpdatedAt: number
+}
+
+/** PUT /api/settings */
+export interface SettingsResponse {
+	settings: Settings
+	/** True when a change to the whole site left copies of some pages for visits to rebuild; absent otherwise. */
+	copiesLeft?: true
+}
+
+/** POST /api/settings/verify-domain */
+export interface VerifyDomainResponse {
+	domain: string
+	ok: boolean
+	message: string
+	/** The message as a translation key with its values, for the dashboard. */
+	key: string
+	params: Params
+}
+
+/** POST /api/media and PUT /api/media/:id */
+export interface UploadedMediaResponse {
+	id: string
+	url: string
+}
+
+/** GET and PATCH /api/links/:id */
+export interface LinkResponse {
+	link: LinkJson
+}
+
+/** POST /api/stats/clear */
+export interface ClearStatsResponse {
+	stats: UsageResponse['stats']
+}
+
+/** POST /api/themes */
+export interface ThemeResponse {
+	theme: SavedTheme
+}
+
+/** POST /api/themes/fetch: the themes a file holds, not saved yet. */
+export interface FetchedThemesResponse {
+	themes: ThemePreset[]
+}
+
+/** GET /api/tokens */
+export interface TokensResponse {
+	tokens: TokenJson[]
+}
+
+/** GET /api/export: the backup, as POST /api/import takes it. */
+export type ExportResponse = Backup
+
+/** POST /api/import: how many of each it brought in. */
+export interface ImportResponse {
+	pages: number
+	shortLinks: number
 }

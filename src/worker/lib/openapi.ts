@@ -44,6 +44,11 @@ interface Operation {
 	/** Needs no token. */
 	open?: true
 	produces?: 'html' | 'csv' | 'text' | 'svg' | 'image'
+	/**
+	 * The interface in src/shared/api.ts this answers with, for every route that answers with JSON. It is how
+	 * tests/api-surface.json knows the fields of the response, and tests/api-surface.test.mjs holds the route to it.
+	 */
+	returns?: string
 	/** Says which draft the caller read: If-Match with the page's draftUpdatedAt. */
 	draftVersion?: 'required' | 'optional'
 }
@@ -51,7 +56,7 @@ interface Operation {
 const DAYS = { name: 'days', description: 'Period length in days (default 30)', enum: [7, 30, 90] }
 
 export const OPERATIONS: Operation[] = [
-	{ method: 'get', path: '/api/auth/me', id: 'whoAmI', tag: 'Account', summary: 'Check that the token works', linksToken: true },
+	{ method: 'get', path: '/api/auth/me', id: 'whoAmI', returns: 'AuthResponse', tag: 'Account', summary: 'Check that the token works', linksToken: true },
 	{
 		method: 'get',
 		path: '/api/guide/{topic}',
@@ -67,17 +72,17 @@ export const OPERATIONS: Operation[] = [
 	{
 		method: 'get',
 		path: '/api/state',
-		id: 'getState',
+		id: 'getState', returns: 'StateResponse',
 		tag: 'Account',
 		summary: 'Everything at a glance',
 		description: 'Version, public origin, settings (home page, time zone, locale, domain, whether pages are on), every page with its link count and 7-day clicks, limits, testSite (the owner\'s test site, not their live one) and sites (the others this Worker holds). Start here.',
 	},
-	{ method: 'get', path: '/api/pages', id: 'listPages', tag: 'Pages', summary: 'List pages' },
-	{ method: 'post', path: '/api/pages', id: 'createPage', tag: 'Pages', summary: 'Create a page', description: 'The first page becomes the home page at "/".', body: NewPageInput },
+	{ method: 'get', path: '/api/pages', id: 'listPages', returns: 'PagesResponse', tag: 'Pages', summary: 'List pages' },
+	{ method: 'post', path: '/api/pages', id: 'createPage', returns: 'CreatePageResponse', tag: 'Pages', summary: 'Create a page', description: 'The first page becomes the home page at "/".', body: NewPageInput },
 	{
 		method: 'get',
 		path: '/api/pages/{id}',
-		id: 'getPage',
+		id: 'getPage', returns: 'PageResponse',
 		tag: 'Pages',
 		summary: "A page's draft and published content",
 		description: 'untranslated lists, per language turned on in settings.languages, the texts in the draft with no translation yet. See saveDraft for how to add them. With If-None-Match set to a draftUpdatedAt you hold, answers 304 while the draft is still that one.',
@@ -85,7 +90,7 @@ export const OPERATIONS: Operation[] = [
 	{
 		method: 'patch',
 		path: '/api/pages/{id}',
-		id: 'updatePage',
+		id: 'updatePage', returns: 'PageResponse',
 		tag: 'Pages',
 		summary: 'Change the page address, or its default QR code picture',
 		description: 'A new `handle` takes effect at once. The old address stops working, so links to it in bios, posts and QR codes break. Confirm with the owner first.',
@@ -94,7 +99,7 @@ export const OPERATIONS: Operation[] = [
 	{
 		method: 'delete',
 		path: '/api/pages/{id}',
-		id: 'deletePage',
+		id: 'deletePage', returns: 'DeletePageResponse',
 		tag: 'Pages',
 		summary: 'Delete a page',
 		description: 'Permanent. Turns off its short links. Not allowed for the last page. Confirm with the owner first.',
@@ -102,7 +107,7 @@ export const OPERATIONS: Operation[] = [
 	{
 		method: 'put',
 		path: '/api/pages/{id}/draft',
-		id: 'saveDraft',
+		id: 'saveDraft', returns: 'DraftResponse',
 		tag: 'Pages',
 		summary: 'Replace the draft',
 		description: 'Read page.draft, change it, send all of it back with If-Match. 409 draft-changed: read it again. Visitors see nothing until you publish. translations: { "<language>": { "<text as written>": "<translation>" } }.',
@@ -112,7 +117,7 @@ export const OPERATIONS: Operation[] = [
 	{
 		method: 'post',
 		path: '/api/pages/{id}/publish',
-		id: 'publishPage',
+		id: 'publishPage', returns: 'PublishResponse',
 		tag: 'Pages',
 		summary: 'Publish the draft',
 		description: 'Makes the draft live for every visitor and fills in empty link slugs. 400 lists problems[]; 409 means a slug is taken. Links that left the page stop redirecting. untranslated lists texts that show as written in the languages turned on. With settings.bio off, nothing shows until it is on.',
@@ -121,7 +126,7 @@ export const OPERATIONS: Operation[] = [
 	{
 		method: 'put',
 		path: '/api/pages/{id}/links/{itemId}/short',
-		id: 'setPageLinkShort',
+		id: 'setPageLinkShort', returns: 'ShortLinkResponse',
 		tag: 'Pages',
 		summary: 'Give a link on a page its short link, or a new slug, at once',
 		description: 'No publish needed: the short link works straight away, even on a page that is not public yet, and the old slug stops working at once. Also writes the slug into the draft and what is published, and gives the new draft version. 409 means the name is taken.',
@@ -131,16 +136,16 @@ export const OPERATIONS: Operation[] = [
 	{
 		method: 'get',
 		path: '/api/pages/{id}/versions',
-		id: 'listPageVersions',
+		id: 'listPageVersions', returns: 'PageVersionsResponse',
 		tag: 'Pages',
 		summary: 'The versions of a page published so far',
 		description: 'The last 20, newest first: when, by whom (owner, or a token and its name) and which is live now. Restore one to undo a publish.',
 	},
-	{ method: 'get', path: '/api/pages/{id}/versions/{versionId}', id: 'getPageVersion', tag: 'Pages', summary: 'One published version, with its content' },
+	{ method: 'get', path: '/api/pages/{id}/versions/{versionId}', id: 'getPageVersion', returns: 'PageVersionResponse', tag: 'Pages', summary: 'One published version, with its content' },
 	{
 		method: 'post',
 		path: '/api/pages/{id}/versions/{versionId}/restore',
-		id: 'restorePageVersion',
+		id: 'restorePageVersion', returns: 'RestoreVersionResponse',
 		tag: 'Pages',
 		summary: 'Put a published version back in the draft',
 		description: 'Replaces the draft, so unpublished changes in it are lost. Visitors see nothing until you publish it.',
@@ -150,7 +155,7 @@ export const OPERATIONS: Operation[] = [
 	{
 		method: 'post',
 		path: '/api/pages/{id}/preview-link',
-		id: 'createPreviewLink',
+		id: 'createPreviewLink', returns: 'PreviewLinkResponse',
 		tag: 'Pages',
 		summary: 'A link the owner can open to see the live draft',
 		description: 'Returns { url, expiresAt }. Lasts 10 minutes unless minutes says otherwise. The page opens without signing in and updates by itself when the draft changes. Anyone with the link can see the draft until it expires; changing the password ends every link. 409 while settings.bio is off.',
@@ -159,17 +164,17 @@ export const OPERATIONS: Operation[] = [
 	{
 		method: 'put',
 		path: '/api/settings',
-		id: 'updateSettings',
+		id: 'updateSettings', returns: 'SettingsResponse',
 		tag: 'Settings',
 		summary: 'Change settings',
 		description: 'Send only what changes: anything left out stays as it is. home is a page id or "". locale is the page language; languages adds more for browsers that prefer them, so translate pages too. A new domain must pass verification. bio: false takes public pages offline; warn the owner.',
 		body: SettingsInput,
 	},
-	{ method: 'post', path: '/api/settings/verify-domain', id: 'verifyDomain', tag: 'Settings', summary: 'Check that a custom domain reaches this Worker', body: DomainInput },
+	{ method: 'post', path: '/api/settings/verify-domain', id: 'verifyDomain', returns: 'VerifyDomainResponse', tag: 'Settings', summary: 'Check that a custom domain reaches this Worker', body: DomainInput },
 	{
 		method: 'post',
 		path: '/api/media',
-		id: 'uploadImage',
+		id: 'uploadImage', returns: 'UploadedMediaResponse',
 		tag: 'Media',
 		summary: 'Upload an image',
 		description: 'Raw bytes as the body with its content type: png, jpeg, webp, gif or avif, 2 MB at most. Returns { id } to use as profile.avatar, seo.image or a gallery or product image.',
@@ -178,7 +183,7 @@ export const OPERATIONS: Operation[] = [
 	{
 		method: 'get',
 		path: '/api/media',
-		id: 'listImages',
+		id: 'listImages', returns: 'MediaListResponse',
 		tag: 'Media',
 		summary: 'List uploaded images',
 		description: 'Each with id, url (/media/{id}), type, size and uploadedAt, in id order. nextCursor: ask again with ?cursor= for more. One call is one KV list; the free plan allows 1,000 a day, so list once and keep the answer.',
@@ -188,11 +193,11 @@ export const OPERATIONS: Operation[] = [
 		],
 	},
 	{ method: 'get', path: '/api/media/{id}', id: 'getImage', tag: 'Media', summary: 'Read the current uploaded image bytes', produces: 'image' },
-	{ method: 'put', path: '/api/media/{id}', id: 'putImage', tag: 'Media', summary: 'Upload an image under a given id (used by imports)', body: 'image' },
+	{ method: 'put', path: '/api/media/{id}', id: 'putImage', returns: 'UploadedMediaResponse', tag: 'Media', summary: 'Upload an image under a given id (used by imports)', body: 'image' },
 	{
 		method: 'get',
 		path: '/api/media/unused',
-		id: 'listUnusedImages',
+		id: 'listUnusedImages', returns: 'UnusedMediaResponse',
 		tag: 'Media',
 		summary: 'Uploaded images nothing uses any more',
 		description: 'Ids no draft, published page, kept version, QR code, setting or saved theme refers to. Images uploaded in the last keptDays days are left out. They cost no daily quota, only storage; looking reads a few hundred D1 rows per page and kept version. more: others remain after these are deleted.',
@@ -200,7 +205,7 @@ export const OPERATIONS: Operation[] = [
 	{
 		method: 'delete',
 		path: '/api/media/unused',
-		id: 'deleteUnusedImages',
+		id: 'deleteUnusedImages', returns: 'DeletedMediaResponse',
 		tag: 'Media',
 		summary: 'Delete the images nothing uses any more',
 		description: 'Permanent: an older backup that used one of them comes back without it. Tell the owner how many (listUnusedImages) and wait for a yes. more: call again.',
@@ -208,7 +213,7 @@ export const OPERATIONS: Operation[] = [
 	{
 		method: 'get',
 		path: '/api/links',
-		id: 'listLinks',
+		id: 'listLinks', returns: 'LinksResponse',
 		tag: 'Short links',
 		summary: 'Short links with 7-day clicks, a page at a time',
 		description: 'Live links first, then newest first. If nextCursor is not null, there are more: ask again with ?cursor=<nextCursor>.',
@@ -219,11 +224,11 @@ export const OPERATIONS: Operation[] = [
 			{ name: 'q', description: 'Part of the slug, the address or the title' },
 		],
 	},
-	{ method: 'get', path: '/api/links/clicked', id: 'listClickedLinks', tag: 'Short links', summary: 'The most clicked short links of the last 7 days, 2000 at most' },
+	{ method: 'get', path: '/api/links/clicked', id: 'listClickedLinks', returns: 'LinksResponse', tag: 'Short links', summary: 'The most clicked short links of the last 7 days, 2000 at most' },
 	{
 		method: 'post',
 		path: '/api/links',
-		id: 'createLink',
+		id: 'createLink', returns: 'CreateLinkResponse',
 		tag: 'Short links',
 		summary: 'Create a standalone short link',
 		description: 'Returns { link, short }. short is the URL to share.',
@@ -233,14 +238,14 @@ export const OPERATIONS: Operation[] = [
 	{
 		method: 'post',
 		path: '/api/links/bulk',
-		id: 'createLinks',
+		id: 'createLinks', returns: 'BulkLinksResponse',
 		tag: 'Short links',
 		summary: 'Create up to 100 short links',
 		description: 'Returns { created, errors: [{ index, message }] }. Each link is one KV write; the free plan allows 1,000 a day.',
 		body: BulkLinksInput,
 		linksToken: true,
 	},
-	{ method: 'get', path: '/api/links/{id}', id: 'getLink', tag: 'Short links', summary: 'One short link' },
+	{ method: 'get', path: '/api/links/{id}', id: 'getLink', returns: 'LinkResponse', tag: 'Short links', summary: 'One short link' },
 	{
 		method: 'get',
 		path: '/api/links/{id}/qr',
@@ -254,17 +259,17 @@ export const OPERATIONS: Operation[] = [
 	{
 		method: 'patch',
 		path: '/api/links/{id}',
-		id: 'updateLink',
+		id: 'updateLink', returns: 'LinkResponse',
 		tag: 'Short links',
 		summary: 'Change a short link',
 		description: 'Password, UTM, smart routing and QR style for any link. url, slug, title, schedule and status only for standalone links; bio links change through the page draft. A new slug breaks the old short URL.',
 		body: LinkPatchInput,
 	},
-	{ method: 'get', path: '/api/links/{id}/stats', id: 'getLinkStats', tag: 'Stats', summary: "One link's clicks per day and sources", query: [DAYS] },
+	{ method: 'get', path: '/api/links/{id}/stats', id: 'getLinkStats', returns: 'LinkStatsResponse', tag: 'Stats', summary: "One link's clicks per day and sources", query: [DAYS] },
 	{
 		method: 'get',
 		path: '/api/stats',
-		id: 'getStats',
+		id: 'getStats', returns: 'StatsResponse',
 		tag: 'Stats',
 		summary: "A page's views, clicks and sources",
 		description: 'Totals, per-day series, top links and blocks, sources and the period before. insights holds Analytics Engine details, or null when unavailable.',
@@ -273,7 +278,7 @@ export const OPERATIONS: Operation[] = [
 	{
 		method: 'get',
 		path: '/api/stats/export',
-		id: 'exportStats',
+		id: 'exportStats', returns: 'StatsExportResponse',
 		tag: 'Stats',
 		summary: 'Every view and click count, oldest first, 1000 at a time',
 		description:
@@ -286,7 +291,7 @@ export const OPERATIONS: Operation[] = [
 	{
 		method: 'post',
 		path: '/api/stats/clear',
-		id: 'clearStats',
+		id: 'clearStats', returns: 'ClearStatsResponse',
 		tag: 'Stats',
 		summary: 'Delete the numbers from before a month',
 		description: 'Owner only, and only months at least 6 months back. Deletion goes a slice at a time, on dashboard visits, within a daily budget.',
@@ -296,7 +301,7 @@ export const OPERATIONS: Operation[] = [
 	{
 		method: 'get',
 		path: '/api/usage',
-		id: 'getUsage',
+		id: 'getUsage', returns: 'UsageResponse',
 		tag: 'Account',
 		summary: "How close the site is to its plan's limits",
 		description: "Database size, today's views and clicks with what they cost, and how old numbers are kept. Estimates: pictures, bots and other Workers on the account aren't counted.",
@@ -304,37 +309,37 @@ export const OPERATIONS: Operation[] = [
 	{
 		method: 'get',
 		path: '/api/update',
-		id: 'checkUpdate',
+		id: 'checkUpdate', returns: 'UpdateResponse',
 		tag: 'Account',
 		summary: 'Whether a newer FluxBio is out',
 		description: "The releases this site is behind, from FluxBio's changelog on GitHub, and whether one fixes a security problem or has an Action needed. `latest` is null when GitHub can't be read, which isn't being up to date.",
 	},
-	{ method: 'get', path: '/api/themes', id: 'listThemes', tag: 'Themes', summary: 'Saved looks' },
+	{ method: 'get', path: '/api/themes', id: 'listThemes', returns: 'ThemesResponse', tag: 'Themes', summary: 'Saved looks' },
 	{
 		method: 'post',
 		path: '/api/themes',
-		id: 'saveTheme',
+		id: 'saveTheme', returns: 'ThemeResponse',
 		tag: 'Themes',
 		summary: 'Save a look',
 		description: "A page's appearance with theme as base. coverImage and bgImage are media ids, or null or left out for none, as in an appearance.",
 		body: ThemePresetSchema,
 	},
-	{ method: 'delete', path: '/api/themes/{id}', id: 'deleteTheme', tag: 'Themes', summary: 'Delete a saved look' },
+	{ method: 'delete', path: '/api/themes/{id}', id: 'deleteTheme', returns: 'OkResponse', tag: 'Themes', summary: 'Delete a saved look' },
 	{
 		method: 'get',
 		path: '/api/themes/community',
-		id: 'listCommunityThemes',
+		id: 'listCommunityThemes', returns: 'CommunityThemesResponse',
 		tag: 'Themes',
 		summary: 'The base themes by name, and the color sets each offers',
 		description:
 			'{ source, lang, bases, themes }. bases: every base theme as { id, name, en }, name being what the owner sees on Appearance in lang. themes: the color sets, each with its base theme id in base. source: github, or bundled when GitHub is out of reach.',
 		query: [{ name: 'lang', description: "The language of the names, e.g. ja or zh-TW (default: the site's page language)" }],
 	},
-	{ method: 'post', path: '/api/themes/fetch', id: 'fetchTheme', tag: 'Themes', summary: 'Read a theme file from a GitHub URL', body: ThemeFetchInput },
+	{ method: 'post', path: '/api/themes/fetch', id: 'fetchTheme', returns: 'FetchedThemesResponse', tag: 'Themes', summary: 'Read a theme file from a GitHub URL', body: ThemeFetchInput },
 	{
 		method: 'get',
 		path: '/api/fonts',
-		id: 'searchFonts',
+		id: 'searchFonts', returns: 'FontsResponse',
 		tag: 'Themes',
 		summary: 'Search Google Fonts families',
 		description:
@@ -349,7 +354,7 @@ export const OPERATIONS: Operation[] = [
 	{
 		method: 'get',
 		path: '/api/export',
-		id: 'exportData',
+		id: 'exportData', returns: 'ExportResponse',
 		tag: 'Backup',
 		summary: 'Every page, short link and theme as one JSON file',
 		description: "No stats or images. media lists the image ids the file uses: download each from /media/{id} to keep a complete backup. Do this before changing anything for the owner, and save it on their computer (see the guide at /llms.txt).",
@@ -357,23 +362,25 @@ export const OPERATIONS: Operation[] = [
 	{
 		method: 'post',
 		path: '/api/import',
-		id: 'importData',
+		id: 'importData', returns: 'ImportResponse',
 		tag: 'Backup',
 		summary: 'Replace everything with an export',
 		description: 'Replaces every page, short link and saved theme, and the home page, time zone and locale. Upload the images first (putImage). Export first and confirm with the owner.',
 		body: BackupSchema,
 	},
-	{ method: 'delete', path: '/api/data', id: 'wipeData', tag: 'Backup', summary: 'Delete everything', body: WipeInput, owner: true },
-	{ method: 'get', path: '/api/tokens', id: 'listTokens', tag: 'Account', summary: 'API tokens', owner: true },
-	{ method: 'post', path: '/api/tokens', id: 'createToken', tag: 'Account', summary: 'Create an API token', body: NewTokenInput, owner: true },
-	{ method: 'delete', path: '/api/tokens/{id}', id: 'revokeToken', tag: 'Account', summary: 'Revoke an API token', owner: true },
+	{ method: 'delete', path: '/api/data', id: 'wipeData', returns: 'WipeResponse', tag: 'Backup', summary: 'Delete everything', body: WipeInput, owner: true },
+	{ method: 'get', path: '/api/tokens', id: 'listTokens', returns: 'TokensResponse', tag: 'Account', summary: 'API tokens', owner: true },
+	{ method: 'post', path: '/api/tokens', id: 'createToken', returns: 'CreateTokenResponse', tag: 'Account', summary: 'Create an API token', body: NewTokenInput, owner: true },
+	{ method: 'delete', path: '/api/tokens/{id}', id: 'revokeToken', returns: 'OkResponse', tag: 'Account', summary: 'Revoke an API token', owner: true },
 ]
 
 /** Routes the dashboard uses that agents never need. */
 export const UNDOCUMENTED_ROUTES = ['POST /api/auth/login', 'POST /api/auth/logout', 'GET /api/auth/info', 'GET /api/openapi.json']
 
-function jsonSchema(schema: z.ZodType): Record<string, unknown> {
-	const { $schema: _, ...rest } = z.toJSONSchema(schema, { io: 'input', unrepresentable: 'any' }) as Record<string, unknown>
+/** A zod schema as JSON Schema. Exported for scripts/api-surface.mjs, which lists the fields of the types made from one. */
+export function jsonSchema(schema: z.ZodType, io: 'input' | 'output' = 'input'): Record<string, unknown> {
+	// As a request takes it, where a field with a default may be left out; or as a response gives it, where it is there.
+	const { $schema: _, ...rest } = z.toJSONSchema(schema, { io, unrepresentable: 'any' }) as Record<string, unknown>
 	return rest
 }
 

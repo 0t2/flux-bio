@@ -66,7 +66,7 @@ function acceptedTypes(schema, known = new Map(), rootSchema = schema, open = ne
  * may be left out and the kinds of value it takes. `known` names schemas that have lines of their own, by their JSON:
  * where one turns up inside another, as a page's content does in a backup, it is named there and not unfolded again.
  */
-export function schemaNames(schema, prefix, out = new Set(), known = new Map(), rootSchema = schema, open = new Set()) {
+export function schemaNames(schema, prefix, out = new Set(), known = new Map(), rootSchema = schema, open = new Set(), given = false) {
 	if (!schema || typeof schema !== 'object') return out
 	if (schema !== rootSchema && known.size && schema.properties) {
 		const name = known.get(JSON.stringify(schema))
@@ -80,7 +80,7 @@ export function schemaNames(schema, prefix, out = new Set(), known = new Map(), 
 		if (!schema.$ref.startsWith('#/$defs/') && !schema.$ref.startsWith('#/definitions/')) return out.add(`${prefix}=${schema.$ref.split('/').at(-1)}`)
 		if (open.has(schema.$ref)) return out
 		open.add(schema.$ref)
-		schemaNames(resolveRef(rootSchema, schema.$ref), prefix, out, known, rootSchema, open)
+		schemaNames(resolveRef(rootSchema, schema.$ref), prefix, out, known, rootSchema, open, given)
 		open.delete(schema.$ref)
 		return out
 	}
@@ -89,21 +89,24 @@ export function schemaNames(schema, prefix, out = new Set(), known = new Map(), 
 	for (const [name, property] of Object.entries(schema.properties ?? {})) {
 		out.add(`${prefix}.${name}`)
 		if (!schema.required?.includes(name)) out.add(`${prefix}.${name} optional`)
+		// Of a type a response gives: a field that is always there says so, as an interface's does, and the line
+		// goes when it may be missing.
+		else if (given) out.add(`${prefix}.${name} always`)
 		types(property, `${prefix}.${name}`)
-		schemaNames(property, `${prefix}.${name}`, out, known, rootSchema, open)
+		schemaNames(property, `${prefix}.${name}`, out, known, rootSchema, open, given)
 	}
 	if (schema.items) {
 		types(schema.items, `${prefix}[]`)
-		schemaNames(schema.items, `${prefix}[]`, out, known, rootSchema, open)
+		schemaNames(schema.items, `${prefix}[]`, out, known, rootSchema, open, given)
 	}
 	if (schema.additionalProperties && typeof schema.additionalProperties === 'object') {
 		types(schema.additionalProperties, `${prefix}.*`)
-		schemaNames(schema.additionalProperties, `${prefix}.*`, out, known, rootSchema, open)
+		schemaNames(schema.additionalProperties, `${prefix}.*`, out, known, rootSchema, open, given)
 	}
 	for (const key of ['anyOf', 'oneOf', 'allOf']) {
 		for (const member of schema[key] ?? []) {
 			const resolved = typeof member?.$ref === 'string' && member.$ref.startsWith('#/$defs/') ? resolveRef(rootSchema, member.$ref) : member
-			schemaNames(member, `${prefix}${memberTag(resolved)}`, out, known, rootSchema, open)
+			schemaNames(member, `${prefix}${memberTag(resolved)}`, out, known, rootSchema, open, given)
 		}
 	}
 	return out
@@ -198,8 +201,10 @@ function typeNames(body, prefix, out) {
  * The fields of every response: each exported interface in src/shared/api.ts, with what it extends. A type the file
  * gives a name to (`export type Role = …`) has a line with what it stands for, since fields only say its name.
  */
-export function responseNames(source) {
+export function responseNames(source, only = null) {
 	const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+	// From a file that isn't the API's own, only the types the API's responses name are wanted.
+	const wanted = (name) => !only || only.includes(name)
 	const own = new Map()
 	const parents = new Map()
 	for (const match of code.matchAll(/^export interface (\w+)(?: extends ([\w, ]+))? \{/gm)) {
@@ -210,10 +215,11 @@ export function responseNames(source) {
 	// An interface written in a way the pattern above doesn't know, with a type parameter or extending an Omit<…>,
 	// would be left out without a word, and its fields with it.
 	const declared = [...code.matchAll(/^export interface (\w+)/gm)].map((match) => match[1])
-	const unread = declared.filter((name) => !own.has(name))
+	const unread = declared.filter((name) => wanted(name) && !own.has(name))
 	if (unread.length) throw new Error(`src/shared/api.ts: scripts/api-surface.mjs can't read how ${unread.map((name) => `"${name}"`).join(', ')} ${unread.length === 1 ? 'is' : 'are'} declared, so ${unread.length === 1 ? 'its' : 'their'} fields would be missing from the list.`)
 	const out = new Set()
 	for (const match of code.matchAll(/^export type (\w+) =/gm)) {
+		if (!wanted(match[1])) continue
 		const fields = new Set()
 		out.add(`type ${match[1]}: ${typeAt(code, match.index + match[0].length, '', fields).type}`)
 		for (const field of fields) out.add(`type ${match[1]}${field}`)
@@ -225,6 +231,7 @@ export function responseNames(source) {
 		for (const parent of parents.get(from) ?? []) add(name, parent, seen)
 	}
 	for (const name of own.keys()) {
+		if (!wanted(name)) continue
 		if (!own.get(name).size && !parents.get(name).length) throw new Error(`src/shared/api.ts: no fields read from "${name}". scripts/api-surface.mjs can't read how it is written.`)
 		add(name, name)
 	}
@@ -240,8 +247,14 @@ export async function surface() {
 	for (const op of openapi.OPERATIONS) {
 		const name = `${op.method.toUpperCase()} ${op.path}`
 		out.add(name)
-		// Who may call it: taking a route away from tokens breaks them as much as removing it.
-		out.add(`${name} for=${op.owner ? 'owner' : op.open ? 'anyone' : op.linksToken ? 'links-token' : 'full-token'}`)
+		// Who may call it, one line for each that may: taking a route away from tokens breaks them as much as removing
+		// it, and then a line goes, while letting more callers in only adds one.
+		out.add(`${name} for=owner`)
+		if (!op.owner) out.add(`${name} for=full-token`)
+		if (op.linksToken || op.open) out.add(`${name} for=links-token`)
+		if (op.open) out.add(`${name} for=anyone`)
+		// Which type in src/shared/api.ts it answers with: the fields are that type's lines, further down.
+		if (op.returns) out.add(`${name} returns=${op.returns}`)
 		// The document leaves owner-only routes out, since no token can call them. An agent holding the admin
 		// password can, and the hand-over and pnpm reset-password do: their parameters and bodies are promised too.
 		const described = document.paths[op.path]?.[op.method] ?? openapi.operationObject(op)
@@ -260,36 +273,125 @@ export async function surface() {
 	}
 	for (const [name, schema] of Object.entries(document.components.schemas)) schemaNames(schema, name, out)
 	for (const name of responseNames(readFileSync(join(root, 'src/shared/api.ts'), 'utf8'))) out.add(name)
-	return [...out].sort()
+	// The types a response names that are written in another file, which api.ts only imports.
+	for (const [file, names] of Object.entries(TYPES_ELSEWHERE)) for (const name of responseNames(readFileSync(join(root, file), 'utf8'), names)) out.add(name)
+	// And those made from a zod schema, read from the schema as a response gives it: a field with a default is there,
+	// and has its `always` line, which goes when it may be missing. Their types are a request's lines, one for each
+	// kind of value, so a type that takes in more is not seen there as it is in an interface.
+	// A page's content has lines of its own, and is named where it turns up inside another type. As a response gives
+	// it, it is written a little differently from how a request takes it, so that form is known by the same name.
+	const { module: content } = await runnerImport(join(root, 'src/shared/content.ts'))
+	const given = new Map([...known, [JSON.stringify(openapi.jsonSchema(content.PageContentSchema, 'output')), 'PageContent']])
+	for (const [file, schemas] of Object.entries(SCHEMAS_ELSEWHERE)) {
+		const { module } = await runnerImport(join(root, file))
+		for (const [name, schema] of Object.entries(schemas)) schemaNames(openapi.jsonSchema(module[schema], 'output'), `type ${name}`, out, given, undefined, undefined, true)
+	}
+	const names = [...out]
+	// A route that says it answers with a type the list has no lines for says nothing.
+	for (const op of openapi.OPERATIONS) {
+		if (op.returns && !names.some((name) => name.startsWith(`type ${op.returns}.`) || name.startsWith(`type ${op.returns}:`))) {
+			throw new Error(`${op.method.toUpperCase()} ${op.path} returns "${op.returns}", and src/shared/api.ts exports no such interface or type.`)
+		}
+	}
+	return names.sort()
+}
+
+/** Types in the API's responses that src/shared/api.ts imports: which file writes each as an interface or a type. */
+const TYPES_ELSEWHERE = {
+	'src/templates/msg.ts': ['Params', 'Message'],
+	'src/shared/community.ts': ['BaseThemeName'],
+	'src/shared/fonts.ts': ['GoogleFont'],
+	'src/shared/translations.ts': ['Untranslated'],
+	'src/shared/validate.ts': ['Problem'],
+}
+/** And which zod schema each of the others is made from. */
+const SCHEMAS_ELSEWHERE = {
+	'src/shared/content.ts': { Settings: 'SettingsSchema', ThemePreset: 'ThemePresetSchema', SavedTheme: 'SavedThemeSchema' },
+	'src/shared/community.ts': { CommunityTheme: 'CommunityThemeSchema' },
+	'src/shared/backup.ts': { Backup: 'BackupSchema' },
 }
 
 export const readSurface = (text) => JSON.parse(text)
 export const writeSurface = (names) => `${JSON.stringify(names, null, '\t')}\n`
 
-/** The newest release in CHANGELOG.md: its version, and whether it has something for an owner to do. */
+/** The newest release in CHANGELOG.md: its version, whether it has something for an owner to do, and what that says. */
 export function newestRelease(changelog) {
 	const lines = changelog.split(/\r?\n/)
 	const start = lines.findIndex((line) => line.startsWith('## '))
-	if (start < 0) return { version: null, actionNeeded: false }
+	if (start < 0) return { version: null, actionNeeded: false, action: '' }
 	const end = lines.findIndex((line, index) => index > start && line.startsWith('## '))
 	const section = lines.slice(start + 1, end < 0 ? undefined : end)
-	return { version: lines[start].slice(3).split(' - ')[0].trim(), actionNeeded: section.some((line) => line.trim() === '### Action needed') }
+	const from = section.findIndex((line) => line.trim() === '### Action needed')
+	const to = section.findIndex((line, index) => index > from && line.startsWith('### '))
+	return { version: lines[start].slice(3).split(' - ')[0].trim(), actionNeeded: from >= 0, action: from < 0 ? '' : section.slice(from + 1, to < 0 ? undefined : to).join('\n') }
+}
+
+/** The members of a union written at the top of a type, `string | null` or `'a' | 'b'[]`: split where no bracket or quote is open. */
+function unionMembers(type) {
+	const members = []
+	let depth = 0
+	let quote = null
+	let from = 0
+	for (let i = 0; i < type.length; i++) {
+		const char = type[i]
+		if (quote) quote = char === quote ? null : quote
+		else if (char === "'" || char === '"' || char === '`') quote = char
+		else if ('([{<'.includes(char)) depth++
+		else if (')]}>'.includes(char)) depth--
+		else if (!depth && type.startsWith(' | ', i)) {
+			members.push(type.slice(from, i))
+			from = i + 3
+			i += 2
+		}
+	}
+	return [...members, type.slice(from)]
+}
+
+/**
+ * A line as it is compared. A response's type is kept as written, and `null | string` for `string | null` is the same
+ * type written another way: so a union's members are put in one order before two lists are compared.
+ */
+export function canonical(name) {
+	const at = name.indexOf(': ')
+	return name.startsWith('type ') && at > 0 ? `${name.slice(0, at)}: ${unionMembers(name.slice(at + 2)).sort().join(' | ')}` : name
+}
+
+/** Words in a line of the list that say how it is written, not what is promised. */
+const NOT_NAMES = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'api', 'body', 'query', 'path', 'header', 'type', 'for', 'returns', 'optional', 'always', 'string', 'number', 'integer', 'boolean', 'null', 'object', 'array', 'true', 'false', 'undefined'])
+
+/** Whether what an "Action needed" says in `code` names a line of the list: its route, or a word of it. */
+function namedIn(name, spans) {
+	const route = /^[A-Z]+ (\/api\/\S*)/.exec(name)?.[1]
+	const words = (name.match(/[A-Za-z_][\w-]*/g) ?? []).filter((word) => word.length > 1 && !NOT_NAMES.has(word))
+	return spans.some((span) => (route && span.includes(route)) || words.some((word) => new RegExp(`(^|[^\\w-])${word}($|[^\\w-])`).test(span)))
+}
+
+const numbers = (version) => (/^\d+\.\d+\.\d+$/.test(version ?? '') ? version.split('.').map(Number) : null)
+/** Whether release `a` comes after `b`. Versions that aren't three numbers are only told apart. */
+function newer(a, b) {
+	const [x, y] = [numbers(a), numbers(b)]
+	if (!x || !y) return a !== b
+	return x[0] !== y[0] ? x[0] > y[0] : x[1] !== y[1] ? x[1] > y[1] : x[2] > y[2]
 }
 
 /**
  * Why names may not go from `before` to `after` as things are, or null when they may: nothing went, or the change
- * comes with a release of its own that has an "Action needed".
+ * comes with a release of its own, newer than the one before, whose "Action needed" names in `code` something that
+ * went. An "Action needed" about something else is no word to whoever used what is gone.
  */
 export function removalProblem({ before, after, versionBefore, changelog }) {
-	const kept = new Set(after)
-	const gone = before.filter((name) => !kept.has(name))
+	const kept = new Set(after.map(canonical))
+	const gone = before.filter((name) => !kept.has(canonical(name)))
 	if (!gone.length) return null
 	const release = newestRelease(changelog)
-	if (release.version && release.version !== versionBefore && release.actionNeeded) return null
-	const why =
-		!release.version || release.version === versionBefore
-			? `CHANGELOG.md has no release for it yet: ${versionBefore} is still the newest.`
-			: `${release.version} in CHANGELOG.md has no "Action needed".`
+	const released = Boolean(release.version) && newer(release.version, versionBefore)
+	const spans = [...release.action.matchAll(/`([^`]+)`/g)].map((match) => match[1])
+	if (released && release.actionNeeded && gone.some((name) => namedIn(name, spans))) return null
+	const why = !released
+		? `CHANGELOG.md has no release for it yet: ${versionBefore} is still the newest.`
+		: !release.actionNeeded
+			? `${release.version} in CHANGELOG.md has no "Action needed".`
+			: `the "Action needed" of ${release.version} in CHANGELOG.md names none of them. Say there, in \`code\`, what went and what to use instead.`
 	return [
 		`${gone.length} name${gone.length > 1 ? 's' : ''} in the API ${gone.length > 1 ? 'are' : 'is'} gone, and ${why}`,
 		...gone.slice(0, 40).map((name) => `  - ${name}`),

@@ -40,7 +40,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.0 - 2026-11-20
 
 ### ต้องดำเนินการ
-- หากคุณเคยแก้ `cloudflare.config.ts` (เปลี่ยน `WORKER_NAME` เพิ่มโดเมนของตัวเอง หรือเอา `ANALYTICS` ออก) ให้ย้ายการตั้งค่านั้นไปไว้ใน `worker.json` ในโฟลเดอร์ FluxBio ของคุณก่อน deploy เวอร์ชันนี้ เช่น `{ "name": "my-links" }` ไฟล์นี้ไม่ใช่ส่วนหนึ่งของโค้ด การอัปเดตครั้งต่อไปจึงไม่แตะต้องมัน หากลืม การ deploy จะหยุดและบอกชื่อที่ต้องเขียน [#45](https://github.com/0t2/flux-bio/pull/45)
+- หากคุณเคยแก้ `cloudflare.config.ts` (เปลี่ยน `WORKER_NAME` เพิ่มโดเมนของตัวเอง หรือเอา `ANALYTICS` ออก) ให้ย้ายการตั้งค่านั้นไปไว้ใน `worker.json` ในโฟลเดอร์ FluxBio ของคุณก่อน deploy เวอร์ชันนี้ เช่น `{ "name": "my-links", "domains": ["links.example.com"], "analytics": false }` ไฟล์นี้ไม่ใช่ส่วนหนึ่งของโค้ด การอัปเดตครั้งต่อไปจึงไม่แตะต้องมัน หากลืม การ deploy จะหยุดและบอกชื่อที่ต้องเขียน [#45](https://github.com/0t2/flux-bio/pull/45)
 
 ### ใหม่
 - `pnpm run deploy` จะถาม Cloudflare ว่ามีอะไรทำงานอยู่ก่อนอัปโหลด และหยุดการ deploy ที่จะสร้างเว็บไซต์เปล่าอีกแห่ง ทำให้เว็บไซต์ของคุณแห่งหนึ่งออฟไลน์ เขียนทับ Worker อื่น หรือเปลี่ยนรหัสผ่านของคุณ ใช้คำสั่งนี้แทน `cf deploy` [#45](https://github.com/0t2/flux-bio/pull/45)

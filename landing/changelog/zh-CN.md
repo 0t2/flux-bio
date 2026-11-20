@@ -40,7 +40,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.0 - 2026-11-20
 
 ### 需要处理
-- 如果你改过 `cloudflare.config.ts`（换了 `WORKER_NAME`、加了自定义域名，或去掉了 `ANALYTICS`），部署这一版之前，请把这些设置写进 FluxBio 文件夹里的 `worker.json`，例如 `{ "name": "my-links" }`。这个文件不属于代码，以后更新都不会动它。如果忘了写，部署会停下来，告诉你该写哪个名称。 [#45](https://github.com/0t2/flux-bio/pull/45)
+- 如果你改过 `cloudflare.config.ts`（换了 `WORKER_NAME`、加了自定义域名，或去掉了 `ANALYTICS`），部署这一版之前，请把这些设置写进 FluxBio 文件夹里的 `worker.json`，例如 `{ "name": "my-links", "domains": ["links.example.com"], "analytics": false }`。这个文件不属于代码，以后更新都不会动它。如果忘了写，部署会停下来，告诉你该写哪个名称。 [#45](https://github.com/0t2/flux-bio/pull/45)
 
 ### 新增
 - `pnpm run deploy` 在上传前会先问 Cloudflare 现在运行的是什么；会多出一个空站点、让你的某个站点下线、覆盖别的 Worker 或换掉密码的部署，都会被拦下。请用它代替 `cf deploy`。 [#45](https://github.com/0t2/flux-bio/pull/45)

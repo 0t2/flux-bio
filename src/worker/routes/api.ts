@@ -3,6 +3,28 @@ import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { z } from '../../shared/zod'
 import type {
 	AuthInfo,
+	AuthResponse,
+	ClearStatsResponse,
+	CreatePageResponse,
+	DeletePageResponse,
+	DraftResponse,
+	ExportResponse,
+	FetchedThemesResponse,
+	ImportResponse,
+	LinkResponse,
+	OkResponse,
+	PageResponse,
+	PagesResponse,
+	PageVersionResponse,
+	PageVersionsResponse,
+	PublishResponse,
+	RestoreVersionResponse,
+	SettingsResponse,
+	ThemeResponse,
+	ThemesResponse,
+	TokensResponse,
+	UploadedMediaResponse,
+	VerifyDomainResponse,
 	BulkLinksResponse,
 	LinksResponse,
 	CommunityThemesResponse,
@@ -359,7 +381,7 @@ api.post('/auth/login', async (c) => {
 
 api.post('/auth/logout', (c) => {
 	deleteCookie(c, SESSION_COOKIE, { path: '/' })
-	return c.json({ ok: true })
+	return c.json<OkResponse>({ ok: true })
 })
 
 // The API described for agents and tools; public, like the code it describes.
@@ -405,7 +427,7 @@ api.use('*', async (c, next) => {
 	await next()
 })
 
-api.get('/auth/me', (c) => c.json({ ok: true, role: c.get('auth').role }))
+api.get('/auth/me', (c) => c.json<AuthResponse>({ ok: true, role: c.get('auth').role }))
 
 api.get('/state', async (c) => {
 	const db = c.env.DB
@@ -480,13 +502,13 @@ async function loadPage(c: Context<AppEnv>): Promise<PageRow> {
 
 api.get('/pages', async (c) => {
 	const db = c.env.DB
-	return c.json({ pages: await pageSummaries(db, await loadSettings(db)) })
+	return c.json<PagesResponse>({ pages: await pageSummaries(db, await loadSettings(db)) })
 })
 
 api.post('/pages', async (c) => {
 	const input = await readBody(c, NewPageInput)
 	const page = await createPage(c.env, input)
-	return c.json({ page: pageJson(page), settings: await loadSettings(c.env.DB) }, 201)
+	return c.json<CreatePageResponse>({ page: pageJson(page), settings: await loadSettings(c.env.DB) }, 201)
 })
 
 api.get('/pages/:id', async (c) => {
@@ -500,19 +522,19 @@ api.get('/pages/:id', async (c) => {
 		if (row && String(row.version) === held) return c.body(null, 304, { 'cache-control': 'no-store' })
 	}
 	const [page, settings] = await Promise.all([loadPage(c), loadSettings(c.env.DB)])
-	return c.json({ page: { ...pageJson(page), untranslated: untranslated(page.draft, settings.languages) } })
+	return c.json<PageResponse>({ page: { ...pageJson(page), untranslated: untranslated(page.draft, settings.languages) } })
 })
 
 api.patch('/pages/:id', async (c) => {
 	const id = c.req.param('id')
 	const { handle, qrLogo } = await readBody(c, PagePatchInput)
 	if (handle !== undefined) await renamePage(c.env, id, handle)
-	return c.json({ page: pageJson(await setPageQrLogo(c.env, id, qrLogo)) })
+	return c.json<PageResponse>({ page: pageJson(await setPageQrLogo(c.env, id, qrLogo)) })
 })
 
 api.delete('/pages/:id', async (c) => {
 	await deletePage(c.env, c.req.param('id'))
-	return c.json({ ok: true, settings: await loadSettings(c.env.DB) })
+	return c.json<DeletePageResponse>({ ok: true, settings: await loadSettings(c.env.DB) })
 })
 
 /** The draft version a request says it read, from If-Match: a page's draftUpdatedAt. */
@@ -539,13 +561,13 @@ api.put('/pages/:id/draft', async (c) => {
 	const seen = seenDraft(c)
 	if (seen === undefined) throw needsDraftVersion()
 	const draft = await readBody(c, PageContentInputSchema)
-	return c.json({ draftUpdatedAt: await replaceDraft(c, seen, draft) })
+	return c.json<DraftResponse>({ draftUpdatedAt: await replaceDraft(c, seen, draft) })
 })
 
 api.post('/pages/:id/publish', async (c) => {
 	const auth = c.get('auth')
 	const by = auth.role === 'token' ? `token:${auth.name}` : 'owner'
-	return c.json(await publishPage(c.env, c.req.param('id'), { by, seen: seenDraft(c) }))
+	return c.json<PublishResponse>(await publishPage(c.env, c.req.param('id'), { by, seen: seenDraft(c) }))
 })
 
 api.put('/pages/:id/links/:itemId/short', async (c) => {
@@ -558,7 +580,7 @@ api.put('/pages/:id/links/:itemId/short', async (c) => {
 api.get('/pages/:id/versions', async (c) => {
 	const page = await loadPage(c)
 	const versions = await listPageVersions(c.env.DB, page.id)
-	return c.json({ versions: versions.map((row) => versionJson(row, page)) })
+	return c.json<PageVersionsResponse>({ versions: versions.map((row) => versionJson(row, page)) })
 })
 
 async function loadVersion(c: Context<AppEnv>) {
@@ -570,7 +592,7 @@ async function loadVersion(c: Context<AppEnv>) {
 
 api.get('/pages/:id/versions/:versionId', async (c) => {
 	const { page, version } = await loadVersion(c)
-	return c.json({ version: versionJson(version, page), content: version.content })
+	return c.json<PageVersionResponse>({ version: versionJson(version, page), content: version.content })
 })
 
 // Into the draft, never straight to visitors: going live is a publish like any other.
@@ -578,7 +600,7 @@ api.post('/pages/:id/versions/:versionId/restore', async (c) => {
 	const seen = seenDraft(c)
 	if (seen === undefined) throw needsDraftVersion()
 	const { version } = await loadVersion(c)
-	return c.json({ draft: version.content, draftUpdatedAt: await replaceDraft(c, seen, version.content) })
+	return c.json<RestoreVersionResponse>({ draft: version.content, draftUpdatedAt: await replaceDraft(c, seen, version.content) })
 })
 
 api.get('/pages/:id/preview', async (c) => {
@@ -621,14 +643,14 @@ api.put('/settings', async (c) => {
 	}
 	const { home = current.home, timezone = current.timezone, locale = current.locale } = input
 	const { settings, copiesLeft } = await updateSettings(c.env, { ...input, home, timezone, locale, domain })
-	return c.json({ settings, ...(copiesLeft ? { copiesLeft } : {}) })
+	return c.json<SettingsResponse>({ settings, ...(copiesLeft ? { copiesLeft } : {}) })
 })
 
 api.post('/settings/verify-domain', async (c) => {
 	const { domain } = await readBody(c, DomainInput)
 	const host = normalizeDomain(domain)
 	if (!host) throw new ApiError(400, 'invalid', msg('請輸入網域'))
-	return c.json({ domain: host, ...(await verifyDomain(c.env, host, new URL(c.req.url))) })
+	return c.json<VerifyDomainResponse>({ domain: host, ...(await verifyDomain(c.env, host, new URL(c.req.url))) })
 })
 
 // ---------------------------------------------------------------- media
@@ -658,7 +680,7 @@ api.post('/media', async (c) => {
 	const id = `${randomString(12)}.${ext}`
 	// Dated, so one nothing uses yet isn't taken for one nothing uses any more (lib/media.ts).
 	await c.env.KV.put(mediaKey(id), bytes, { metadata: { type, at: Date.now(), size: bytes.byteLength } satisfies MediaMetadata })
-	return c.json({ id, url: `/media/${id}` }, 201)
+	return c.json<UploadedMediaResponse>({ id, url: `/media/${id}` }, 201)
 })
 
 // Every uploaded picture, a page at a time: one KV list each (lib/media.ts).
@@ -696,7 +718,7 @@ api.put('/media/:id', async (c) => {
 	if (!MEDIA_ID.test(id)) throw new ApiError(400, 'invalid', msg('圖片 id 格式不正確'))
 	const { bytes, type } = await readImage(c)
 	await c.env.KV.put(mediaKey(id), bytes, { metadata: { type, at: Date.now(), size: bytes.byteLength } satisfies MediaMetadata })
-	return c.json({ id, url: `/media/${id}` })
+	return c.json<UploadedMediaResponse>({ id, url: `/media/${id}` })
 })
 
 // ---------------------------------------------------------------- short links
@@ -751,7 +773,7 @@ api.post('/links/bulk', async (c) => {
 api.get('/links/:id', async (c) => {
 	const [row, settings] = await Promise.all([getLink(c.env.DB, c.req.param('id')), loadSettings(c.env.DB)])
 	if (!row) throw new ApiError(404, 'not-found', msg('找不到這個短網址'))
-	return c.json({ link: linkJson(row, publicOrigin(c, settings)) })
+	return c.json<LinkResponse>({ link: linkJson(row, publicOrigin(c, settings)) })
 })
 
 /** Up to this size a picture goes inside the file, so it prints anywhere. Encoding more could run past the free plan's CPU limit. */
@@ -796,7 +818,7 @@ api.get('/links/:id/qr', async (c) => {
 api.patch('/links/:id', async (c) => {
 	const patch = await readBody(c, LinkPatchInput)
 	const row = await updateLink(c.env, c.req.param('id'), patch)
-	return c.json({ link: linkJson(row, publicOrigin(c, await loadSettings(c.env.DB))) })
+	return c.json<LinkResponse>({ link: linkJson(row, publicOrigin(c, await loadSettings(c.env.DB))) })
 })
 
 const rangeOf = (value: string | undefined) => {
@@ -899,12 +921,12 @@ api.post('/stats/clear', async (c) => {
 	const db = c.env.DB
 	const settings = await loadSettings(db)
 	await clearStats(db, settings, before)
-	return c.json({ stats: await statsHistory(db, settings, await databaseBytes(db)) })
+	return c.json<ClearStatsResponse>({ stats: await statsHistory(db, settings, await databaseBytes(db)) })
 })
 
 // ---------------------------------------------------------------- themes
 
-api.get('/themes', async (c) => c.json({ themes: await loadThemes(c.env.DB) }))
+api.get('/themes', async (c) => c.json<ThemesResponse>({ themes: await loadThemes(c.env.DB) }))
 
 api.post('/themes', async (c) => {
 	const preset = await readBody(c, ThemePresetInputSchema)
@@ -912,7 +934,7 @@ api.post('/themes', async (c) => {
 	if (themes.length >= 100) throw new ApiError(409, 'limit', msg('最多存 100 個主題'))
 	const theme = { ...preset, id: newId(), createdAt: Date.now() }
 	await saveThemesStatement(c.env.DB, [theme, ...themes]).run()
-	return c.json({ theme }, 201)
+	return c.json<ThemeResponse>({ theme }, 201)
 })
 
 api.delete('/themes/:id', async (c) => {
@@ -920,7 +942,7 @@ api.delete('/themes/:id', async (c) => {
 	const next = themes.filter((theme) => theme.id !== c.req.param('id'))
 	if (next.length === themes.length) throw new ApiError(404, 'not-found', msg('找不到這個主題'))
 	await saveThemesStatement(c.env.DB, next).run()
-	return c.json({ ok: true })
+	return c.json<OkResponse>({ ok: true })
 })
 
 const COMMUNITY_URL = 'https://raw.githubusercontent.com/0t2/flux-bio/main/themes/community.json'
@@ -981,9 +1003,9 @@ api.post('/themes/fetch', async (c) => {
 		throw new ApiError(400, 'fetch', msg('讀不到這個主題檔，請確認網址是公開的 JSON 檔'))
 	}
 	const single = ThemePresetInputSchema.safeParse(json)
-	if (single.success) return c.json({ themes: [single.data] })
+	if (single.success) return c.json<FetchedThemesResponse>({ themes: [single.data] })
 	const list = z.object({ themes: z.array(ThemePresetInputSchema).min(1).max(500) }).safeParse(json)
-	if (list.success) return c.json({ themes: list.data.themes })
+	if (list.success) return c.json<FetchedThemesResponse>({ themes: list.data.themes })
 	throw new ApiError(400, 'invalid', msg('這不是 FluxBio 的主題檔（需要 name、base、accent、font、button）'))
 })
 
@@ -991,7 +1013,7 @@ api.post('/themes/fetch', async (c) => {
 
 api.get('/tokens', async (c) => {
 	requireOwner(c.get('auth'), msg('管理 token'))
-	return c.json({ tokens: await listTokens(c.env.DB, await tokenTag(await sessionKeyOf(c.env))) })
+	return c.json<TokensResponse>({ tokens: await listTokens(c.env.DB, await tokenTag(await sessionKeyOf(c.env))) })
 })
 
 api.post('/tokens', async (c) => {
@@ -1009,15 +1031,15 @@ api.post('/tokens', async (c) => {
 api.delete('/tokens/:id', async (c) => {
 	requireOwner(c.get('auth'), msg('管理 token'))
 	if (!(await deleteToken(c.env.DB, c.req.param('id')))) throw new ApiError(404, 'not-found', msg('找不到這個 token'))
-	return c.json({ ok: true })
+	return c.json<OkResponse>({ ok: true })
 })
 
 // ---------------------------------------------------------------- backup and reset
 
-api.get('/export', async (c) => c.json(await exportData(c.env)))
+api.get('/export', async (c) => c.json<ExportResponse>(await exportData(c.env)))
 
 // Agents restore and move deployments, so full tokens may import; "links" tokens never get this far.
-api.post('/import', async (c) => c.json(await importData(c.env, await readBody(c, BackupSchema))))
+api.post('/import', async (c) => c.json<ImportResponse>(await importData(c.env, await readBody(c, BackupSchema))))
 
 api.delete('/data', async (c) => {
 	requireOwner(c.get('auth'), msg('清除資料'))

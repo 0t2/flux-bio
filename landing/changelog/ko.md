@@ -40,7 +40,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.0 - 2026-11-20
 
 ### 조치 필요
-- `cloudflare.config.ts`를 수정한 적이 있다면(`WORKER_NAME`을 바꿨거나, 커스텀 도메인을 추가했거나, `ANALYTICS`를 뺀 경우) 이 버전을 배포하기 전에 그 설정을 FluxBio 폴더의 `worker.json`에 적어 주세요. 예: `{ "name": "my-links" }`. 이 파일은 코드의 일부가 아니어서 앞으로 업데이트해도 그대로 남습니다. 잊은 경우에는 배포가 멈추고 적어야 할 이름을 알려 줍니다. [#45](https://github.com/0t2/flux-bio/pull/45)
+- `cloudflare.config.ts`를 수정한 적이 있다면(`WORKER_NAME`을 바꿨거나, 커스텀 도메인을 추가했거나, `ANALYTICS`를 뺀 경우) 이 버전을 배포하기 전에 그 설정을 FluxBio 폴더의 `worker.json`에 적어 주세요. 예: `{ "name": "my-links", "domains": ["links.example.com"], "analytics": false }`. 이 파일은 코드의 일부가 아니어서 앞으로 업데이트해도 그대로 남습니다. 잊은 경우에는 배포가 멈추고 적어야 할 이름을 알려 줍니다. [#45](https://github.com/0t2/flux-bio/pull/45)
 
 ### 새 기능
 - `pnpm run deploy`는 업로드하기 전에 Cloudflare에서 무엇이 실행 중인지 확인하고, 빈 사이트를 하나 더 만들거나, 사이트 하나를 오프라인으로 만들거나, 다른 Worker를 덮어쓰거나, 비밀번호를 바꿔 버리는 배포를 막습니다. `cf deploy` 대신 사용하세요. [#45](https://github.com/0t2/flux-bio/pull/45)

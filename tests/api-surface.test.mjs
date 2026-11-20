@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
-import { newestRelease, readSurface, removalProblem, responseNames, schemaNames, surface, SURFACE_FILE, surfacesBefore } from '../scripts/api-surface.mjs'
+import { canonical, newestRelease, readSurface, removalProblem, responseNames, schemaNames, surface, SURFACE_FILE, surfacesBefore } from '../scripts/api-surface.mjs'
 
 const recorded = readSurface(readFileSync(SURFACE_FILE, 'utf8'))
 const changelog = readFileSync('CHANGELOG.md', 'utf8')
@@ -76,12 +76,16 @@ test('a name may go only in a new release with an "Action needed"', () => {
 	// Adding, and changing nothing, need no release at all.
 	assert.equal(removalProblem({ ...args, after: [...before, 'GET /api/c'], changelog: release('0.3.0 - 2026-11-19', '### New\n- An entry.') }), null)
 	// A removal with its own release and an "Action needed".
-	assert.equal(removalProblem({ ...args, after: ['GET /api/a', 'type A.x'], changelog: release('0.4.0 - 2026-11-20', '### Action needed\n- Use `a`.\n\n### Changed\n- An entry.') }), null)
+	assert.equal(removalProblem({ ...args, after: ['GET /api/a', 'type A.x'], changelog: release('0.4.0 - 2026-11-20', '### Action needed\n- `GET /api/b` is gone: use `GET /api/a`.\n\n### Changed\n- An entry.') }), null)
+	// An "Action needed" about something else says nothing to whoever called what went.
+	assert.match(removalProblem({ ...args, after: ['GET /api/a', 'type A.x'], changelog: release('0.4.0 - 2026-11-20', '### Action needed\n- Write your Worker\'s name in `worker.json`.') }), /the "Action needed" of 0\.4\.0 in CHANGELOG\.md names none of them/)
+	// Nor does one in a release that isn't newer: a version put back to one that had an "Action needed".
+	assert.match(removalProblem({ before, versionBefore: '0.5.0', after: ['GET /api/a', 'type A.x'], changelog: release('0.4.0 - 2026-11-20', '### Action needed\n- `GET /api/b` is gone.') }), /no release for it yet: 0\.5\.0 is still the newest/)
 	// The same removal with a release that only says "Changed", with no new release, and a rename, which is a removal too.
 	assert.match(removalProblem({ ...args, after: ['GET /api/a', 'type A.x'], changelog: release('0.3.1 - 2026-11-20', '### Changed\n- An entry.') }), /1 name in the API is gone, and 0\.3\.1 in CHANGELOG\.md has no "Action needed"\.\n  - GET \/api\/b\n/)
 	assert.match(removalProblem({ ...args, after: ['GET /api/a', 'type A.x'], changelog: release('0.3.0 - 2026-11-19', '### Action needed\n- Old.') }), /no release for it yet: 0\.3\.0 is still the newest/)
 	assert.match(removalProblem({ ...args, after: ['GET /api/a', 'GET /api/b', 'type A.y'], changelog: release('0.3.1 - 2026-11-20', '### Fixed\n- An entry.') }), /  - type A\.x\n/)
-	assert.deepEqual(newestRelease(release('0.4.0 - 2026-11-20', '### Action needed\n- Do it.')), { version: '0.4.0', actionNeeded: true })
+	assert.deepEqual(newestRelease(release('0.4.0 - 2026-11-20', '### Action needed\n- Do it.\n\n### New\n- More.')), { version: '0.4.0', actionNeeded: true, action: '- Do it.\n' })
 	assert.deepEqual(newestRelease(changelog).version, JSON.parse(readFileSync('package.json', 'utf8')).version)
 })
 
@@ -89,7 +93,8 @@ test('a field that asks for more, or gives something else, is a name gone', () =
 	const body = (properties, required = []) => [...schemaNames({ type: 'object', required, properties }, 'PUT /api/x body')]
 	const response = (fields) => [...responseNames(`export interface X {\n${fields}\n}\n`)]
 	const patch = release('0.3.1 - 2026-11-20', '### Changed\n- An entry.')
-	const minor = release('0.4.0 - 2026-11-20', '### Action needed\n- Send `plan`.\n\n### Changed\n- An entry.')
+	// What an owner is told names what changed, in code: the field, here.
+	const minor = (gone) => release('0.4.0 - 2026-11-20', `### Action needed\n- \`${/[.]([a-z]+)/.exec(gone)[1]}\` changed.\n\n### Changed\n- An entry.`)
 	const breaking = {
 		'a request field becomes required': [body({ plan: { type: 'string' } }), body({ plan: { type: 'string' } }, ['plan']), 'PUT /api/x body.plan optional'],
 		'a request field stops taking a type': [body({ at: { type: ['integer', 'null'] } }), body({ at: { type: 'integer' } }), 'PUT /api/x body.at: null'],
@@ -104,7 +109,7 @@ test('a field that asks for more, or gives something else, is a name gone', () =
 		const problem = removalProblem({ ...args, changelog: patch })
 		assert.ok(problem?.startsWith('1 name in the API is gone, and 0.3.1 in CHANGELOG.md has no "Action needed".\n'), `${what}: ${problem}`)
 		assert.ok(problem.includes(`\n  - ${gone}\n`), `${what}: ${problem}`)
-		assert.equal(removalProblem({ ...args, changelog: minor }), null, what)
+		assert.equal(removalProblem({ ...args, changelog: minor(gone) }), null, what)
 	}
 	// The other way round takes nothing from a caller: a field that may now be left out, a request that takes more,
 	// a response field that is now always there, and one more field in an object a response holds.
@@ -250,4 +255,39 @@ export type Role = 'admin' | 'token'
 	assert.deepEqual(field(':\n\t\t| string\n\t\t| null;'), field(': string | null'))
 	assert.deepEqual(field('?: string'), ['type X.latest', 'type X.latest: string'])
 	assert.deepEqual(field(": 'a  b' |  'c'"), ['type X.latest', 'type X.latest always', "type X.latest: 'a  b' | 'c'"])
+})
+
+test('a response type written another way is the same type', () => {
+	assert.equal(canonical('type X.latest: null | string'), 'type X.latest: null | string')
+	assert.equal(canonical('type X.latest: string | null'), 'type X.latest: null | string')
+	// Only where the union is the whole type: inside brackets and quotes it is left as it is.
+	assert.equal(canonical("type X.kind: 'b | a' | 'a'"), "type X.kind: 'a' | 'b | a'")
+	assert.equal(canonical('type X.rows: (string | null)[]'), 'type X.rows: (string | null)[]')
+	assert.equal(canonical('type X.page: {…} | null'), 'type X.page: null | {…}')
+	assert.equal(canonical('PUT /api/x body.at: null'), 'PUT /api/x body.at: null')
+	const response = (fields) => [...responseNames(`export interface X {\n${fields}\n}\n`)]
+	const args = { versionBefore: '0.3.0', changelog: release('0.3.0 - 2026-11-19', '### New\n- An entry.') }
+	assert.equal(removalProblem({ ...args, before: response('\tlatest: string | null'), after: response('\tlatest: null | string') }), null)
+	assert.match(removalProblem({ ...args, before: response('\tlatest: string | null'), after: response('\tlatest: string | number') }), /type X\.latest: string \| null/)
+})
+
+test('every route that answers with JSON says which type, and its handler answers with that type', async () => {
+	const { runnerImport } = await import('vite')
+	const { module: openapi } = await runnerImport('src/worker/lib/openapi.ts')
+	const routes = readFileSync('src/worker/routes/api.ts', 'utf8')
+	const problems = []
+	for (const op of openapi.OPERATIONS) {
+		const name = `${op.method.toUpperCase()} ${op.path}`
+		if (!op.returns) {
+			// Only a page, a picture or text has no fields to promise.
+			if (!['html', 'text', 'svg', 'image'].includes(op.produces)) problems.push(`${name} has no \`returns\` in OPERATIONS.`)
+			continue
+		}
+		const start = routes.indexOf(`api.${op.method}('${op.path.slice('/api'.length).replace(/\{(\w+)\}/g, ':$1')}'`)
+		if (start < 0) { problems.push(`${name} has no handler in src/worker/routes/api.ts.`); continue }
+		const end = routes.indexOf('\napi.', start + 1)
+		const handler = routes.slice(start, end < 0 ? undefined : end)
+		if (!handler.includes(`<${op.returns}`) && !handler.includes(`: ${op.returns}`)) problems.push(`${name} says it returns ${op.returns}, and its handler doesn't answer with that type.`)
+	}
+	assert.deepEqual(problems, [])
 })

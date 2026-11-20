@@ -40,7 +40,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.0 - 2026-11-20
 
 ### Cần thực hiện
-- Nếu bạn đã sửa `cloudflare.config.ts` (đổi `WORKER_NAME`, thêm tên miền riêng hoặc bỏ `ANALYTICS`), hãy ghi các thiết lập đó vào `worker.json` trong thư mục FluxBio của bạn trước khi triển khai phiên bản này, ví dụ `{ "name": "my-links" }`. Tệp này không thuộc mã nguồn, nên từ nay các bản cập nhật sẽ không đụng đến nó. Nếu bạn quên, việc triển khai sẽ dừng lại và cho biết tên cần ghi. [#45](https://github.com/0t2/flux-bio/pull/45)
+- Nếu bạn đã sửa `cloudflare.config.ts` (đổi `WORKER_NAME`, thêm tên miền riêng hoặc bỏ `ANALYTICS`), hãy ghi các thiết lập đó vào `worker.json` trong thư mục FluxBio của bạn trước khi triển khai phiên bản này, ví dụ `{ "name": "my-links", "domains": ["links.example.com"], "analytics": false }`. Tệp này không thuộc mã nguồn, nên từ nay các bản cập nhật sẽ không đụng đến nó. Nếu bạn quên, việc triển khai sẽ dừng lại và cho biết tên cần ghi. [#45](https://github.com/0t2/flux-bio/pull/45)
 
 ### Mới
 - `pnpm run deploy` hỏi Cloudflare xem đang chạy gì trước khi tải lên, và dừng một lần triển khai sẽ tạo thêm một trang web trống, làm một trang web của bạn ngừng hoạt động, ghi đè một Worker khác hoặc thay mật khẩu của bạn. Hãy dùng lệnh này thay cho `cf deploy`. [#45](https://github.com/0t2/flux-bio/pull/45)
