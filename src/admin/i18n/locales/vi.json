@@ -1008,5 +1008,6 @@
 	"第 {n} 項和第 {m} 項的 id 一樣，請改掉其中一個": "Mục {m} và mục {n} có cùng id: hãy đổi một trong hai",
 	"已經儲存，但 Cloudflare KV 暫時寫不進去，訪客還看不到這次的修改。請稍後再儲存一次。": "Đã lưu, nhưng Cloudflare KV hiện chưa ghi được nên khách truy cập chưa thấy thay đổi này. Hãy lưu lại sau.",
 	"這一頁的內容有 {size} KB，不能超過 {limit} KB。最佔空間的是翻譯和自訂的 HTML。": "Nội dung của trang này là {size} KB, vượt giới hạn {limit} KB. Phần chiếm nhiều dung lượng nhất là bản dịch và HTML tùy chỉnh.",
-	"已經儲存。網站的頁面很多，還有一些沒更新完，請稍後再儲存一次。": "Đã lưu. Trang web này có nhiều trang và một số trang chưa được cập nhật. Hãy lưu lại sau ít phút."
+	"已經儲存。網站的頁面很多，還有一些沒更新完，請稍後再儲存一次。": "Đã lưu. Trang web này có nhiều trang và một số trang chưa được cập nhật. Hãy lưu lại sau ít phút.",
+	"已經儲存。網站的頁面很多，還有一些頁面還沒下線，重新整理這一頁會繼續。": "Đã lưu. Trang web này có nhiều trang và một số trang vẫn đang trực tuyến. Tải lại trang này sẽ tiếp tục."
 }

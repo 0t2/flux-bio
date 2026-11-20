@@ -89,3 +89,5 @@ export async function saveSettings(json: object): Promise<{ settings: Settings; 
 
 /** What to say when a save is `unfinished`. */
 export const UNFINISHED = msg('已經儲存。網站的頁面很多，還有一些沒更新完，請稍後再儲存一次。')
+/** And when it was pages being switched off: the ones not reached yet are still public, which is not "not up to date". */
+export const UNFINISHED_OFF = msg('已經儲存。網站的頁面很多，還有一些頁面還沒下線，重新整理這一頁會繼續。')

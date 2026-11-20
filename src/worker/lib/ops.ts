@@ -779,7 +779,8 @@ export async function updateSettings(env: Env, patch: SettingsPatch): Promise<{ 
 	// Another request saving in between only makes the note say too much, which costs a write or two and no more.
 	const { settings: seen, other: noted } = await loadSettingsWith(db, COPIES_OWED)
 	const note = owedNote(db, noted)
-	let owed = await note.keep(owedTogether(note.owed(), owedBy(seen, change(seen))))
+	const before = note.owed()
+	let owed = await note.keep(owedTogether(before, owedBy(seen, change(seen))))
 
 	// From the settings as they are at this moment: another request may have saved since this one started.
 	const { previous, next } = await changeSettings(db, change)
@@ -795,8 +796,9 @@ export async function updateSettings(env: Env, patch: SettingsPatch): Promise<{ 
 	if (bioChanged) {
 		const switched = await switchBio(env, previous, next, budget).catch(async (error: unknown) => {
 			// Refused, and put back. KV may hold half of it, which the note has to go on saying, looked at afresh:
-			// another request may have taken the same note out.
-			await note.keep(owed, true).catch((failed: unknown) => console.error('Could not note what KV is owed', failed))
+			// another request may have taken the same note out. Pages are on again, so their copies are owed only
+			// what they were before this.
+			await note.keep({ ...owed, after: before.after }, true).catch((failed: unknown) => console.error('Could not note what KV is owed', failed))
 			throw error
 		})
 		budget -= switched.used
@@ -804,8 +806,9 @@ export async function updateSettings(env: Env, patch: SettingsPatch): Promise<{ 
 		// back: copies an unfinished switch left are from before whatever changed while pages were off, so all go.
 		owed = { ...owed, site: false, pages: [], after: next.bio ? (owed.after !== null ? '' : null) : switched.after }
 	}
-	// Another language with its own built-in text, or copying fonts turned on: published pages' fonts change.
-	const unusedFonts = everyPage ? await refreshFonts(env, next) : []
+	// Another language with its own built-in text, or copying fonts turned on or off: published pages' fonts change.
+	const fonts = everyPage ? await refreshFonts(env, previous, next) : { unused: [], written: 0 }
+	budget = Math.max(0, budget - fonts.written)
 
 	let copiesLeft = false
 	let refused: unknown
@@ -815,7 +818,7 @@ export async function updateSettings(env: Env, patch: SettingsPatch): Promise<{ 
 		// If this can't be saved, what was noted before KV was told still stands, and says at least as much.
 		await note.keep(owed, true).catch((error: unknown) => console.error('Could not note what KV is owed', error))
 	}
-	await deleteFontFiles(env, unusedFonts.slice(0, Math.max(0, budget)))
+	await deleteFontFiles(env, fonts.unused.slice(0, Math.max(0, budget)))
 	if (refused) {
 		// D1 has the change and KV doesn't. Said as an error, so that whoever saved it, the dashboard too, is told
 		// that visitors don't see it yet; what is owed is noted, and saving again sends it.
@@ -867,7 +870,9 @@ async function tellKv(env: Env, owed: Owed, budget = KV_OPS_AT_ONCE): Promise<{ 
 				if (failed) refused = failed.reason
 				else owed = { ...owed, purge: listed.list_complete ? null : listed.cursor }
 			} catch (error) {
+				// A place in the list that KV no longer takes would be refused at every call: from the start next time.
 				refused = error
+				if (owed.purge) owed = { ...owed, purge: '' }
 			}
 		}
 		// Pages' copies are dropped whether pages are on or off: off, they are what is still public (switchBio).
@@ -882,15 +887,10 @@ async function tellKv(env: Env, owed: Owed, budget = KV_OPS_AT_ONCE): Promise<{ 
 			else owed = { ...owed, after: handles.length > now.length ? now[now.length - 1]! : null }
 		}
 		if (owed.fonts && !refused) {
-			// Copying is on again: the files still listed are in use, and the pages without a list are copied when
-			// they are next published, as after any change of this setting.
-			if (current.hostFonts) owed = { ...owed, fonts: false }
-			else {
-				const done = await dropFontFiles(env, budget)
-				budget -= done.used
-				if (done.refused) refused = done.refused
-				else if (!done.left) owed = { ...owed, fonts: false }
-			}
+			const done = await dropFontFiles(env, budget)
+			budget -= done.used
+			if (done.refused) refused = done.refused
+			else if (!done.left) owed = { ...owed, fonts: false }
 		}
 		// What a save since that read owes is owed again by now, whoever told KV last.
 		const since = owedBy(current, await loadSettings(db))
@@ -903,20 +903,57 @@ async function tellKv(env: Env, owed: Owed, budget = KV_OPS_AT_ONCE): Promise<{ 
 	return { owed, copiesLeft, refused, budget }
 }
 
-/** How many pages' font files one slice looks at: their ids go in one statement, which takes 100 values. */
+/** How many pages' font files one slice looks at: their keys go in one statement, which takes 100 values. */
 const FONT_ROWS_AT_ONCE = 90
 
+/** Where a page's list of font files waits for its files to be deleted: a row of _meta, `fonts-old:<page id>`. */
+const FONTS_ASIDE = 'fonts-old:'
+
 /**
- * Deletes the font files of pages after copying fonts was turned off, as many pages as `budget` KV operations take,
- * and forgets a page's list only when its files are gone: what KV refuses is still listed, and tried again.
+ * Sets every page's list of font files aside and leaves the pages with none, in one batch: when copying is turned
+ * off, or a backup is about to replace the pages. A list left on its page would be read again as soon as copying is
+ * on, and by then some of its files are gone. Set aside, nothing reads it but dropFontFiles. A page that already
+ * has a list waiting keeps both: the files of the two are one set.
+ */
+export function setFontsAside(db: D1Database): D1PreparedStatement[] {
+	return [
+		db.prepare(
+			`INSERT INTO _meta (key, value) SELECT '${FONTS_ASIDE}' || id, json_array(json(fonts)) FROM pages WHERE fonts IS NOT NULL AND json_valid(fonts)
+			 ON CONFLICT (key) DO UPDATE SET value = json_insert(_meta.value, '$[#]', json(json_extract(excluded.value, '$[0]')))`,
+		),
+		db.prepare('UPDATE pages SET fonts = NULL WHERE fonts IS NOT NULL'),
+	]
+}
+
+/** Every file the lists set aside for one page name: a list of lists (setFontsAside). */
+function filesListed(json: string): string[] {
+	try {
+		const lists: unknown = JSON.parse(json)
+		return Array.isArray(lists) ? [...new Set(lists.flatMap((list) => unusedFontFiles(parseHostedFonts(JSON.stringify(list)), null)))] : []
+	} catch {
+		return []
+	}
+}
+
+/**
+ * Deletes the font files of lists set aside, as many pages' as `budget` KV operations take, and forgets a list only
+ * when its files are gone: what KV refuses stays listed, and is tried again. A file its page lists again by now,
+ * copying having been turned back on, is that page's and stays.
  */
 async function dropFontFiles(env: Env, budget: number): Promise<{ used: number; left: boolean; refused?: unknown }> {
-	const { results } = await env.DB.prepare('SELECT id, fonts FROM pages WHERE fonts IS NOT NULL LIMIT ?1').bind(FONT_ROWS_AT_ONCE).all<{ id: string; fonts: string }>()
+	const { results } = await env.DB
+		.prepare(
+			`SELECT m.key AS key, m.value AS listed, p.fonts AS now FROM _meta m LEFT JOIN pages p ON p.id = substr(m.key, ${FONTS_ASIDE.length + 1})
+			 WHERE m.key >= ?1 AND m.key < ?2 ORDER BY m.key LIMIT ?3`,
+		)
+		.bind(FONTS_ASIDE, `${FONTS_ASIDE.slice(0, -1)};`, FONT_ROWS_AT_ONCE)
+		.all<{ key: string; listed: string; now: string | null }>()
 	const gone: string[] = []
 	let used = 0
 	let refused: unknown
 	for (const row of results) {
-		const files = unusedFontFiles(parseHostedFonts(row.fonts), null)
+		const kept = new Set(unusedFontFiles(parseHostedFonts(row.now), null))
+		const files = filesListed(row.listed).filter((file) => !kept.has(file))
 		if (used + files.length > budget) break
 		used += files.length
 		const failed = (await Promise.allSettled(files.map((file) => env.KV.delete(fontKey(file))))).find((result): result is PromiseRejectedResult => result.status === 'rejected')
@@ -924,9 +961,9 @@ async function dropFontFiles(env: Env, budget: number): Promise<{ used: number; 
 			refused = failed.reason
 			break
 		}
-		gone.push(row.id)
+		gone.push(row.key)
 	}
-	if (gone.length) await env.DB.prepare(`UPDATE pages SET fonts = NULL WHERE id IN (${gone.map((_, n) => `?${n + 1}`).join(', ')})`).bind(...gone).run()
+	if (gone.length) await env.DB.prepare(`DELETE FROM _meta WHERE key IN (${gone.map((_, n) => `?${n + 1}`).join(', ')})`).bind(...gone).run()
 	return { used, left: gone.length < results.length || results.length === FONT_ROWS_AT_ONCE, refused }
 }
 
@@ -947,21 +984,27 @@ export async function sendOwed(env: Env, budget = KV_OPS_AT_ONCE): Promise<{ cop
 }
 
 /**
- * Notes that every name's copy in KV is to be deleted (Owed.purge), before a backup replaces what D1 holds. Anything
- * noted about pages' copies goes with it: the pages are other pages after that.
+ * Notes, before a backup replaces what D1 holds, that every name's copy in KV is to be deleted (`everyCopy`,
+ * Owed.purge) and that font files are set aside to delete (`fonts`). Anything noted about pages' copies goes with
+ * the first: the pages are other pages after that. Answers with a way to take the note back, for when D1 then
+ * refuses the backup and nothing has changed.
  */
-export async function noteEveryCopyOld(db: D1Database): Promise<void> {
+export async function noteBeforeImport(db: D1Database, { everyCopy, fonts }: { everyCopy: boolean; fonts: boolean }): Promise<() => Promise<void>> {
 	const row = await db.prepare('SELECT value FROM _meta WHERE key = ?1').bind(COPIES_OWED).first<{ value: string }>()
 	const note = owedNote(db, row?.value ?? null)
-	await note.keep({ ...note.owed(), pages: [], after: null, purge: '' }, true)
+	const was = note.owed()
+	await note.keep({ ...was, ...(everyCopy ? { pages: [], after: null, purge: '' } : {}), fonts: was.fonts || fonts }, true)
+	return async () => void (await note.keep(was))
 }
 
 /** What one change to the settings owes KV. */
 function owedBy(previous: Settings, next: Settings): Owed {
 	// Turned off: the files are deleted a slice a call, by the lists the pages keep until theirs are gone.
 	const fonts = previous.hostFonts && !next.hostFonts
-	// The switch is settled by switchBio; until it has been, the "site" record is what says pages are on or off.
-	if (previous.bio !== next.bio) return { site: true, pages: [], after: null, purge: null, fonts }
+	// The "site" record is what says pages are on or off. Going off, every page's copy is owed too, from the start:
+	// noted before D1 has the switch, so that whatever stops the request after that, the pages are still gone on
+	// with. switchBio then makes it the place it got to.
+	if (previous.bio !== next.bio) return { site: true, pages: [], after: next.bio ? null : '', purge: null, fonts }
 	const everyPage = previous.locale !== next.locale || previous.languages.join() !== next.languages.join() || previous.hostFonts !== next.hostFonts
 	const homeChanged = previous.home !== next.home
 	return {
@@ -1071,21 +1114,25 @@ async function switchBio(env: Env, previous: Settings, next: Settings, budget: n
 }
 
 /**
- * Brings copied fonts in line with new settings, and returns the files no longer used. With copying on, the most
- * recent pages are copied now; the others use the visitor's own fonts, as any page
- * whose fonts aren't copied does, until they are next published.
+ * Brings copied fonts in line with new settings, and answers with the files no longer used and how many it wrote.
+ * With copying on, the most recent pages are copied now; the others use the visitor's own fonts, as any page whose
+ * fonts aren't copied does, until they are next published.
  */
-async function refreshFonts(env: Env, next: Settings): Promise<string[]> {
-	// Turned off: no page is read here. Their files are deleted a slice a call (dropFontFiles), and no copy made
-	// while it is off names a font file, whatever a page's row still lists.
-	if (!next.hostFonts) return []
+async function refreshFonts(env: Env, previous: Settings, next: Settings): Promise<{ unused: string[]; written: number }> {
+	if (!next.hostFonts) {
+		// Turned off: the pages' lists are set aside for the files to be deleted by, a slice a call (dropFontFiles).
+		if (previous.hostFonts) await env.DB.batch(setFontsAside(env.DB))
+		return { unused: [], written: 0 }
+	}
 	const pages = await recentlyPublishedPages(env.DB, FONT_PAGES_AT_ONCE)
 	const refreshed = await Promise.all(pages.map(async (page) => ({ ...page, fonts: page.published ? await hostFonts(env, { ...page, published: page.published }, next) : page.fonts })))
 	const changed = refreshed.filter((page, i) => page.fonts !== pages[i]?.fonts)
 	if (changed.length) {
 		await env.DB.batch(changed.map((page) => env.DB.prepare('UPDATE pages SET fonts = ?1 WHERE id = ?2').bind(page.fonts ? JSON.stringify(page.fonts) : null, page.id)))
 	}
-	return pages.flatMap((page, i) => unusedFontFiles(page.fonts, refreshed[i]?.fonts ?? null))
+	const unused = pages.flatMap((page, i) => unusedFontFiles(page.fonts, refreshed[i]?.fonts ?? null))
+	// A file a page had already is not written again; the others each took a KV operation of this request's.
+	return { unused, written: refreshed.flatMap((page, i) => unusedFontFiles(page.fonts, pages[i]?.fonts ?? null)).length }
 }
 
 // ---------------------------------------------------------------- short links

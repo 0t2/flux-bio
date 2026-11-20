@@ -22,8 +22,7 @@ import {
 } from './db'
 import { NAME_PREFIX, SITE_KEY, toLinkRecord } from './cache'
 import { KV_OPS_AT_ONCE } from './mode'
-import { deleteFontFiles, parseHostedFonts, unusedFontFiles } from './fonts'
-import { dropAgain, dropCopies, forgetSite, noteEveryCopyOld, rebuildCache, refuseTooLarge, sendOwed } from './ops'
+import { dropAgain, dropCopies, forgetSite, noteBeforeImport, rebuildCache, refuseTooLarge, sendOwed, setFontsAside } from './ops'
 
 export async function exportData(env: Env): Promise<Backup> {
 	const [pages, rows, settings, themes] = await Promise.all([
@@ -180,12 +179,11 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 			.map((row) => row.slug),
 	]
 	// One request may start KV_OPS_AT_ONCE operations, and each name is deleted twice (below). Past that, nothing is
-	// deleted name by name: it is noted that every copy in KV is old (Owed.purge), KV is asked for one thing, so that
-	// nothing changes if it is refusing, and after D1 has the backup KV's own list of names is gone through from the
-	// start, a slice here and the rest by the calls that follow. Until then a name not reached yet answers as before.
-	const large = dropped.length > KV_OPS_AT_ONCE / 2
+	// deleted name by name: KV is asked for one thing, so that nothing changes if it is refusing, it is noted that
+	// every copy in KV is old (Owed.purge), and after D1 has the backup KV's own list of names is gone through from
+	// the start, a slice here and the rest by the calls that follow. Until then a name not reached yet answers as before.
+	const large = dropped.length > (KV_OPS_AT_ONCE - 2) / 2
 	if (large) {
-		await noteEveryCopyOld(db)
 		// The one thing: the "site" record goes, which "/" then asks D1 for until it is written again below. Taking
 		// the home page's copy out of it (dropCopies) asks KV for nothing when there is no such copy.
 		try {
@@ -196,10 +194,18 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 			throw new ApiError(503, 'kv', msg('Cloudflare KV 暫時寫不進去，這次的修改沒有儲存，請稍後再試。'))
 		}
 	} else await dropCopies(env, dropped, [], { home: true })
-	// The pages' font files go with the pages: nothing lists them afterwards.
-	const { results: listed } = await db.prepare('SELECT fonts FROM pages WHERE fonts IS NOT NULL').all<{ fonts: string }>()
-	const oldFonts = listed.flatMap((row) => unusedFontFiles(parseHostedFonts(row.fonts), null))
-	await db.batch([
+	// The pages' font files go with the pages. Their lists are set aside in the same batch that replaces the pages,
+	// and the files deleted by them, here as far as this request goes and by the calls that follow.
+	const fonts = Boolean(await db.prepare('SELECT 1 FROM pages WHERE fonts IS NOT NULL LIMIT 1').first())
+	const takeBack = large || fonts ? await noteBeforeImport(db, { everyCopy: large, fonts }) : null
+	const replace = (statements: D1PreparedStatement[]) =>
+		db.batch(statements).catch(async (error: unknown) => {
+			// D1 refused the backup, and holds what it held: nothing is owed for it.
+			await takeBack?.().catch((failed: unknown) => console.error('Could not take back what was noted for an import', failed))
+			throw error
+		})
+	await replace([
+		...setFontsAside(db),
 		db.prepare('DELETE FROM page_versions'),
 		db.prepare('DELETE FROM pages'),
 		db.prepare('DELETE FROM links'),
@@ -233,19 +239,14 @@ export async function importData(env: Env, backup: Backup): Promise<{ pages: num
 
 	// The home copy taken out above and the "site" record written below are two of this request's operations.
 	let budget = KV_OPS_AT_ONCE - 2
-	let copiesLeft = false
-	if (large) {
-		;({ copiesLeft } = await sendOwed(env, budget))
-		budget = 0
-	} else {
+	if (!large) {
 		// None of those names gets a fresh copy here, so each is deleted once more (dropAgain): a visit while the
 		// copies were going read the old rows and may have put one back.
 		await dropAgain(env, dropped)
 		budget -= dropped.length * 2
 	}
 	await rebuildCache(env)
-	// As far as this request goes. On a site too large for that they stay in KV, where nothing reads them.
-	await deleteFontFiles(env, oldFonts.slice(0, Math.max(0, budget)))
+	const { copiesLeft } = large || fonts ? await sendOwed(env, Math.max(0, budget)) : { copiesLeft: false }
 	return { pages: backup.pages.length, shortLinks: rows.length, ...(copiesLeft ? { copiesLeft: true as const } : {}) }
 }
 

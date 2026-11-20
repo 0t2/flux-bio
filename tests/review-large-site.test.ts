@@ -8,7 +8,7 @@ import { NAME_PREFIX, SITE_KEY } from '../src/worker/lib/cache'
 import { ensureSchema } from '../src/worker/lib/db'
 import { KV_OPS_AT_ONCE } from '../src/worker/lib/mode'
 import { updateSettings } from '../src/worker/lib/ops'
-import { api, apiJson, visit } from './helpers'
+import { apiJson, visit } from './helpers'
 
 // A site with more published pages than one request may tell KV about: Cloudflare takes about a thousand KV
 // operations from one request, and KV_OPS_AT_ONCE is what this code allows itself. Whatever a change has to do to
@@ -98,7 +98,9 @@ describe('copying fonts turned off', () => {
 	const FILES = 4
 	const WITH_FONTS = 250
 	const fonts = (n: number) => JSON.stringify([{ family: 'Noto Sans', axis: 'wght', key: `k${n}`, faces: Array.from({ length: FILES }, (_, face) => ({ weight: String(400 + face * 100), file: `large-${n}-abc-${face}` })) }])
-	const listed = async () => (await env.DB.prepare('SELECT count(*) AS n FROM pages WHERE fonts IS NOT NULL').first<{ n: number }>())!.n
+	// Lists waiting for their files to be deleted, and lists pages still have.
+	const listed = async () => (await env.DB.prepare("SELECT (SELECT count(*) FROM _meta WHERE key LIKE 'fonts-old:%') + (SELECT count(*) FROM pages WHERE fonts IS NOT NULL) AS n").first<{ n: number }>())!.n
+	const onPages = async () => (await env.DB.prepare('SELECT count(*) AS n FROM pages WHERE fonts IS NOT NULL').first<{ n: number }>())!.n
 	const give = async () => {
 		const set = env.DB.prepare('UPDATE pages SET fonts = ?1 WHERE id = ?2')
 		const rows = Array.from({ length: WITH_FONTS }, (_, n) => set.bind(fonts(n), `large-${n}`))
@@ -133,10 +135,66 @@ describe('copying fonts turned off', () => {
 		await expect(updateSettings(refusing.env, { hostFonts: false })).resolves.toMatchObject({ copiesLeft: true })
 		await expect(updateSettings(refusing.env, {})).rejects.toMatchObject({ status: 503 })
 		expect(await listed()).toBe(WITH_FONTS)
+		// No page has a list from then on: a list is set aside the moment copying goes off.
+		expect(await onPages()).toBe(0)
 		expect((await noted())?.fonts).toBe(true)
 		let left = true
 		for (let calls = 0; left && calls < 12; calls++) left = (await updateSettings(env, {})).copiesLeft
 		expect(await listed()).toBe(0)
+		expect(await noted()).toBeNull()
+	}, 60_000)
+
+	it('never leaves a page listing files that are gone, when D1 fails after KV has deleted them and copying comes back on', async () => {
+		await give()
+		// The files of a slice are deleted, and D1 then fails to forget their lists.
+		let failed = 0
+		const DB = new Proxy(env.DB, {
+			get(target, key) {
+				if (key === 'prepare') {
+					return (text: string) => {
+						if (!/^DELETE FROM _meta WHERE key IN/.test(text)) return target.prepare(text)
+						failed++
+						return { bind: () => ({ run: () => Promise.reject(new Error('D1_ERROR: storage operation exceeded timeout')) }) }
+					}
+				}
+				const value = Reflect.get(target, key)
+				return typeof value === 'function' ? value.bind(target) : value
+			},
+		})
+		await updateSettings(env, { hostFonts: false })
+		await expect(updateSettings({ ...env, DB } as Env, {})).rejects.toThrow('D1_ERROR')
+		expect(failed).toBe(1)
+		// Copying is turned on again before the rest is done. Google can't be reached here, so no page is copied.
+		await env.DB.prepare("UPDATE _meta SET value = json_set(value, '$.hostFonts', json('true')) WHERE key = 'settings'").run()
+		expect(await onPages()).toBe(0)
+		expect(await (await visit(`/${handle(8)}`)).text()).not.toContain('/_fonts/')
+		// And what is left to delete is still deleted, with copying on.
+		let left = true
+		for (let calls = 0; left && calls < 12; calls++) left = (await updateSettings(env, {})).copiesLeft
+		expect(await listed()).toBe(0)
+		expect(await noted()).toBeNull()
+		await updateSettings(env, { hostFonts: false })
+		await updateSettings(env, {})
+	}, 60_000)
+
+	it('keeps a file its page lists again, copied anew under the same name', async () => {
+		await give()
+		await updateSettings(env, { hostFonts: false })
+		// Copying is on again and page 3 has been copied, to the names it had: those files are its own now.
+		await env.DB.batch([
+			env.DB.prepare("UPDATE _meta SET value = json_set(value, '$.hostFonts', json('true')) WHERE key = 'settings'"),
+			env.DB.prepare('UPDATE pages SET fonts = ?1 WHERE id = ?2').bind(fonts(3), 'large-3'),
+		])
+		const kv = counting()
+		let left = true
+		for (let calls = 0; left && calls < 12; calls++) left = (await updateSettings(kv.env, {})).copiesLeft
+		const deleted = kv.seen.deletes.filter((name) => name.startsWith('font:'))
+		expect(deleted.filter((name) => name.startsWith('font:large-3-'))).toEqual([])
+		expect(deleted).toContain('font:large-4-abc-0')
+		expect(await onPages()).toBe(1)
+		await env.DB.prepare('UPDATE pages SET fonts = NULL').run()
+		await updateSettings(env, { hostFonts: false })
+		for (let calls = 0, more = true; more && calls < 12; calls++) more = (await updateSettings(env, {})).copiesLeft
 		expect(await noted()).toBeNull()
 	}, 60_000)
 })
@@ -163,11 +221,40 @@ describe('pages switched off', () => {
 		expect(await names()).toEqual([])
 	}, 60_000)
 
+	it('still goes on to the pages not reached when the request stops after the first of them', async () => {
+		expect((await updateSettings(env, { bio: true })).copiesLeft).toBe(false)
+		expect(await status(`/${handle(PAGES - 1)}`)).toBe(200)
+		// Copying fonts is turned on in the same request, and reading the pages to copy fails: the switch is saved,
+		// the first pages are offline, and the request ends there, before it has said where it stopped.
+		const DB = new Proxy(env.DB, {
+			get(target, key) {
+				if (key === 'prepare') {
+					return (text: string) => {
+						if (!/ORDER BY published_at DESC/.test(text)) return target.prepare(text)
+						return { bind: () => ({ all: () => Promise.reject(new Error('D1_ERROR: storage operation exceeded timeout')) }) }
+					}
+				}
+				const value = Reflect.get(target, key)
+				return typeof value === 'function' ? value.bind(target) : value
+			},
+		})
+		await expect(updateSettings({ ...env, DB } as Env, { bio: false, hostFonts: true })).rejects.toThrow('D1_ERROR')
+		expect((await apiJson<StateResponse>('/state')).settings.bio).toBe(false)
+		// It was noted before the switch was saved that every page's copy is owed, so a look or two finishes it.
+		for (let calls = 0; (await noted()) && calls < 4; calls++) await apiJson<StateResponse>('/state')
+		expect(await status(`/${handle(PAGES - 1)}`)).toBe(404)
+		expect(await names()).toEqual([])
+		await updateSettings(env, { hostFonts: false })
+		await updateSettings(env, {})
+	}, 60_000)
+
 	it('goes back when KV refuses the first of it, as on any site', async () => {
 		expect((await updateSettings(env, { bio: true })).copiesLeft).toBe(false)
 		const refusing = counting((operation) => operation !== 'list')
 		await expect(updateSettings(refusing.env, { bio: false })).rejects.toMatchObject({ status: 503 })
 		expect(refusing.operations()).toBeLessThanOrEqual(KV_OPS_AT_ONCE + 1)
+		// Pages are on, and their copies are owed nothing for a switch that didn't happen: only the "site" record.
+		expect(await noted()).toMatchObject({ site: true, after: null })
 		expect((await apiJson<StateResponse>('/state')).settings.bio).toBe(true)
 		expect(await status(`/${handle(3)}`)).toBe(200)
 	}, 60_000)
@@ -220,9 +307,57 @@ describe('a backup brought in', () => {
 		const insert = env.DB.prepare("INSERT INTO links (id, slug, url, title, kind, page_id, status, created_at, updated_at) VALUES (?1, ?2, 'https://example.com/x', 'x', 'solo', NULL, 'active', 1, 1)")
 		const rows = Array.from({ length: KV_OPS_AT_ONCE / 2 + 5 }, (_, n) => insert.bind(`many-${n}`, `many-${n}`))
 		for (let n = 0; n < rows.length; n += 90) await env.DB.batch(rows.slice(n, n + 90))
+		const links = async () => (await env.DB.prepare('SELECT count(*) AS n FROM links').first<{ n: number }>())!.n
+		const had = await links()
 		const refusing = counting((operation) => operation !== 'list')
-		await expect(importData(refusing.env, { ...backup, pages: [] })).rejects.toMatchObject({ status: 503 })
+		await expect(importData(refusing.env, { ...backup, pages: [], shortLinks: [] })).rejects.toMatchObject({ status: 503 })
+		// Nothing is noted for an import that didn't happen: a note that every copy is old would have them all deleted.
+		expect(await noted()).toBeNull()
 		expect((await apiJson<StateResponse>('/state')).pages).toHaveLength(before)
-		expect((await api('/links?limit=1')).status).toBe(200)
+		expect(await links()).toBe(had)
+	}, 60_000)
+
+	it('takes back what it noted when D1 refuses the backup', async () => {
+		const backup = await apiJson<Backup>('/export')
+		const DB = new Proxy(env.DB, {
+			get(target, key) {
+				if (key === 'batch') return () => Promise.reject(new Error('D1_ERROR: storage operation exceeded timeout'))
+				const value = Reflect.get(target, key)
+				return typeof value === 'function' ? value.bind(target) : value
+			},
+		})
+		await expect(importData({ ...env, DB } as Env, { ...backup, pages: [], shortLinks: [] })).rejects.toThrow('D1_ERROR')
+		expect(await noted()).toBeNull()
+	}, 60_000)
+
+	it('goes through KV’s list from the start again when KV no longer takes the place it had got to', async () => {
+		await env.DB.prepare("INSERT INTO _meta (key, value) VALUES ('copies-owed', ?1)").bind(JSON.stringify({ site: false, pages: [], after: null, purge: 'a-place-kv-has-forgotten', fonts: false })).run()
+		await env.KV.put(`${NAME_PREFIX}old-name-left`, '{}')
+		const KV = new Proxy(env.KV, {
+			get(target, key) {
+				if (key === 'list') return (options: KVNamespaceListOptions) => (options.cursor ? Promise.reject(new Error('KV list failed: 400 Invalid cursor')) : target.list(options))
+				const value = Reflect.get(target, key)
+				return typeof value === 'function' ? value.bind(target) : value
+			},
+		})
+		// Refused once, and not for ever: every save would otherwise answer 503 from then on.
+		await expect(updateSettings({ ...env, KV } as Env, {})).rejects.toMatchObject({ status: 503 })
+		expect((await noted())?.purge).toBe('')
+		expect((await updateSettings({ ...env, KV } as Env, {})).copiesLeft).toBe(false)
+		expect(await names()).not.toContain('old-name-left')
+		expect(await noted()).toBeNull()
+	}, 60_000)
+
+	it('deletes the font files of the pages it replaces, which nothing would list afterwards', async () => {
+		const backup = await apiJson<Backup>('/export')
+		const page = backup.pages[0]!
+		const list = JSON.stringify([{ family: 'Noto Sans', axis: 'wght', key: 'k', faces: [{ weight: '400', file: `${page.id}-abc-0` }, { weight: '700', file: `${page.id}-abc-1` }] }])
+		await env.DB.prepare('UPDATE pages SET fonts = ?1 WHERE id = ?2').bind(list, page.id).run()
+		const kv = counting()
+		await importData(kv.env, backup)
+		for (let calls = 0; (await noted()) && calls < 4; calls++) await updateSettings(kv.env, {})
+		expect(kv.seen.deletes).toEqual(expect.arrayContaining([`font:${page.id}-abc-0`, `font:${page.id}-abc-1`]))
+		expect(await env.DB.prepare("SELECT count(*) AS n FROM _meta WHERE key LIKE 'fonts-old:%'").first<{ n: number }>()).toEqual({ n: 0 })
+		expect(await noted()).toBeNull()
 	}, 60_000)
 })

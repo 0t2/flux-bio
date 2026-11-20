@@ -1008,5 +1008,6 @@
 	"第 {n} 項和第 {m} 項的 id 一樣，請改掉其中一個": "Items {m} and {n} have the same id: change one of them",
 	"已經儲存，但 Cloudflare KV 暫時寫不進去，訪客還看不到這次的修改。請稍後再儲存一次。": "Saved, but Cloudflare KV isn’t taking writes right now, so visitors don’t see this change yet. Save it again later.",
 	"這一頁的內容有 {size} KB，不能超過 {limit} KB。最佔空間的是翻譯和自訂的 HTML。": "This page’s content is {size} KB, and the limit is {limit} KB. Translations and custom HTML take the most room.",
-	"已經儲存。網站的頁面很多，還有一些沒更新完，請稍後再儲存一次。": "Saved. This site has many pages and some aren’t up to date yet. Save again in a while."
+	"已經儲存。網站的頁面很多，還有一些沒更新完，請稍後再儲存一次。": "Saved. This site has many pages and some aren’t up to date yet. Save again in a while.",
+	"已經儲存。網站的頁面很多，還有一些頁面還沒下線，重新整理這一頁會繼續。": "Saved. This site has many pages and some are still online. Reloading this page goes on with it."
 }
