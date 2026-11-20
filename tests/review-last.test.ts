@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:test'
 import { describe, expect, it } from 'vitest'
-import { EVENT_FIELDS, eventBlobs } from '../src/worker/lib/analytics'
+import { daySalt, EVENT_FIELDS, eventBlobs } from '../src/worker/lib/analytics'
 import { NAME_PREFIX } from '../src/worker/lib/cache'
 import { ensureSchema, loadSettings } from '../src/worker/lib/db'
 import { publishPage, renamePage } from '../src/worker/lib/ops'
@@ -78,6 +78,17 @@ describe('a visitor’s id for the day', () => {
 		expect(after.salt).not.toBe(before.salt)
 		// Asked for the day before again, it is not what it was.
 		expect(await id('2026-10-31')).not.toBe(first)
+	})
+
+	it('keeps one salt for a day whatever is asked for in between: a visit counted late doesn’t take the day’s away', async () => {
+		const today = await id('2026-11-02')
+		const held = await salt()
+		// A visit of the day before, counted a moment after midnight, here and in a copy of the Worker that has
+		// only just started and remembers nothing.
+		await id('2026-11-01')
+		expect(await daySalt({ ...env, SITE: 'a-copy-that-remembers-nothing' } as unknown as Env, '2026-11-01')).toBe(held.salt)
+		expect(await salt()).toEqual(held)
+		expect(await id('2026-11-02')).toBe(today)
 	})
 })
 

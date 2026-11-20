@@ -77,34 +77,38 @@ export interface EventInput {
 	utm?: UtmTags
 }
 
-const SALT_KEY = 'visitor-salt'
-const salts = perSite<{ day: string; salt: Promise<string> }>()
+const salts = perSite<Map<string, { day: string; salt: Promise<string> }>>()
 
 /**
- * The day's salt for visitor ids: random, kept in _meta for that day only, and written over by the next day's the
- * first time a visit of that day is counted. A salt that lasted, the admin password as it used to be, would let
- * whoever knows it try every address against an old id and learn whether someone visited. Without a table to keep
- * it in, as in a test with no schema yet, the salt lasts as long as this copy of the Worker.
+ * A salt for one day: random, kept in _meta for that day only, and written over by a later day's the first time it
+ * is asked for. A salt that lasted, the admin password as it used to be, would let whoever knows it try every
+ * address against an old id and learn whether someone visited.
+ *
+ * The row only ever moves on to a later day. Asked for a day before the one it holds, as for a visit counted a
+ * moment after midnight, the answer is the salt it holds: going back would give that later day a second salt the
+ * next time it is asked for, and its visitors would be counted twice from then on. If D1 can't be asked, the salt
+ * lasts as long as this copy of the Worker.
  */
-function daySalt(env: Env, day: string): Promise<string> {
+export function daySalt(env: Env, day: string, key = 'visitor-salt'): Promise<string> {
 	const site = siteId(env)
-	const kept = salts.get(site)
-	if (kept?.day === day) return kept.salt
+	const mine = salts.get(site) ?? new Map<string, { day: string; salt: Promise<string> }>()
+	salts.set(site, mine)
+	const kept = mine.get(key)
+	if (kept && kept.day >= day) return kept.salt
 	const salt = (async () => {
 		const fresh = JSON.stringify({ day, salt: randomString(32) })
 		const [, read] = await env.DB.batch<{ value: string }>([
-			// Only where the day has changed: every copy of the Worker counts the day's visitors with one salt.
-			env.DB.prepare(`INSERT INTO _meta (key, value) VALUES (?1, ?2) ON CONFLICT (key) DO UPDATE SET value = excluded.value WHERE json_extract(_meta.value, '$.day') IS NOT ?3`).bind(SALT_KEY, fresh, day),
-			env.DB.prepare('SELECT value FROM _meta WHERE key = ?1').bind(SALT_KEY),
+			env.DB.prepare(`INSERT INTO _meta (key, value) VALUES (?1, ?2) ON CONFLICT (key) DO UPDATE SET value = excluded.value WHERE coalesce(json_extract(_meta.value, '$.day'), '') < ?3`).bind(key, fresh, day),
+			env.DB.prepare('SELECT value FROM _meta WHERE key = ?1').bind(key),
 		])
 		const stored = JSON.parse(read?.results[0]?.value ?? 'null') as { day?: string; salt?: string } | null
-		if (stored?.day !== day || typeof stored.salt !== 'string') throw new Error('The day has no salt')
+		if (typeof stored?.salt !== 'string') throw new Error('The day has no salt')
 		return stored.salt
 	})().catch((error: unknown) => {
-		console.error('Could not read the day\'s salt for visitor ids', error)
+		console.error('Could not read the day\'s salt', error)
 		return randomString(32)
 	})
-	salts.set(site, { day, salt })
+	mine.set(key, { day, salt })
 	return salt
 }
 

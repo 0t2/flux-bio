@@ -611,7 +611,7 @@ export async function publishPage(env: Env, pageId: string, { by = null, seen }:
 				`UPDATE pages SET published = ?1, published_at = ?2, fonts = ?4,
 				draft = CASE WHEN draft_updated_at = ?5 THEN ?1 ELSE draft END,
 				draft_updated_at = CASE WHEN draft_updated_at = ?5 THEN ?6 ELSE draft_updated_at END
-				WHERE id = ?3 RETURNING draft_updated_at AS version, handle`,
+				WHERE id = ?3 RETURNING draft_updated_at AS version, handle, draft IS ?1 AS replaced`,
 			)
 			.bind(JSON.stringify(content), now, pageId, fonts ? JSON.stringify(fonts) : null, page.draftUpdatedAt, draftUpdatedAt),
 	)
@@ -620,8 +620,9 @@ export async function publishPage(env: Env, pageId: string, { by = null, seen }:
 	await dropCopies(env, [page.handle], replaced.map((row) => row.slug), { home: settings.home === pageId })
 	// What D1 has by now, which is not always what was meant: the draft is kept where one was saved while fonts were
 	// being copied, and the page may have been given another address.
-	const stored = (await db.batch<{ version: number; handle: string }>(statements)).at(-1)?.results[0]
-	const draftKept = stored !== undefined && stored.version !== draftUpdatedAt
+	const stored = (await db.batch<{ version: number; handle: string; replaced: number }>(statements)).at(-1)?.results[0]
+	// By what the draft is, not by its version: a save in the same millisecond has the number this one meant to write.
+	const draftKept = stored !== undefined && !stored.replaced
 	const handle = stored?.handle ?? page.handle
 	forgetPublicNames()
 	// The slugs that left the page or changed are written nowhere below.
