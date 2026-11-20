@@ -513,54 +513,85 @@ export function writeMetaStatement(db: D1Database, key: string, value: unknown):
 }
 
 /**
- * Wrong tries at a link's password: ten in a quarter of an hour, then the link takes none until that time is up.
- * A link's password is hashed fast, because a slow hash would cost every visitor the 10 ms a request has, so
- * what stops someone trying every word is this count and not the hash.
+ * Wrong tries at a link's password. A link's password is hashed fast, because a slow hash would cost every visitor
+ * the 10 ms a request has, so what stops someone trying every word is a count and not the hash.
+ *
+ * Two counts, each for a quarter of an hour. A visitor's: ten, then that visitor is read no password until the time
+ * is up, and nobody else is the worse for it. And the link's, from everyone together: fifty, then the link reads
+ * none from anyone, which is what holds someone who comes from many addresses. A visitor here is a few characters
+ * that say only "the same as before" (passwordVisitor in lib/password.ts), in a row that is deleted when it is past.
  */
 export const PASSWORD_TRIES = 10
+export const PASSWORD_TRIES_LINK = 50
 export const PASSWORD_WINDOW = 15 * 60_000
-const triesKey = (linkId: string) => `tries:${linkId}`
+const TRIES = 'tries:'
+const linkTries = (linkId: string) => `${TRIES}${linkId}`
+const visitorTries = (linkId: string, visitor: string) => `${TRIES}${linkId}:${visitor}`
 
-/** Whether a link has had its wrong tries for now. One row read, and nothing written. */
-export async function passwordLocked(db: D1Database, linkId: string, now = Date.now()): Promise<boolean> {
-	const tries = (await readMeta(db, triesKey(linkId))) as { n?: number; since?: number } | undefined
-	return typeof tries?.n === 'number' && typeof tries.since === 'number' && now - tries.since < PASSWORD_WINDOW && tries.n >= PASSWORD_TRIES
+/** Whether this visitor, or the link, has had its wrong tries for now. One query, and nothing written. */
+export async function passwordLocked(db: D1Database, linkId: string, visitor: string, now = Date.now()): Promise<boolean> {
+	const { results } = await db.prepare('SELECT key, value FROM _meta WHERE key IN (?1, ?2)').bind(linkTries(linkId), visitorTries(linkId, visitor)).all<{ key: string; value: string }>()
+	return results.some((row) => {
+		let tries: { n?: unknown; since?: unknown }
+		try {
+			tries = JSON.parse(row.value) as { n?: unknown; since?: unknown }
+		} catch {
+			return false
+		}
+		const most = row.key === linkTries(linkId) ? PASSWORD_TRIES_LINK : PASSWORD_TRIES
+		return typeof tries.n === 'number' && typeof tries.since === 'number' && now - tries.since < PASSWORD_WINDOW && tries.n >= most
+	})
+}
+
+/** When each of a try's two counts began: it is given back to those, and not to the quarter of an hour after. */
+export interface TriesSince {
+	visitor: number
+	link: number
 }
 
 /**
  * Counts a try before the password is looked at, and answers whether it may be looked at. Counted first, in one
- * statement, so that a thousand tries sent at once are a thousand counts and not a thousand looks.
+ * statement each for the visitor and the link, so that a thousand tries sent at once are a thousand counts and not
+ * a thousand looks. Counts that are past are deleted on the way, every link's: none is kept longer than it counts.
  */
-export async function takePasswordTry(db: D1Database, linkId: string, now = Date.now()): Promise<{ ok: boolean; since: number }> {
-	const row = await db
-		.prepare(
-			`INSERT INTO _meta (key, value) VALUES (?1, json_object('n', 1, 'since', ?2))
-			 ON CONFLICT (key) DO UPDATE SET value = CASE
-				WHEN json_extract(value, '$.since') <= ?3 THEN json_object('n', 1, 'since', ?2)
-				ELSE json_set(value, '$.n', json_extract(value, '$.n') + 1) END
-			 RETURNING json_extract(value, '$.n') AS n, json_extract(value, '$.since') AS since`,
-		)
-		.bind(triesKey(linkId), now, now - PASSWORD_WINDOW)
-		.first<{ n: number; since: number }>()
-	return { ok: (row?.n ?? 1) <= PASSWORD_TRIES, since: row?.since ?? now }
+export async function takePasswordTry(db: D1Database, linkId: string, visitor: string, now = Date.now()): Promise<{ ok: boolean; since: TriesSince }> {
+	const count = (key: string) =>
+		db
+			.prepare(
+				`INSERT INTO _meta (key, value) VALUES (?1, json_object('n', 1, 'since', ?2))
+				 ON CONFLICT (key) DO UPDATE SET value = CASE
+					WHEN json_extract(value, '$.since') <= ?3 THEN json_object('n', 1, 'since', ?2)
+					ELSE json_set(value, '$.n', json_extract(value, '$.n') + 1) END
+				 RETURNING json_extract(value, '$.n') AS n, json_extract(value, '$.since') AS since`,
+			)
+			.bind(key, now, now - PASSWORD_WINDOW)
+	const [, mine, links] = await db.batch<{ n: number; since: number }>([
+		// ";" is the character after ":", so this is every key that starts with "tries:".
+		db.prepare(`DELETE FROM _meta WHERE key >= ?1 AND key < ?2 AND json_extract(value, '$.since') <= ?3`).bind(TRIES, `${TRIES.slice(0, -1)};`, now - PASSWORD_WINDOW),
+		count(visitorTries(linkId, visitor)),
+		count(linkTries(linkId)),
+	])
+	const [visitorRow, linkRow] = [mine?.results[0], links?.results[0]]
+	return {
+		ok: (visitorRow?.n ?? 1) <= PASSWORD_TRIES && (linkRow?.n ?? 1) <= PASSWORD_TRIES_LINK,
+		since: { visitor: visitorRow?.since ?? now, link: linkRow?.since ?? now },
+	}
 }
 
 /**
- * Gives a try back: one that was right, so the people a link is for don't use up what is kept for guessers, and
- * one that was counted and never looked at, or the right password sent thirty times at once would leave a link
- * locked that nobody guessed at. Only wrong tries that were looked at stay counted. `since` is the quarter of an
- * hour the try was counted in: one given back late must not make room in the next.
+ * Gives a try back, to the visitor's count and the link's: one that was right, so the people a link is for don't use
+ * up what is kept for guessers, and one that was counted and never looked at, or the right password sent thirty times
+ * at once would leave a link locked that nobody guessed at. Only wrong tries that were looked at stay counted.
  */
-export async function returnPasswordTry(db: D1Database, linkId: string, since: number): Promise<void> {
-	await db
-		.prepare(`UPDATE _meta SET value = json_set(value, '$.n', max(0, json_extract(value, '$.n') - 1)) WHERE key = ?1 AND json_extract(value, '$.since') = ?2`)
-		.bind(triesKey(linkId), since)
-		.run()
+export async function returnPasswordTry(db: D1Database, linkId: string, visitor: string, since: TriesSince): Promise<void> {
+	const back = (key: string, began: number) =>
+		db.prepare(`UPDATE _meta SET value = json_set(value, '$.n', max(0, json_extract(value, '$.n') - 1)) WHERE key = ?1 AND json_extract(value, '$.since') = ?2`).bind(key, began)
+	await db.batch([back(visitorTries(linkId, visitor), since.visitor), back(linkTries(linkId), since.link)])
 }
 
-/** A new password starts with no wrong tries: the owner who changes it because it was being guessed isn't locked out with the guessers. */
+/** A new password starts with no wrong tries, the link's and every visitor's: the owner who changes it because it was being guessed isn't locked out with the guessers. */
 export function clearPasswordTriesStatement(db: D1Database, linkId: string): D1PreparedStatement {
-	return db.prepare('DELETE FROM _meta WHERE key = ?1').bind(triesKey(linkId))
+	return db.prepare('DELETE FROM _meta WHERE key = ?1 OR (key >= ?2 AND key < ?3)').bind(linkTries(linkId), `${linkTries(linkId)}:`, `${linkTries(linkId)};`)
 }
 
 export async function loadSettings(db: D1Database): Promise<Settings> {

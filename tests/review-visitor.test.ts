@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { PreviewLinkResponse } from '../src/shared/api'
 import { env } from 'cloudflare:test'
-import { PASSWORD_TRIES, PASSWORD_WINDOW, returnPasswordTry, takePasswordTry } from '../src/worker/lib/db'
+import { PASSWORD_TRIES, PASSWORD_TRIES_LINK, PASSWORD_WINDOW, returnPasswordTry, takePasswordTry } from '../src/worker/lib/db'
+import { visitorNetwork } from '../src/worker/lib/password'
 import { distance } from '../src/worker/routes/site'
 import { api, apiJson, call, visit } from './helpers'
 
@@ -123,7 +124,8 @@ describe('a draft’s preview link', () => {
 })
 
 describe('a link’s password', () => {
-	const guess = (slug: string, password: string) => call(`/${slug}`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': 'Mozilla/5.0 (iPhone)' }, body: `password=${encodeURIComponent(password)}` })
+	const guess = (slug: string, password: string, ip = '203.0.113.7') =>
+		call(`/${slug}`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': 'Mozilla/5.0 (iPhone)', 'cf-connecting-ip': ip }, body: `password=${encodeURIComponent(password)}` })
 
 	it('takes ten wrong tries, then none for a while, not even the right one', async () => {
 		await pageWith('rv-locked', [link('rv-pin-1', 'rv-pin', 'https://example.com/prize')])
@@ -187,12 +189,91 @@ describe('a link’s password', () => {
 		// A burst turned away at the end of one quarter of an hour, given back in the next, would make room there
 		// for as many guesses again.
 		const start = Date.now()
-		const old = await takePasswordTry(env.DB, 'rv-window-1', start)
-		for (let n = 0; n < 3; n++) expect((await takePasswordTry(env.DB, 'rv-window-1', start + PASSWORD_WINDOW + 1 + n)).ok).toBe(true)
+		const old = await takePasswordTry(env.DB, 'rv-window-1', 'aaaaaaaa', start)
+		let last = old
+		for (let n = 0; n < 3; n++) expect((last = await takePasswordTry(env.DB, 'rv-window-1', 'aaaaaaaa', start + PASSWORD_WINDOW + 1 + n)).ok).toBe(true)
 		expect(await counted('rv-window-1')).toBe(3)
-		await returnPasswordTry(env.DB, 'rv-window-1', old.since)
+		await returnPasswordTry(env.DB, 'rv-window-1', 'aaaaaaaa', old.since)
 		expect(await counted('rv-window-1')).toBe(3)
-		await returnPasswordTry(env.DB, 'rv-window-1', start + PASSWORD_WINDOW + 1)
+		await returnPasswordTry(env.DB, 'rv-window-1', 'aaaaaaaa', last.since)
 		expect(await counted('rv-window-1')).toBe(2)
 	})
+
+	const rows = async (id: string) => (await env.DB.prepare("SELECT key, value FROM _meta WHERE key LIKE 'tries:' || ?1 || '%' ORDER BY key").bind(id).all<{ key: string; value: string }>()).results
+
+	it('locks out the one who guesses, and nobody else', async () => {
+		await pageWith('rv-fair', [link('rv-fair-1', 'rv-fair-door', 'https://example.com/fair')])
+		await api('/links/rv-fair-1', { method: 'PATCH', json: { password: 'the right one' } })
+		await Promise.all(Array.from({ length: PASSWORD_TRIES + 5 }, (_, n) => guess('rv-fair-door', `guess ${n}`, '198.51.100.9')))
+		// The guesser is read no password now, the right one included. The people the link is for come in as before.
+		expect((await guess('rv-fair-door', 'the right one', '198.51.100.9')).status).toBe(429)
+		expect((await guess('rv-fair-door', 'the right one', '203.0.113.50')).status).toBe(303)
+		expect((await guess('rv-fair-door', 'a slip of the finger', '203.0.113.50')).status).toBe(401)
+		expect((await guess('rv-fair-door', 'the right one', '203.0.113.50')).status).toBe(303)
+	}, 30_000)
+
+	it('still stops someone who comes from many addresses: the link has a count of its own, from everyone together', async () => {
+		await pageWith('rv-many', [link('rv-many-1', 'rv-many-door', 'https://example.com/many')])
+		await api('/links/rv-many-1', { method: 'PATCH', json: { password: 'the right one' } })
+		// Seven addresses, eight wrong tries each: none of them has had its ten, and the link has had its fifty.
+		const statuses: number[] = []
+		for (let address = 0; address < 7; address++) {
+			for (let n = 0; n < 8; n++) statuses.push((await guess('rv-many-door', `guess ${address}-${n}`, `192.0.2.${address + 1}`)).status)
+		}
+		expect(statuses.filter((status) => status === 401)).toHaveLength(PASSWORD_TRIES_LINK)
+		expect(statuses.filter((status) => status === 429)).toHaveLength(7 * 8 - PASSWORD_TRIES_LINK)
+		expect(await counted('rv-many-1')).toBe(PASSWORD_TRIES_LINK)
+		expect((await guess('rv-many-door', 'the right one', '203.0.113.99')).status).toBe(429)
+	}, 60_000)
+
+	it('looks at no more than the link’s fifty when they all come at once, each from an address of its own', async () => {
+		await pageWith('rv-burst-many', [link('rv-flood-1', 'rv-flood-door', 'https://example.com/flood')])
+		await api('/links/rv-flood-1', { method: 'PATCH', json: { password: 'the right one' } })
+		const together = await Promise.all(Array.from({ length: PASSWORD_TRIES_LINK + 20 }, (_, n) => guess('rv-flood-door', `guess ${n}`, `192.0.2.${n + 1}`)))
+		expect(together.filter((response) => response.status === 401)).toHaveLength(PASSWORD_TRIES_LINK)
+		expect(await counted('rv-flood-1')).toBe(PASSWORD_TRIES_LINK)
+	}, 60_000)
+
+	it('counts an IPv6 visitor by their network, since the rest of the address is theirs to change', async () => {
+		expect(visitorNetwork('2001:db8:85a3:8d3:1319:8a2e:370:7348')).toBe('2001:db8:85a3:8d3')
+		expect(visitorNetwork('2001:db8:85a3:8d3::1')).toBe('2001:db8:85a3:8d3')
+		expect(visitorNetwork('2001:0db8::1')).toBe('2001:db8:0:0')
+		expect(visitorNetwork('::ffff:203.0.113.7')).toBe('203.0.113.7')
+		expect(visitorNetwork('203.0.113.7')).toBe('203.0.113.7')
+		await pageWith('rv-six', [link('rv-six-1', 'rv-six-door', 'https://example.com/six')])
+		await api('/links/rv-six-1', { method: 'PATCH', json: { password: 'the right one' } })
+		for (let n = 0; n < PASSWORD_TRIES; n++) expect((await guess('rv-six-door', `guess ${n}`, `2001:db8:85a3:8d3::${(n + 1).toString(16)}`)).status).toBe(401)
+		expect((await guess('rv-six-door', 'the right one', '2001:db8:85a3:8d3:ffff:ffff:ffff:ffff')).status).toBe(429)
+		expect((await guess('rv-six-door', 'the right one', '2001:db8:85a3:8d4::1')).status).toBe(303)
+	}, 30_000)
+
+	it('keeps nothing of a visitor but a few characters, for as long as their tries count', async () => {
+		await pageWith('rv-kept', [link('rv-kept-1', 'rv-kept-door', 'https://example.com/kept')])
+		await api('/links/rv-kept-1', { method: 'PATCH', json: { password: 'the right one' } })
+		expect((await guess('rv-kept-door', 'wrong', '198.51.100.77')).status).toBe(401)
+		const kept = await rows('rv-kept-1')
+		expect(kept.map((row) => row.key)).toEqual(['tries:rv-kept-1', expect.stringMatching(/^tries:rv-kept-1:[0-9a-f]{8}$/)])
+		// Not the address, in any part of it, and nothing of the browser.
+		const everything = JSON.stringify((await env.DB.prepare('SELECT key, value FROM _meta WHERE key LIKE ?1').bind('tries%').all()).results)
+		for (const part of ['198.51.100.77', '198.51', '100.77', 'iPhone', 'Mozilla']) expect(everything).not.toContain(part)
+		// The same visitor is other characters at another link, so the two can't be put together.
+		await pageWith('rv-kept-b', [link('rv-kept-2', 'rv-kept-other', 'https://example.com/other')])
+		await api('/links/rv-kept-2', { method: 'PATCH', json: { password: 'the right one' } })
+		await guess('rv-kept-other', 'wrong', '198.51.100.77')
+		expect((await rows('rv-kept-2'))[1]!.key.split(':')[2]).not.toBe(kept[1]!.key.split(':')[2])
+		// And once the quarter of an hour is over, the next wrong try at any link takes the rows away.
+		await takePasswordTry(env.DB, 'rv-someone-else', 'bbbbbbbb', Date.now() + PASSWORD_WINDOW + 1)
+		expect(await rows('rv-kept-1')).toEqual([])
+		expect(await rows('rv-kept-2')).toEqual([])
+	}, 30_000)
+
+	it('starts everyone again with a new password, not only the link', async () => {
+		await pageWith('rv-fresh', [link('rv-fresh-1', 'rv-fresh-door', 'https://example.com/fresh')])
+		await api('/links/rv-fresh-1', { method: 'PATCH', json: { password: 'old' } })
+		await Promise.all(Array.from({ length: PASSWORD_TRIES }, (_, n) => guess('rv-fresh-door', `guess ${n}`, '198.51.100.5')))
+		expect((await rows('rv-fresh-1')).length).toBe(2)
+		expect((await api('/links/rv-fresh-1', { method: 'PATCH', json: { password: 'new and longer' } })).status).toBe(200)
+		expect(await rows('rv-fresh-1')).toEqual([])
+		expect((await guess('rv-fresh-door', 'new and longer', '198.51.100.5')).status).toBe(303)
+	}, 30_000)
 })

@@ -35,7 +35,7 @@ import { MEDIA_CACHE, MEDIA_CSP, readMedia } from '../lib/media'
 import { isTestSite } from '../lib/mode'
 import { siteId, sitesOf } from '../lib/sites'
 import { findSite, linkNeedsWorker, linkRecordFromDb, siteFromDb, siteTimeZone, snapshotFromDb, systemSite, type Later } from '../lib/ops'
-import { verifyLinkPassword } from '../lib/password'
+import { passwordVisitor, verifyLinkPassword } from '../lib/password'
 import { pingSignature } from '../lib/domain'
 import { UTM_PARAMS } from '../lib/analytics'
 import { languageUrls, robotsTxt, sitemapXml, type SitemapPage } from '../lib/seo'
@@ -297,14 +297,15 @@ site.post('/:segment', async (c) => {
 	if (closed) return closed
 	if (!record.passwordHash) return c.redirect(c.req.path, 303)
 	const meta = `${new URL(c.req.url).host}/${slug}`
-	// A link takes ten wrong tries in a quarter of an hour (lib/db.ts). Past that it reads no password at all: a try
-	// at a locked link costs one row read and writes nothing. Tries sent all at once each cost a write to be counted,
-	// and only the first ten are looked at.
+	// A visitor has ten wrong tries in a quarter of an hour, and a link fifty from everyone together (lib/db.ts).
+	// Past either, no password is read: a try by someone locked out costs one query and writes nothing. Tries sent
+	// all at once each cost a write to be counted, and only the first ten are looked at.
 	await ensureSchema(c.env.DB)
 	const locked = async () => systemPage(c, 'password', 429, { ...(await linkPage(c, record)), lockedPassword: true, meta })
-	if (await passwordLocked(c.env.DB, record.id)) return locked()
-	const tried = await takePasswordTry(c.env.DB, record.id)
-	const giveBack = () => c.executionCtx.waitUntil(returnPasswordTry(c.env.DB, record.id, tried.since).catch(() => {}))
+	const visitor = await passwordVisitor(c.env, record.id, c.req.header('cf-connecting-ip') ?? '')
+	if (await passwordLocked(c.env.DB, record.id, visitor)) return locked()
+	const tried = await takePasswordTry(c.env.DB, record.id, visitor)
+	const giveBack = () => c.executionCtx.waitUntil(returnPasswordTry(c.env.DB, record.id, visitor, tried.since).catch(() => {}))
 	if (!tried.ok) {
 		giveBack()
 		return locked()

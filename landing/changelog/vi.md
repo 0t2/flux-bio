@@ -5,6 +5,11 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.10 - 2026-11-20
+
+### Đã thay đổi
+- Số lần nhập sai mật khẩu của liên kết giờ được tính theo từng khách truy cập: mười lần trong 15 phút sẽ khóa người đã nhập sai, không ảnh hưởng đến ai khác. Liên kết vẫn có bộ đếm riêng, năm mươi lần tính chung mọi người. Khách truy cập được phân biệt bằng tám ký tự tạo từ địa chỉ của họ với một muối thay đổi mỗi ngày; bản thân địa chỉ không được lưu. [#59](https://github.com/0t2/flux-bio/pull/59)
+
 ## 0.4.9 - 2026-11-20
 
 ### Bảo mật
