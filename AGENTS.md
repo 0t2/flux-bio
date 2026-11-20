@@ -652,9 +652,10 @@ tests/                  Vitest tests (run in workerd)
   copy looks at D1 again and takes back what is already out of date (`linkRecordFromDb`). `tests/review-data.test.ts` puts a
   visit in that gap. A copy is checked by making it again whole, since a page's is made from its links and the settings
   too, and after the visitor has their answer (`takeBackIfOld`). A settings change writes what it owes KV in `_meta`
-  (`copies-owed`) before telling KV and takes it out afterwards, so one that reached D1 and not KV, or a site with more
+  (`copies-owed`) before it is saved and takes it out when KV has been told, so one that reached D1 and not KV, or a site with more
   pages than one request may drop, is finished by the next settings call, a slice of pages at a time from where the last
-  stopped. The note is saved only over what the request last saw there (`owedNote`), so two requests keep each other's.
+  stopped. The note is saved only over what the request last saw there (`owedNote`), so two requests keep each other's, and what goes to KV is made from the settings as they are by then, with a look
+  afterwards for a save that came in meanwhile.
   KV refusing is still an error, 503 `kv`, that says the change is saved and visitors don't see it yet. KV copies aren't parsed when read, so one written by an older
   version lacks any field added since: anything that changes what a copy holds, a new page content field included, raises
   `COPY_VERSION` in `lib/cache.ts`, which makes older copies count as missing (`tests/copy-version.test.ts` notices new

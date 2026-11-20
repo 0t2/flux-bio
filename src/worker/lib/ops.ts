@@ -725,7 +725,12 @@ export async function updateSettings(env: Env, patch: SettingsPatch): Promise<{ 
 	const everyPage = previous.locale !== next.locale || previous.languages.join() !== next.languages.join() || previous.hostFonts !== next.hostFonts
 	if (bioChanged) {
 		// Going off takes every page's copy away and none is written while pages are off, so this settles all of it.
-		await switchBio(env, previous, next)
+		await switchBio(env, previous, next).catch(async (error: unknown) => {
+			// Refused, and put back. KV may hold half of it, which the note has to go on saying, looked at afresh:
+			// another request may have taken the same note out.
+			await note.keep(owed, true).catch((failed: unknown) => console.error('Could not note what KV is owed', failed))
+			throw error
+		})
 		owed = NOTHING_OWED
 	}
 	// Copying fonts turned on or off, or another language with its own built-in text: published pages' fonts change.
@@ -734,38 +739,47 @@ export async function updateSettings(env: Env, patch: SettingsPatch): Promise<{ 
 	let copiesLeft = false
 	let refused: unknown
 	try {
-		// As the settings are by now, which another request may have changed again: what is written is never older than D1.
-		const current = owesNothing(owed) ? next : await loadSettings(db)
-		// With pages off KV holds no page, so none is owed anything.
-		if (!current.bio) owed = { site: owed.site, pages: [], after: null }
-		if (owed.after !== null) {
-			const handles = await publishedHandlesAfter(db, owed.after, KV_OPS_AT_ONCE + 1)
-			const now = handles.slice(0, KV_OPS_AT_ONCE)
-			const failed = (await Promise.allSettled(now.map((handle) => deleteNamed(env, handle)))).find((result) => result.status === 'rejected')
-			// One refused: the same slice again next time. More than a slice: on from the last one dropped.
-			if (failed) refused = failed.reason
-			else if (handles.length > now.length) {
-				owed = { ...owed, after: now[now.length - 1]! }
-				copiesLeft = true
-			} else owed = { ...owed, after: null }
-		}
-		if (owed.pages.length) {
-			const pages = await getPagesByIds(db, owed.pages)
-			const snapshots = await Promise.all(pages.map((page) => snapshotOf(db, page, current)))
-			const failed = (await Promise.allSettled(snapshots.map((snapshot) => snapshot && putSnapshot(env, snapshot)))).find((result) => result.status === 'rejected')
-			if (failed) refused = failed.reason
-			else owed = { ...owed, pages: [] }
-		}
-		if (owed.site) {
-			const site = await siteRecord(db, current, await sitePages(db, current))
-			await storeSite(env, site).then(
-				() => (owed = { ...owed, site: false }),
-				(error: unknown) => (refused = error),
-			)
+		// Twice at most: once for what is owed, and once more if someone else saved while KV was being told, since
+		// what this request wrote may then have landed on top of theirs. Past that it stays noted.
+		for (let pass = 0; pass < 2 && !owesNothing(owed) && !refused; pass++) {
+			// From the settings as they are by now, which another request may have changed again.
+			const current = await loadSettings(db)
+			// With pages off KV holds no page, so there is nothing to do for one. It stays noted all the same:
+			// the switch may be someone else's that is yet to be refused and put back, and one that holds settles it.
+			if (current.bio && owed.after !== null) {
+				const handles = await publishedHandlesAfter(db, owed.after, KV_OPS_AT_ONCE + 1)
+				const now = handles.slice(0, KV_OPS_AT_ONCE)
+				const failed = (await Promise.allSettled(now.map((handle) => deleteNamed(env, handle)))).find((result) => result.status === 'rejected')
+				// One refused: the same slice again next time. More than a slice: on from the last one dropped.
+				if (failed) refused = failed.reason
+				else if (handles.length > now.length) {
+					owed = { ...owed, after: now[now.length - 1]! }
+					copiesLeft = true
+				} else owed = { ...owed, after: null }
+			}
+			if (current.bio && owed.pages.length) {
+				const pages = await getPagesByIds(db, owed.pages)
+				const snapshots = await Promise.all(pages.map((page) => snapshotOf(db, page, current)))
+				const failed = (await Promise.allSettled(snapshots.map((snapshot) => snapshot && putSnapshot(env, snapshot)))).find((result) => result.status === 'rejected')
+				if (failed) refused = failed.reason
+				else owed = { ...owed, pages: [] }
+			}
+			if (owed.site) {
+				const site = await siteRecord(db, current, await sitePages(db, current))
+				await storeSite(env, site).then(
+					() => (owed = { ...owed, site: false }),
+					(error: unknown) => (refused = error),
+				)
+			}
+			// What a save since that read owes is owed again by now, whoever told KV last.
+			const since = owedBy(current, await loadSettings(db))
+			if (owesNothing(since)) break
+			copiesLeft = false
+			owed = owedTogether(owed, since)
 		}
 	} finally {
 		// If this can't be saved, what was noted before KV was told still stands, and says at least as much.
-		await note.keep(owed).catch((error: unknown) => console.error('Could not note what KV is owed', error))
+		await note.keep(owed, true).catch((error: unknown) => console.error('Could not note what KV is owed', error))
 	}
 	await deleteFontFiles(env, unusedFonts.slice(0, KV_OPS_AT_ONCE))
 	if (refused) {
@@ -793,12 +807,13 @@ function owedBy(previous: Settings, next: Settings): Owed {
 	}
 }
 
-/** Both of two things owed: never less than either. Of two places the dropping got to, the earlier. */
+/** Both of two things owed: never less than either. */
 function owedTogether(a: Owed, b: Owed): Owed {
 	return {
 		site: a.site || b.site,
 		pages: [...new Set([...a.pages, ...b.pages])].sort(),
-		after: a.after === null ? b.after : b.after === null ? a.after : a.after < b.after ? a.after : b.after,
+		// Two different places: from the start again, which is right whatever order the handles are in.
+		after: a.after === null ? b.after : b.after === null || b.after === a.after ? a.after : '',
 	}
 }
 
@@ -817,7 +832,16 @@ function owedNote(db: D1Database, text: string | null) {
 	}
 	return {
 		owed: () => parse(text),
-		async keep(want: Owed): Promise<Owed> {
+		/** `sure` looks at the row before taking it to say what it last said: for when what is owed must not go unsaid. */
+		async keep(want: Owed, sure = false): Promise<Owed> {
+			const read = async () => (await db.prepare('SELECT value FROM _meta WHERE key = ?1').bind(COPIES_OWED).first<{ value: string }>())?.value ?? null
+			if (sure && !owesNothing(want)) {
+				const there = await read()
+				if (there !== text) {
+					text = there
+					want = owedTogether(parse(text), want)
+				}
+			}
 			for (let attempt = 0; ; attempt++) {
 				const next = owesNothing(want) ? null : JSON.stringify(want)
 				if (next === text) return want
@@ -832,7 +856,7 @@ function owedNote(db: D1Database, text: string | null) {
 					return want
 				}
 				if (attempt >= 5) throw new Error('What KV is owed kept changing while it was being noted.')
-				text = (await db.prepare('SELECT value FROM _meta WHERE key = ?1').bind(COPIES_OWED).first<{ value: string }>())?.value ?? null
+				text = await read()
 				want = owedTogether(parse(text), want)
 			}
 		},

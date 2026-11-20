@@ -426,6 +426,89 @@ describe('settings', () => {
 		}
 	})
 
+	it('reach visitors whole when someone else’s change is told to KV while this one is on its way there', async () => {
+		await page('rd-crossing')
+		expect(await status('/rd-crossing')).toBe(200)
+		await api('/settings', { method: 'PUT', json: { timezone: 'UTC', languages: [] } })
+		try {
+			// A time zone has been read and is about to be written to KV. Another language is saved and told to KV, all
+			// of it, in between. The time zone's record, made before that, lands on top of the language's.
+			const first = justBefore(SITE_KEY, async () => expect((await api('/settings', { method: 'PUT', json: { languages: ['ko'] } })).status).toBe(200))
+			await updateSettings(first, { timezone: 'Asia/Seoul' })
+			expect(JSON.parse((await env.KV.get(SITE_KEY))!)).toMatchObject({ timezone: 'Asia/Seoul', languages: ['ko'] })
+			expect(await owedNoted()).toBe(false)
+		} finally {
+			await api('/settings', { method: 'PUT', json: { timezone: 'UTC', languages: [] } })
+		}
+	})
+
+	it('go on owing the home page’s copies while pages are off by a switch that may yet be put back', async () => {
+		const [a, b] = [await page('rd-was-home'), await page('rd-is-home')]
+		expect((await api('/settings', { method: 'PUT', json: { home: a } })).status).toBe(200)
+		expect([await status('/rd-was-home'), await status('/rd-is-home')]).toEqual([200, 200])
+		const isHome = async (handle: string) => JSON.parse((await env.KV.get(`${NAME_PREFIX}${handle}`))!).page.home as boolean
+		expect([await isHome('rd-was-home'), await isHome('rd-is-home')]).toEqual([true, false])
+		const bio = (on: boolean) => env.DB.prepare(`UPDATE _meta SET value = json_set(value, '$.bio', json('${on}')) WHERE key = 'settings'`).run()
+		// Someone switches pages off just after the new home page is saved: D1 says off, and their KV part is still to come.
+		let switched = false
+		const DB = new Proxy(env.DB, {
+			get(target, key) {
+				if (key === 'prepare') {
+					return (text: string) => {
+						const statement = target.prepare(text)
+						if (switched || !text.startsWith("UPDATE _meta SET value = ?1 WHERE key = 'settings'")) return statement
+						const bind = statement.bind.bind(statement)
+						statement.bind = ((...values: unknown[]) => {
+							const bound = bind(...values)
+							const run = bound.run.bind(bound)
+							bound.run = (async () => {
+								const done = await run()
+								switched = true
+								await bio(false)
+								return done
+							}) as typeof bound.run
+							return bound
+						}) as typeof statement.bind
+						return statement
+					}
+				}
+				const value = Reflect.get(target, key)
+				return typeof value === 'function' ? value.bind(target) : value
+			},
+		})
+		await updateSettings({ ...env, DB } as Env, { home: b })
+		expect(switched).toBe(true)
+		// Their switch is refused by KV and put back. The two pages' copies were never written, and that is still noted.
+		await bio(true)
+		expect(await owedNoted()).toBe(true)
+		expect((await api('/settings', { method: 'PUT', json: {} })).status).toBe(200)
+		expect([await isHome('rd-was-home'), await isHome('rd-is-home')]).toEqual([false, true])
+		expect(await owedNoted()).toBe(false)
+	})
+
+	it('keep the note of a refused switch that another change, finishing inside it, took out', async () => {
+		await api('/settings', { method: 'PUT', json: { bio: true, timezone: 'UTC' } })
+		// Pages are being switched off and KV refuses all of it, the putting back too. A time zone is saved and told
+		// to KV in the middle, with the same note to its name, and takes the note out when it is done.
+		let inside: Promise<void> | undefined
+		const other = () => (inside ??= (async () => expect((await api('/settings', { method: 'PUT', json: { timezone: 'Asia/Seoul' } })).status).toBe(200))())
+		const refusing = kv({
+			put: async () => (await other(), Promise.reject(new Error('KV PUT failed: 429 Too Many Requests'))),
+			delete: async () => (await other(), Promise.reject(new Error('KV DELETE failed: 429 Too Many Requests'))),
+		})
+		try {
+			await expect(updateSettings(refusing, { bio: false })).rejects.toMatchObject({ status: 503 })
+			expect(await settings()).toMatchObject({ bio: true, timezone: 'Asia/Seoul' })
+			// KV was last told pages are off, by the time zone's change, which read them so.
+			expect(await owedNoted()).toBe(true)
+			expect((await api('/settings', { method: 'PUT', json: {} })).status).toBe(200)
+			expect(JSON.parse((await env.KV.get(SITE_KEY))!)).toMatchObject({ bio: true, timezone: 'Asia/Seoul' })
+			expect(await owedNoted()).toBe(false)
+		} finally {
+			await api('/settings', { method: 'PUT', json: { bio: true, timezone: 'UTC' } })
+		}
+	})
+
 	it('keep what each of two changes at once owes visitors', async () => {
 		await page('rd-two-at-once')
 		expect(await status('/rd-two-at-once')).toBe(200)
