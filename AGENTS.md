@@ -452,8 +452,9 @@ Rules worth knowing:
 - **Newer versions.** A site is its owner's copy of the code, so nothing tells it when the project moves on. `GET /api/update` reads
   `CHANGELOG.md` from the project's repository on GitHub (`CHANGELOG_URL` in `src/worker/lib/update.ts`) and answers with the releases
   the site is behind, newest first, and whether one is a security fix (`security`) or has an "Action needed" (`actionNeeded`). `latest`
-  is null when GitHub can't be read, which isn't being up to date. Only an agent asking makes that request, never a visitor or the
-  dashboard, and the guide has an agent ask once a conversation and say a waiting security fix first.
+  is null when GitHub can't be read, which isn't being up to date. That request is made when an agent asks, or when the
+  owner opens 設定, which says a newer version is out and gives the sentence to say to their AI (`UpdateSection.tsx`); never for a
+  visitor. The guide has an agent ask once a conversation and say a waiting security fix first.
 - **UTM tags.** A short link's `utm` (`source`, `medium`, `campaign`, `content`) is added to its
   destination. A page URL can carry `utm_*` too; the page's links pass them on with `?s=`, so a
   click counts under the place the visitor came from. `content` tells apart places on one

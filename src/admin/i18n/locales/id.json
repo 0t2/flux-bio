@@ -996,5 +996,13 @@
 	"社群圖示的位置": "Letak ikon sosial",
 	"連結上方": "Di atas tautan",
 	"連結下方": "Di bawah tautan",
-	"一排小圖示，在名稱下方或連結下方。要換位置或整排關掉，請到「外觀」。": "Deretan ikon kecil, di bawah nama atau di bawah tautan. Untuk memindahkan atau mematikan semuanya, buka “Tampilan”."
+	"一排小圖示，在名稱下方或連結下方。要換位置或整排關掉，請到「外觀」。": "Deretan ikon kecil, di bawah nama atau di bawah tautan. Untuk memindahkan atau mematikan semuanya, buka “Tampilan”.",
+	"有新版本": "Ada versi baru",
+	"FluxBio {latest} 出了，這個網站還在 {version}。": "FluxBio {latest} sudah dirilis, dan situs ini masih di {version}.",
+	"其中有安全性修正，請盡快更新。": "Versi ini memuat perbaikan keamanan, jadi segera perbarui.",
+	"這次更新除了重新部署，還有別的步驟，你的 AI 會帶你做。": "Pembaruan ini memerlukan langkah lain selain deploy, dan AI Anda akan memandu Anda.",
+	"更新是在你的電腦上做的。對你的 AI 說：": "Pembaruan dilakukan di komputer Anda. Katakan kepada AI Anda:",
+	"幫我把 FluxBio 更新到最新版": "Perbarui FluxBio saya ke versi terbaru",
+	"看看改了什麼": "Lihat apa yang berubah",
+	"已是最新版": "Sudah versi terbaru"
 }
