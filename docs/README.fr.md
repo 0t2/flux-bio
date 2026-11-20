@@ -292,6 +292,13 @@ Demandez-le simplement à votre IA : « Remplacez le domaine par links.example
 </details>
 
 <details>
+<summary><b>Comment obtenir les nouvelles versions ?</b></summary>
+
+Votre site ne se met pas à jour tout seul : il exécute le code que vous avez déployé jusqu’au prochain déploiement. Demandez à votre IA « Y a-t-il une version plus récente de FluxBio ? » : elle vous dit ce qui a changé et fait la mise à jour pour vous. Pour être prévenu sans avoir à demander, ouvrez [le projet sur GitHub](https://github.com/0t2/flux-bio), cliquez sur Watch → Custom → Releases, et GitHub vous enverra un e-mail à chaque version. Toutes les versions et leurs changements figurent dans [le journal des modifications](https://fluxbio.link/fr/changelog/).
+
+</details>
+
+<details>
 <summary><b>Les visiteurs sont-ils pistés ?</b></summary>
 
 FluxBio n’utilise pas de cookies et ne stocke ni adresse IP ni chaîne User-Agent complète. Pour chaque visite, il garde pendant 90 jours l’heure, la provenance du visiteur, son appareil, son navigateur, sa langue, son réseau et sa position approximative (environ 10 km au mieux), avec un hachage à sens unique renouvelé chaque jour. Les totaux sont conservés pour toujours. Les robots connus et les aperçus de liens ne comptent pas. Deux choses atteignent Google : les polices se chargent depuis Google Fonts, sauf si vous le désactivez dans Apparence, et une page avec une vidéo YouTube y charge sa miniature.
