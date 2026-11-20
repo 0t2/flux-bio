@@ -36,7 +36,7 @@ keep working, nothing is deleted, and switching back on restores every published
 FluxBio is AI-agent first: the owner edits pages in the dashboard, but settings such as the
 domain, time zone, locale, share previews and any look beyond the built-in color sets are left to an AI agent working through the API.
 The dashboard's 設定 page only makes API tokens and gives a prompt to paste into an AI (Claude Code,
-Codex or Cursor), plus the switch for bio pages, how much of the plan the site uses, the backup and stats downloads and the wipe button. The default QR code pictures are on 短網址. Where a form used to be, the dashboard shows a
+Codex or Cursor), plus the switch for bio pages, how much of the plan the site uses, the backup and stats downloads, the wipe button, and a notice when a newer FluxBio is out. The default QR code pictures are on 短網址. Where a form used to be, the dashboard shows a
 sentence the owner can say to their AI instead (`src/admin/components/AskAi.tsx`): bulk short
 links with UTM tags, and a look of their own with their colors, fonts and pictures, down to making the page look like a picture they have. Restoring a backup, moving to another deployment and
 changing the password (a Cloudflare secret, section 1.8) are also left to the agent; its guide says
@@ -108,13 +108,13 @@ pnpm dev   # keep this running in the background
 
 It prints its address, normally `http://localhost:5173`. The first start takes a little while, so wait for `<address>/llms.txt` to answer.
 
-Then make their page, with that password as the bearer token: ask the name to show, what they do and where they are, one at a time, then do step 1 of the hand-over (1.7), publishing locally unless they explicitly asked for a preview; then keep a draft and send a preview link. Follow `<address>/api/guide/trying-it`. Give them the preview link when requested, otherwise `<address>/` for the locally published page, and say in plain words:
+Then make their page, with that password as the bearer token: ask the name to show, what they do and where they are, one at a time, then do step 1 of the hand-over (1.7), leaving out `plan`, which takes a Cloudflare sign-in (`pnpm usage`) that a trial doesn't have, and publishing locally unless they explicitly asked for a preview; then keep a draft and send a preview link. Follow `<address>/api/guide/trying-it`. Give them the preview link when requested, otherwise `<address>/` for the locally published page, and say in plain words:
 
 - This address only opens on this computer. To show anyone else, it has to go online.
 - It stops when this computer or this tool does. You can start it again with `pnpm dev`, and nothing is lost, because it is all in their FluxBio folder.
 - Whatever they want changed, they can just say. There is no quota to worry about here.
 
-**When they are happy,** say it takes a free Cloudflare account and go on from 1.3. After 1.6, bring over what they made instead of starting again, then do steps 2 and 3 of the hand-over:
+**When they are happy,** say it takes a free Cloudflare account and go on from 1.3. After 1.6, bring over what they made instead of starting again, set `plan` on the new site from `pnpm usage --json` (`PUT /api/settings`), then do steps 2 and 3 of the hand-over:
 
 ```sh
 FROM=http://localhost:5173 FROM_AUTH="Authorization: Bearer <password in .dev.vars>"
@@ -158,7 +158,8 @@ for and refuses to replace. For another name, write it in `worker.json` in the F
 `worker.json` holds what is this deployment's own (`worker.config.ts`): the Worker's name, and when needed `"domains"` (1.8)
 and `"analytics": false` (1.5). It isn't in git or in the download, so updating FluxBio leaves it alone. Nobody edits
 `cloudflare.config.ts` for these: an edit there is lost with the next update. The database is named after the Worker, so a
-second FluxBio on one account gets its own.
+second FluxBio on one account gets its own. Making that second one is `pnpm run deploy --new --secrets-file …`: without `--new` the
+deploy takes a folder under another name for one that lost its `worker.json`, and refuses.
 
 **Their account may already be in use.** The free plan's limits are per Cloudflare account, so FluxBio shares them with
 whatever else is on it. If `pnpm exec cf workers list` shows other Workers, or `pnpm exec cf d1 list` shows databases, run `pnpm usage` and tell them, in plain words, before deploying:
@@ -246,7 +247,8 @@ and a test site's or a local one's would otherwise set the live site's password:
 site on a computer has its password in `.dev.vars`. Then it makes a password, sets it on the Worker, and makes a full token
 for each site the running Worker holds, at the first hostname its list has for each; give a site that has none there with a
 second `--site`. It prints neither: the password is in `.secrets.env` and the tokens in `.tokens.env`, to hand over and then
-delete. If it says a site got no token, make that one by hand, because a second run revokes the rest. For a password the owner
+delete. If it says a site got no token, make that one by hand, because a second run revokes the rest. A test site's password
+goes to `.secrets.staging.env`, which is kept: it is how the test site is signed in to, and it gets no token. For a password the owner
 picked, set the secret itself, with the Worker's name:
 `pnpm exec cf workers secrets update ADMIN_PASSWORD --worker <name> --type secret_text --text '<new password>'`.
 
@@ -290,7 +292,9 @@ lists the sites and opens each one's dashboard; a sign-in is for one site, so ea
   folder. A deploy binds exactly what it lists: without it the other sites go offline and their domains show `main`.
   In CI, where there is no file, the same JSON goes in the `FLUXBIO_SITES` variable.
 - An API token is for the site that made it, and each site has its own guide at its own `/llms.txt`.
-- Taking a site out of the file and deploying only unbinds it. Its database and namespace stay until the owner deletes them.
+- Taking a site out is its line out of the file and `pnpm run deploy --drop-site <id>`: without the option the deploy refuses,
+  since a missing line is more often a lost file. It only unbinds the site. Its database and namespace stay until the owner
+  deletes them.
 - A test site (`--mode staging`) is always one site.
 
 **Pictures as static files.** Each picture a visitor's browser doesn't have yet normally costs a Worker request and a KV
@@ -467,7 +471,8 @@ Rules worth knowing:
   the site is behind, newest first, and whether one is a security fix (`security`) or has an "Action needed" (`actionNeeded`). `latest`
   is null when GitHub can't be read, which isn't being up to date. That request is made when an agent asks, or when the
   owner opens 設定, which says a newer version is out and gives the sentence to say to their AI (`UpdateSection.tsx`); never for a
-  visitor. The guide has an agent ask once a conversation and say a waiting security fix first.
+  visitor. GitHub can tell which site asked: Cloudflare adds a `CF-Worker` header naming the Worker's zone to every request a
+  Worker makes. Nothing else about the site goes. The guide has an agent ask once a conversation and say a waiting security fix first.
 - **UTM tags.** A short link's `utm` (`source`, `medium`, `campaign`, `content`) is added to its
   destination. A page URL can carry `utm_*` too; the page's links pass them on with `?s=`, so a
   click counts under the place the visitor came from. `content` tells apart places on one
@@ -495,7 +500,8 @@ pnpm i18n check  # lists dashboard text that isn't translated yet
 pnpm api:surface # rewrites tests/api-surface.json, the names the API promises, after a route, a body or a response changed
 pnpm landing     # builds the landing page, the project's own site; its other commands are in landing/AGENTS.md
 pnpm brand       # remakes the favicon, app icons and the landing page's logo pictures from LOGO_PATH in src/templates/icons.ts
-pnpm run deploy  # checks what is running on Cloudflare, then cf deploy (--dry-run, --mode staging; 1.5)
+pnpm run deploy  # checks what is running on Cloudflare, then cf deploy (--dry-run, --mode staging; 1.5). Its own options say
+                 # a refused deploy is meant: --new (a second FluxBio), --drop-site <id> (1.8), --skip-checks (Cloudflare can't be asked)
 pnpm deploy:images --site <url>  # deploy with the site's pictures as static files (--no-deploy, --mode staging)
 pnpm reset-password --site <url> # a new admin password, and a new token for each site (--check, --mode staging; 1.8)
 pnpm update:code # brings this folder's code to the newest release, deploying nothing (--check, --to, --overwrite; 1.8)
@@ -550,7 +556,7 @@ src/worker/             Hono app
   lib/ops.ts            pages, publish, settings, short links (they keep D1 and KV in sync)
   lib/stats.ts          counting views and clicks, D1 stats queries
   lib/statsHistory.ts   old stats: days into months, the download, clearing old months
-  lib/update.ts         whether a newer FluxBio is out: reads the project's changelog from GitHub when an agent asks
+  lib/update.ts         whether a newer FluxBio is out: reads the project's changelog from GitHub when an agent asks or 設定 opens
   lib/analytics.ts      Analytics Engine events and SQL
   lib/backup.ts         export, import, wipe
   lib/seo.ts            robots.txt, sitemap.xml and the addresses of a page in each language
@@ -561,7 +567,8 @@ src/admin/              dashboard SPA (React 19, wouter, dnd-kit). Entry is admi
   state/app.tsx         deployment-wide state: settings, pages, the page being edited
   state/page.tsx        one page's draft, autosave and publish (draws the share card first)
   editors/              the editor panel for each item kind, and the profile (name, avatar, bio)
-  pages/settings/       the switch for bio pages, API tokens and the prompt for connecting an AI, usage, the backup and stats downloads, wipe
+  pages/settings/       the switch for bio pages, API tokens and the prompt for connecting an AI, usage, the backup and stats downloads, wipe,
+                        and the notice of a newer version
   components/VisitorMap.tsx  the visitor map on the stats pages; its land outline (worldMap.ts) is generated
                         by scripts/world-map.mjs from Natural Earth (public domain)
 public/                 static files: the icons and headers
@@ -607,7 +614,10 @@ tests/                  Vitest tests (run in workerd)
   - *Not in the list, and still on you to call out.* A string's pattern, format or length, a number's range, a list's
     length and a default. The bodies of owner-only routes, which the OpenAPI document leaves out. What a response type
     from another file holds (`Settings`, `Params`, `Problem`), since a field only says its name. Whether a response
-    always carries a field of a page's content: that is listed the way a request takes it.
+    always carries a field of a page's content: that is listed the way a request takes it. And any response a route builds in
+    place, with no interface in `src/shared/api.ts`: about 25 routes answer that way, `PUT /api/pages/:id/draft` with its
+    `{ draftUpdatedAt }` among them, and nothing here says which interface a route answers with. Giving each route a named
+    response there is what would close this.
 - **D1 is the source of truth.** It holds `pages`, `page_versions`, `links`, `stats` and
   `api_tokens`, which the Worker creates and upgrades on first use. To change the schema, append a
   migration to `MIGRATIONS` in `src/worker/lib/db.ts`. Never edit an existing migration.

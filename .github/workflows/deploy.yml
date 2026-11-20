@@ -20,6 +20,14 @@ on:
 permissions:
   contents: read
 
+# Pushes to main deploy one at a time, in the order they came: two runs side by side could finish the wrong way round
+# and leave fluxbio.link at the older commit, or both try to tag one release. A push that arrives while one is
+# running waits, and takes the place of any that was already waiting, which is why the release job below looks for
+# every version without a tag and not only its own. A pull request's newer push replaces its older run.
+concurrency:
+  group: ${{ github.event_name == 'push' && 'deploy-main' || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test-and-deploy:
     runs-on: ubuntu-latest
@@ -45,13 +53,23 @@ jobs:
         run: |
           number='s/^[[:space:]]*"version": "([0-9]+\.[0-9]+\.[0-9]+)",?$/\1/p'
           version=$(sed -nE "$number" package.json | head -n 1)
+          # What this is checked out as is the merge into main as main is now: its first parent, where there are two.
+          # The base the pull request was opened against may be older than that.
+          if git rev-parse -q --verify HEAD^2 > /dev/null; then BASE=$(git rev-parse HEAD^1); fi
           before=$(git show "$BASE:package.json" | sed -nE "$number" | head -n 1)
           [ "$version" != "$before" ] || exit 0
           dated=$(awk -v version="$version" '/^## / && $2 == version { print $4 }' CHANGELOG.md)
+          below=$(awk '/^## [0-9]+\.[0-9]+\.[0-9]+ - / { if (++n == 2) { print $4; exit } }' CHANGELOG.md)
           utc=$(date -u +%F)
           taipei=$(TZ=Asia/Taipei date +%F)
           if [ "$dated" != "$utc" ] && [ "$dated" != "$taipei" ]; then
             echo "::error file=CHANGELOG.md::$version is dated $dated, and today is $taipei. Change the date in CHANGELOG.md and in the 12 files under landing/changelog/."
+            exit 1
+          fi
+          # Either of today's two dates passes above, but a release can't be dated before the one under it, which
+          # the tests then refuse in other words. For eight hours a day the two differ, and only the later one fits.
+          if [ -n "$below" ] && [ "$dated" \< "$below" ]; then
+            echo "::error file=CHANGELOG.md::$version is dated $dated, before the release under it ($below). Date it $taipei, in CHANGELOG.md and in the 12 files under landing/changelog/."
             exit 1
           fi
         env:
@@ -93,6 +111,11 @@ jobs:
 
   # After the tests and the deploy, so a version that never worked gets no tag. A push without a new version, which
   # is any change that needed no changelog entry, finds its tag already there and does nothing.
+  #
+  # It tags every release that has none, not only the one this push brought: a run that failed after its tests, or
+  # one that never started because a newer push took its place in the queue, would otherwise leave its version
+  # without a tag for good, and whoever watches the repository's releases would never hear of it. Each tag goes on
+  # the commit that first carried that version, oldest first, so the newest is the one GitHub calls latest.
   release:
     needs: test-and-deploy
     if: github.event_name == 'push' && github.repository == '0t2/flux-bio'
@@ -101,16 +124,9 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
-      - run: |
-          version=$(sed -nE 's/^[[:space:]]*"version": "([0-9]+\.[0-9]+\.[0-9]+)",?$/\1/p' package.json | head -n 1)
-          [ -n "$version" ] || { echo "package.json has no version written as three numbers."; exit 1; }
-          if git ls-remote --exit-code --tags origin "refs/tags/v$version" > /dev/null; then
-            echo "v$version is already tagged."
-            exit 0
-          fi
-          awk -v version="$version" '/^## / { on = ($2 == version); next } on' CHANGELOG.md > notes.md
-          grep -q '^- ' notes.md || { echo "CHANGELOG.md has no entries under $version."; exit 1; }
-          printf '\n[All releases](https://fluxbio.link/en/changelog/#v%s)\n' "$version" >> notes.md
-          gh release create "v$version" --target "$GITHUB_SHA" --title "v$version" --notes-file notes.md
+        with:
+          # Every commit and tag: which commit first carried a version is read from the history.
+          fetch-depth: 0
+      - run: bash scripts/release.sh
         env:
           GH_TOKEN: ${{ github.token }}

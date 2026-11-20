@@ -294,7 +294,7 @@ AI に話しかけるだけです。「ドメインを links.example.com に変�
 <details>
 <summary><b>新しいバージョンはどうやって入手しますか？</b></summary>
 
-サイトは自動では更新されません。デプロイしたコードのまま動き続け、次にデプロイしたときに変わります。AI に「FluxBio の新しいバージョンはある？」と聞けば、変更点を伝えて更新してくれます。聞かなくても知らせを受け取りたい場合は、[GitHub のプロジェクト](https://github.com/0t2/flux-bio)で Watch → Custom → Releases を選ぶと、リリースのたびに GitHub からメールが届きます。各バージョンの変更内容は[変更履歴](https://fluxbio.link/ja/changelog/)にあります。
+サイトは自動では更新されません。デプロイしたコードのまま動き続け、次にデプロイしたときに変わります。AI に「FluxBio の新しいバージョンはある？」と聞けば、変更点を伝えて更新してくれます。ダッシュボードの設定にも、新しいバージョンが出ていれば表示されます。聞かなくても知らせを受け取りたい場合は、[GitHub のプロジェクト](https://github.com/0t2/flux-bio)で Watch → Custom → Releases を選ぶと、リリースのたびに GitHub からメールが届きます。各バージョンの変更内容は[変更履歴](https://fluxbio.link/ja/changelog/)にあります。
 
 </details>
 

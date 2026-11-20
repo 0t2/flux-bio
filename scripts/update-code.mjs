@@ -95,7 +95,7 @@ async function release(version) {
 	const response = await download(`/archive/refs/tags/v${version}.tar.gz`)
 	if (response.status === 404) {
 		fail(newer('0.3.0', version)
-			? `FluxBio ${version} is from before releases had tags, so this script can't tell what was changed in this folder. Update it the way AGENTS.md 1.9 says: a new download beside this one.`
+			? `FluxBio ${version} is from before releases had tags, so this script can't tell what was changed in this folder. Update it the older way, with a new download beside this one: the steps are in the guide, at https://<your site>/api/guide/update, step 2.`
 			: `The release ${version} has no download yet (${SOURCE}/archive/refs/tags/v${version}.tar.gz). It is made a minute or two after a version is merged: try again shortly. Nothing was changed.`)
 	}
 	if (!response.ok) fail(`${SOURCE} answered ${response.status} for release ${version}. Nothing was changed.`)
@@ -147,7 +147,10 @@ async function commitsAfter(version) {
 	const response = await fetch(address, { headers: { accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(60_000) }).catch(() => null)
 	const listed = response?.ok ? await response.json().catch(() => null) : null
 	if (!Array.isArray(listed?.commits)) return null
-	return listed.commits.map((commit) => commit?.sha).filter((sha) => typeof sha === 'string' && /^[0-9a-f]{7,40}$/.test(sha)).slice(0, -1)
+	const shas = listed.commits.map((commit) => commit?.sha).filter((sha) => typeof sha === 'string' && /^[0-9a-f]{7,40}$/.test(sha)).slice(0, -1)
+	// Each is a download of the whole code. Between two releases there are a handful; where there are far more, the
+	// version went unchanged over a long stretch of main, and walking it is not worth the wait.
+	return shas.length > 40 ? null : shas
 }
 
 let was = await release(current)

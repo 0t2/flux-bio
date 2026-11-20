@@ -1,9 +1,18 @@
 # Changelog
 
 What changed in FluxBio, a release at a time, newest first. fluxbio.link shows this file at `/en/changelog/` and is made from it.
-If you host your own, you take `main`. Your site says which version it runs, in `version` of `GET /api/state` and at the top of `/llms.txt`, so after updating read the releases above that one. The number says what updating takes: a release that changes the middle number (0.3.4 to 0.4.0) has an "Action needed", and one that changes only the last (0.3.4 to 0.3.5) needs nothing but the deploy.
+If you host your own, `pnpm update:code` in your FluxBio folder brings its code to the newest release and shows the releases in between: read them before you deploy. Your site says which version it runs, in `version` of `GET /api/state` and at the top of `/llms.txt`. The number says what updating takes: a release that changes the middle number (0.3.4 to 0.4.0) has an "Action needed", and one that changes only the last (0.3.4 to 0.3.5) needs nothing but the deploy.
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
+
+## 0.4.5 - 2026-11-20
+
+### 수정
+- 테스트 사이트나 로컬 사이트가 제공하는 가이드가 더 이상 실제 사이트용 명령을 안내하지 않습니다. 배포 명령에는 `--mode staging`이 붙고, 그 가이드를 실제 사이트의 skill로 저장하라고 AI에게 지시하지도 않습니다. [#52](https://github.com/0t2/flux-bio/pull/52)
+- 하나의 Worker에 사이트가 여러 개일 때, 가이드의 ‘FluxBio 제거’가 사이트 하나를 빼려고 Worker 전체와 첫 번째 사이트의 데이터베이스를 AI가 삭제하게 하지 않습니다. [#52](https://github.com/0t2/flux-bio/pull/52)
+- `pnpm run deploy`가 이제 Worker에서 실제로 실행 중인 버전을 기준으로 확인합니다. Cloudflare 대시보드에서 롤백한 뒤에는 그것이 최신 버전이 아닐 수 있습니다. `pnpm deploy:images`는 두 번째 사이트의 사진을 그 사이트의 토큰으로 읽고, `pnpm reset-password --mode staging`은 저장되어 있는 실제 사이트의 토큰을 건드리지 않습니다. [#52](https://github.com/0t2/flux-bio/pull/52)
+- 내 컴퓨터에서 테스트 사이트를 실행할 때(`cf dev --mode staging`) 더 이상 Cloudflare 로그인이 필요하지 않습니다. [#52](https://github.com/0t2/flux-bio/pull/52)
+- `GET /api/update`가 판단할 수 없는 버전이나 변경 기록에 대해 최신이라고 답하지 않고 알 수 없다고(`latest`가 null) 답합니다. [#52](https://github.com/0t2/flux-bio/pull/52)
 
 ## 0.4.4 - 2026-11-20
 

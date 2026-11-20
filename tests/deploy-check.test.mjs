@@ -134,8 +134,29 @@ const args = process.argv.slice(2)
 appendFileSync(join(__dirname, 'calls.jsonl'), JSON.stringify(args) + '\\n')
 const workers = JSON.parse(readFileSync(join(__dirname, 'workers.json'), 'utf8'))
 const after = (flag) => args[args.indexOf(flag) + 1]
-if (args.slice(0, 3).join(' ') === 'workers versions list') {
-	const bindings = workers[after('--worker-id')]
+// A Worker here is its bindings, or { running, newest } where a rollback left an older version running.
+const versionsOf = (name) => {
+	const worker = workers[name]
+	return worker && !Array.isArray(worker) && typeof worker === 'object' ? worker : { running: worker, newest: worker }
+}
+if (args.slice(0, 3).join(' ') === 'workers deployments list') {
+	const { running } = versionsOf(after('--worker'))
+	if (!running) {
+		console.error('[10007] This Worker does not exist on your account.')
+		process.exit(1)
+	}
+	if (running === 'down') {
+		console.error('[10000] Authentication error')
+		process.exit(1)
+	}
+	console.log(JSON.stringify({ deployments: running === 'never deployed' ? [] : [{ id: 'd1', versions: [{ version_id: 'old-canary', percentage: 10 }, { version_id: 'running', percentage: 90 }] }] }))
+} else if (args.slice(0, 3).join(' ') === 'workers versions get') {
+	const { running } = versionsOf(after('--worker-id'))
+	if (args[3] !== 'running') process.exit(1)
+	console.log(JSON.stringify({ id: 'running', bindings: running }))
+} else if (args.slice(0, 3).join(' ') === 'workers versions list') {
+	const { newest, running } = versionsOf(after('--worker-id'))
+	const bindings = running === 'never deployed' ? newest : newest ?? running
 	if (!bindings) {
 		console.error('[10007] This Worker does not exist on your account.')
 		process.exit(1)
@@ -216,6 +237,24 @@ for (const [what, setup, args, said] of [
 		assert.deepEqual(f.deploys(), [])
 	})
 }
+
+test('pnpm run deploy: after a rollback, the checks go by the version that is running, not the newest', async (t) => {
+	// The newest version held one site; someone rolled back in Cloudflare's dashboard to the one that holds two.
+	const f = fixture(t, { workers: { 'my-links': { running: fluxbio('my-links', { sites: two }), newest: fluxbio('my-links') } }, worker: { name: 'my-links' } })
+	const result = await f.run('deploy')
+	assert.equal(result.code, 1, result.log)
+	assert.match(result.log, /would take the site "link"/)
+	assert.deepEqual(f.deploys(), [])
+	// It asked for the deployment, then for the version most visits reach.
+	assert.deepEqual(f.calls().map((args) => args.slice(0, 4).join(' ')), ['workers deployments list --worker', 'workers versions get running'])
+})
+
+test('pnpm run deploy: a Worker uploaded and never deployed is read from its newest version', async (t) => {
+	const f = fixture(t, { workers: { 'my-links': { running: 'never deployed', newest: fluxbio('my-links', { sites: two }) } }, worker: { name: 'my-links' } })
+	const result = await f.run('deploy')
+	assert.equal(result.code, 1, result.log)
+	assert.match(result.log, /would take the site "link"/)
+})
 
 test('pnpm run deploy: each refusal has a way through for someone who means it', async (t) => {
 	const f = fixture(t, { workers: { 'my-links': fluxbio('my-links', { sites: two }) } })
@@ -387,8 +426,13 @@ test('pnpm reset-password: a failed change leaves the old password file as it wa
 test('pnpm reset-password: the test site gets its own password file and no token', async (t) => {
 	const f = fixture(t, { workers: { 'my-links': fluxbio('my-links'), 'my-links-staging': fluxbio('my-links-staging', { testSite: true }) }, worker: { name: 'my-links' } })
 	const s = await site(t, f, { worker: 'my-links-staging' })
+	// The live site's tokens on file are not this Worker's to revoke.
+	writeFileSync(join(f.dir, '.tokens.env'), 'export FLUXBIO_TOKEN=fbk_the_live_sites\n')
 	const result = await f.run('reset-password', '--site', s.origin, '--mode', 'staging')
 	assert.equal(result.code, 0, result.log)
+	assert.equal(readFileSync(join(f.dir, '.tokens.env'), 'utf8'), 'export FLUXBIO_TOKEN=fbk_the_live_sites\n')
+	assert.match(result.log, /keep \.secrets\.staging\.env: it is how you sign in to the test site/)
+	rmSync(join(f.dir, '.tokens.env'))
 	assert.deepEqual(f.calls().at(-1).slice(4, 6), ['--worker', 'my-links-staging'])
 	assert.equal(readFileSync(join(f.dir, '.secrets.staging.env'), 'utf8'), `ADMIN_PASSWORD=${s.password()}\n`)
 	assert.equal(existsSync(join(f.dir, '.tokens.env')), false)

@@ -294,7 +294,7 @@ Demandez-le simplement à votre IA : « Remplacez le domaine par links.example
 <details>
 <summary><b>Comment obtenir les nouvelles versions ?</b></summary>
 
-Votre site ne se met pas à jour tout seul : il exécute le code que vous avez déployé jusqu’au prochain déploiement. Demandez à votre IA « Y a-t-il une version plus récente de FluxBio ? » : elle vous dit ce qui a changé et fait la mise à jour pour vous. Pour être prévenu sans avoir à demander, ouvrez [le projet sur GitHub](https://github.com/0t2/flux-bio), cliquez sur Watch → Custom → Releases, et GitHub vous enverra un e-mail à chaque version. Toutes les versions et leurs changements figurent dans [le journal des modifications](https://fluxbio.link/fr/changelog/).
+Votre site ne se met pas à jour tout seul : il exécute le code que vous avez déployé jusqu’au prochain déploiement. Demandez à votre IA « Y a-t-il une version plus récente de FluxBio ? » : elle vous dit ce qui a changé et fait la mise à jour pour vous. Les Paramètres de votre tableau de bord signalent aussi qu’une version plus récente est sortie. Pour être prévenu sans avoir à demander, ouvrez [le projet sur GitHub](https://github.com/0t2/flux-bio), cliquez sur Watch → Custom → Releases, et GitHub vous enverra un e-mail à chaque version. Toutes les versions et leurs changements figurent dans [le journal des modifications](https://fluxbio.link/fr/changelog/).
 
 </details>
 

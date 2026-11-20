@@ -64,3 +64,98 @@ describe('the password command a site gives', () => {
 		expect(test).toMatch(/--worker my-worker-staging[\s`']/)
 	})
 })
+
+// A test site and the copy on a computer serve the guide too, and so does each site of a Worker that holds several.
+describe('the guide a site that is not the one live site serves', () => {
+	const single = guideNames('https://bio.example', 'my-worker')
+	const main = guideNames('https://bio.example', 'my-worker', { id: 'main', others: ['link.example'] })
+	const link = guideNames('https://link.example', 'my-worker', { id: 'link', others: ['bio.example'] })
+	const test = guideNames('https://test.example', 'my-worker-staging')
+	const local = guideNames('http://localhost:5173', 'my-worker')
+	const topic = (id: string, names: ReturnType<typeof guideNames>) => guideTopic(id, names)!
+
+	it('removes one site of several without touching the Worker or the first site’s database', () => {
+		const text = topic('remove', link)
+		expect(text).toContain('This Worker holds more than one site: link.example and bio.example. Ask which they mean')
+		expect(text).toContain('`pnpm run deploy --drop-site link`')
+		expect(text).toContain('the database named `my-worker-link` and the namespace named `my-worker-kv-link`, the `FLUXBIO_TOKEN_LINK` line')
+		expect(text).toContain('`~/.claude/skills/fluxbio-link`')
+		expect(text).toContain('Not the Worker, and not the database named `my-worker`')
+		// The first site can't go by itself, and its guide doesn't offer that.
+		expect(topic('remove', main)).toContain("It is the Worker's first site")
+		expect(topic('remove', main)).not.toContain('--drop-site')
+		// Removing everything names every site's database, and the test site's.
+		for (const text of [topic('remove', main), topic('remove', link)]) {
+			expect(text).toContain('named `my-worker-<its id>` and `my-worker-kv-<its id>`')
+			expect(text).toContain('They take every one of these sites offline')
+		}
+		expect(topic('remove', single)).toContain('If the lists show a `my-worker-staging`, that is their test site')
+		expect(topic('remove', single)).not.toContain('more than one site')
+	})
+
+	it('removes a test site as a test site, and leaves the live one and the owner’s computer alone', () => {
+		const text = topic('remove', test)
+		expect(text).toContain('removing it is step 6 of "Test site": the Worker `my-worker-staging`')
+		expect(text).not.toContain('FLUXBIO_DIR')
+		expect(text).not.toContain('workers delete')
+		expect(topic('remove', local)).toContain('Stop `pnpm dev` and delete the folder')
+	})
+
+	it('deploys the test site from the test site’s guide, never the live one, and keeps the live site’s skill', () => {
+		const update = topic('update', test)
+		expect(update).toContain('**This is the test site.**')
+		expect(update).toContain('`pnpm deploy:images --site https://test.example --mode staging`')
+		expect(update).toContain('`pnpm run deploy --mode staging`')
+		expect(update).not.toContain('/skill.md')
+		expect(update).toContain("Leave the skill on their computer alone: it is the live site's")
+		expect(topic('quota', test)).toContain('`pnpm deploy:images --site https://test.example --mode staging`')
+		// The live site's own guide gives the plain commands and its own skill.
+		const live = topic('update', single)
+		expect(live).toContain('`pnpm deploy:images --site https://bio.example`,')
+		expect(live).toContain('`pnpm run deploy`')
+		expect(live).toContain('curl -fsSL https://bio.example/skill.md -o ~/.claude/skills/fluxbio/SKILL.md')
+		expect(live).not.toContain('--mode staging')
+	})
+
+	it('doesn’t deploy from the copy on a computer, or save its guide as the skill', () => {
+		const update = topic('update', local)
+		expect(update).toContain("**This is the copy on the owner's computer.** Step 2 alone updates it")
+		expect(update).not.toContain('localhost:5173/skill.md')
+		expect(topic('rebuild', local)).not.toContain('localhost:5173/skill.md')
+		expect(topic('rebuild', test)).toContain('The folder is rebuilt for the live site, the Worker `my-worker`')
+		expect(topic('rebuild', test)).toContain('https://<the live site>/skill.md')
+	})
+
+	it('tries a new version after the code is in the folder, not before', () => {
+		const text = topic('update', single)
+		const [code, trial] = [text.indexOf('2. If the folder has `.git`'), text.indexOf('ask first whether to try the new version')]
+		expect(code).toBeGreaterThan(-1)
+		expect(trial).toBeGreaterThan(code)
+		expect(text).toContain('try again in a few minutes')
+	})
+
+	it('names the test site’s own password file, and says to keep it', () => {
+		const text = topic('password', test)
+		expect(text).toContain('it is in `.secrets.staging.env` there. Keep that file')
+		expect(text).not.toContain('then delete both files')
+		expect(topic('password', single)).toContain('then delete both files')
+		expect(topic('password', main)).toContain("make a token for each site with it, at each site's own address")
+	})
+
+	it('adds a site without asking anyone for the admin password, and takes one out with --drop-site', () => {
+		const text = topic('domain', single)
+		expect(text).toContain('Ask the owner to open `https://<the new domain>/admin/`, sign in with the same password, and make a token for you')
+		expect(text).not.toContain('Check it with the admin password')
+		expect(text).toContain('`pnpm run deploy --drop-site <its id>`')
+		expect(text).toContain('`{ "domains": ["links.example.com"] }`')
+	})
+
+	it('rebuilds a folder only for a Worker the rehearsal says it updates', () => {
+		const text = topic('rebuild', single)
+		expect(text).toContain('Go on only when it says `Checked: this updates the Worker "my-worker"`')
+		expect(text).toContain('If it says it *makes* that Worker')
+		// Listing Workers shows ten of them: not a way to tell the account is the wrong one.
+		expect(text).not.toContain('cf workers list')
+		expect(text).toContain('`pnpm reset-password --site <the test site\'s address> --mode staging`')
+	})
+})

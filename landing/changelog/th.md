@@ -1,9 +1,18 @@
 # Changelog
 
 What changed in FluxBio, a release at a time, newest first. fluxbio.link shows this file at `/en/changelog/` and is made from it.
-If you host your own, you take `main`. Your site says which version it runs, in `version` of `GET /api/state` and at the top of `/llms.txt`, so after updating read the releases above that one. The number says what updating takes: a release that changes the middle number (0.3.4 to 0.4.0) has an "Action needed", and one that changes only the last (0.3.4 to 0.3.5) needs nothing but the deploy.
+If you host your own, `pnpm update:code` in your FluxBio folder brings its code to the newest release and shows the releases in between: read them before you deploy. Your site says which version it runs, in `version` of `GET /api/state` and at the top of `/llms.txt`. The number says what updating takes: a release that changes the middle number (0.3.4 to 0.4.0) has an "Action needed", and one that changes only the last (0.3.4 to 0.3.5) needs nothing but the deploy.
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
+
+## 0.4.5 - 2026-11-20
+
+### แก้ไข
+- คู่มือที่เว็บไซต์ทดสอบหรือสำเนาในเครื่องให้บริการจะไม่ให้คำสั่งของเว็บไซต์จริงอีกต่อไป: คำสั่ง deploy จะมี `--mode staging` และคู่มือจะไม่บอกให้ AI ของคุณบันทึกคู่มือนั้นเป็น skill ของเว็บไซต์จริงอีก [#52](https://github.com/0t2/flux-bio/pull/52)
+- ใน Worker ที่มีมากกว่าหนึ่งเว็บไซต์ หัวข้อ “ลบ FluxBio” ในคู่มือจะไม่ทำให้ AI ของคุณลบ Worker ทั้งหมดและฐานข้อมูลของเว็บไซต์แรกเพียงเพื่อนำเว็บไซต์เดียวออก [#52](https://github.com/0t2/flux-bio/pull/52)
+- `pnpm run deploy` จะยึดตามเวอร์ชันของ Worker ที่กำลังทำงานอยู่จริง ซึ่งอาจไม่ใช่เวอร์ชันล่าสุดหลังจากย้อนกลับในแดชบอร์ดของ Cloudflare `pnpm deploy:images` จะอ่านรูปภาพของเว็บไซต์ที่สองด้วย token ของเว็บไซต์นั้นเอง และ `pnpm reset-password --mode staging` จะไม่แตะต้อง token ของเว็บไซต์จริงที่บันทึกไว้ [#52](https://github.com/0t2/flux-bio/pull/52)
+- การรันเว็บไซต์ทดสอบบนคอมพิวเตอร์ของคุณ (`cf dev --mode staging`) ไม่ต้องลงชื่อเข้าใช้ Cloudflare อีกต่อไป [#52](https://github.com/0t2/flux-bio/pull/52)
+- `GET /api/update` จะตอบว่าไม่ทราบ (`latest` เป็น null) เมื่อเจอเวอร์ชันหรือบันทึกการเปลี่ยนแปลงที่จัดลำดับไม่ได้ แทนที่จะบอกว่าเป็นเวอร์ชันล่าสุดแล้ว [#52](https://github.com/0t2/flux-bio/pull/52)
 
 ## 0.4.4 - 2026-11-20
 

@@ -55,7 +55,9 @@ if (!staging && process.env.FLUXBIO_SITE_TOKENS) {
 
 const scopedDir = `public${SCOPED_MEDIA_PATH}`
 const siteDir = (id) => join(scopedDir, 'sites', id)
-const primaryKey = staging ? password : process.env.FLUXBIO_TOKEN || keyFor(selectedId)
+// FLUXBIO_TOKEN is the first site's. Asked for another site by its address, its own token comes first: the first
+// site's opens nothing there, and the guide of each site gives this command with that site's address.
+const primaryKey = staging ? password : selectedId === 'main' ? process.env.FLUXBIO_TOKEN || keyFor('main') : keyFor(selectedId) || process.env.FLUXBIO_TOKEN
 const primaryDir = staging ? join(scopedDir, 'staging') : multisite ? siteDir(selectedId) : assets.MEDIA_ASSET_DIR
 // Every bundle is rebuilt from verified sources. This also drops old modes, removed sites and sites that can no
 // longer be reached: none of their previous files may shadow the current site's KV after deployment.

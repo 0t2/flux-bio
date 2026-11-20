@@ -1,9 +1,18 @@
 # Changelog
 
 What changed in FluxBio, a release at a time, newest first. fluxbio.link shows this file at `/en/changelog/` and is made from it.
-If you host your own, you take `main`. Your site says which version it runs, in `version` of `GET /api/state` and at the top of `/llms.txt`, so after updating read the releases above that one. The number says what updating takes: a release that changes the middle number (0.3.4 to 0.4.0) has an "Action needed", and one that changes only the last (0.3.4 to 0.3.5) needs nothing but the deploy.
+If you host your own, `pnpm update:code` in your FluxBio folder brings its code to the newest release and shows the releases in between: read them before you deploy. Your site says which version it runs, in `version` of `GET /api/state` and at the top of `/llms.txt`. The number says what updating takes: a release that changes the middle number (0.3.4 to 0.4.0) has an "Action needed", and one that changes only the last (0.3.4 to 0.3.5) needs nothing but the deploy.
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
+
+## 0.4.5 - 2026-11-20
+
+### 修复
+- 测试站和本机站提供的指南不再给出正式站的命令：部署命令会带 `--mode staging`，也不再让你的 AI 把它的指南保存成正式站的 skill。 [#52](https://github.com/0t2/flux-bio/pull/52)
+- 一个 Worker 有多个站点时，指南的“移除 FluxBio”不再让你的 AI 为了拿掉其中一个站点而删掉整个 Worker 和第一个站点的数据库。 [#52](https://github.com/0t2/flux-bio/pull/52)
+- `pnpm run deploy` 现在按 Worker 实际运行中的版本来检查，在 Cloudflare 后台回滚之后，那不一定是最新的版本。`pnpm deploy:images` 会用第二个站点自己的 token 读取它的图片，`pnpm reset-password --mode staging` 也不会再动到已保存的正式站 token。 [#52](https://github.com/0t2/flux-bio/pull/52)
+- 在自己电脑上运行测试站（`cf dev --mode staging`）不再需要登录 Cloudflare。 [#52](https://github.com/0t2/flux-bio/pull/52)
+- 遇到无法判断的版本或更新日志时，`GET /api/update` 会回答不知道（`latest` 为 null），而不是当成已是最新。 [#52](https://github.com/0t2/flux-bio/pull/52)
 
 ## 0.4.4 - 2026-11-20
 

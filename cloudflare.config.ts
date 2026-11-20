@@ -6,11 +6,11 @@ import { workerSettings } from './worker.config.ts'
  * Cloudflare configuration for FluxBio, read by the `cf` CLI and the Vite plugin.
  * https://developers.cloudflare.com/workers/
  *
- * The D1 database and KV namespace are referenced by name only; `cf deploy`
+ * The D1 database and KV namespace are referenced by name only; a deploy
  * creates them on the first deploy. The Worker creates its own database
  * tables on first use, so there is no migration step.
  *
- * `cf deploy --mode staging` deploys the owner's test site: a separate Worker,
+ * `pnpm run deploy --mode staging` deploys the owner's test site: a separate Worker,
  * named after this one, with its own D1, KV and stats, kept out of search engines.
  */
 
@@ -23,9 +23,13 @@ export default defineConfig(({ mode }) => {
 	const own = workerSettings()
 	const name = staging ? `${own.name}-staging` : own.name
 	// Not in `cf dev`: the SQL binding reaches Cloudflare and wants a sign-in, and that is what would stop someone
-	// trying FluxBio on their own computer before they have an account. The Worker runs without them. Nor on an
-	// account where Analytics Engine can't be turned on, which worker.json says with "analytics": false.
-	const analytics = mode !== 'development' && own.analytics
+	// trying FluxBio on their own computer before they have an account. The Worker runs without them. `cf dev` is
+	// the mode "development" unless it is given another, as the test site on a computer is (`cf dev --mode staging`),
+	// so the command is asked too: it is the first word after the program. Nor on an account where Analytics Engine
+	// can't be turned on, which worker.json says with "analytics": false.
+	const command = (globalThis as unknown as { process?: { argv?: string[] } }).process?.argv?.[2]
+	const local = mode === 'development' || command === 'dev'
+	const analytics = !local && own.analytics
 	// Analytics Engine datasets are account-wide, so each instance writes to its own.
 	const dataset = name.replace(/-/g, '_')
 	// The test site is one site: the others' hostnames belong to the live Worker, so nothing could reach them here.
@@ -69,7 +73,7 @@ export default defineConfig(({ mode }) => {
 				runWorkerFirst: ['/_site-media/*', ...(staging || otherSites.length ? ['/media/*'] : [])],
 			},
 			env: {
-				/** The dashboard password, at least 12 characters. Set it with `cf deploy --secrets-file` (see AGENTS.md). */
+				/** The dashboard password, at least 12 characters. Set with the first deploy's `--secrets-file` (AGENTS.md 1.5). */
 				ADMIN_PASSWORD: bindings.secret(),
 				DB: bindings.d1({ name }),
 				KV: bindings.kv({}),

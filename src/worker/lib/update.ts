@@ -3,8 +3,10 @@ import { VERSION } from './version'
 
 // Whether a newer FluxBio is out. A site is its owner's copy of the code and nothing tells it when the project moves on,
 // so an owner would never hear of a security fix. GET /api/update reads the project's changelog from GitHub and says
-// what this site is behind by. It runs only when the owner's AI asks or the owner opens Settings, never for a visitor, and sends GitHub nothing
-// about the site but the request itself.
+// what this site is behind by. It runs only when the owner's AI asks or the owner opens Settings, never for a visitor.
+// GitHub learns which site asked and nothing more: Cloudflare puts a CF-Worker header on every request a Worker makes,
+// naming the zone the Worker runs on, and that can't be left off. Nothing about visitors, pages or the owner goes.
+
 
 /** FluxBio's changelog where the project keeps it. A release there is a "## <version> - <date>" heading. */
 export const CHANGELOG_URL = 'https://raw.githubusercontent.com/0t2/flux-bio/main/CHANGELOG.md'
@@ -20,10 +22,14 @@ export function newerVersion(a: string, b: string): boolean {
 
 /**
  * The newest release in a changelog and those after `version`, newest first. It stops at the first heading that isn't
- * newer, so the cost is what the site is behind by, not the length of the file, and at one it can't read: the days from
- * before versions, or a file from a time when headings are written another way, which then counts as unread.
+ * newer, and at the days from before versions, so the lines it keeps are those the site is behind by. A heading it
+ * can't read is a file from a time when headings are written another way: then nothing is known, and it says so with
+ * `latest` null, since the releases below such a heading can't be counted and one of them may be a security fix. So
+ * too for a site whose own version isn't three numbers, a fork's "0.4.4-ours": it can't be placed among these.
  */
 export function releasesSince(changelog: string, version: string): { latest: string | null; releases: ReleaseJson[] } {
+	const unknown = { latest: null, releases: [] }
+	if (!/^\d+\.\d+\.\d+$/.test(version)) return unknown
 	const releases: ReleaseJson[] = []
 	let latest: string | null = null
 	let release: ReleaseJson | null = null
@@ -31,7 +37,10 @@ export function releasesSince(changelog: string, version: string): { latest: str
 	for (const line of changelog.split(/\r?\n/)) {
 		if (line.startsWith('## ')) {
 			const heading = /^## (\d+\.\d+\.\d+) - (\d{4}-\d{2}-\d{2})\s*$/.exec(line)
-			if (!heading) break
+			if (!heading) {
+				if (latest !== null && /^## \d{4}-\d{2}-\d{2}\s*$/.test(line)) break
+				return unknown
+			}
 			latest ??= heading[1]!
 			if (!newerVersion(heading[1]!, version)) break
 			release = { version: heading[1]!, date: heading[2]!, changes: [] }
