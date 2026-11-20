@@ -8,7 +8,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.10 - 2026-11-20
 
 ### Diubah
-- Percobaan salah pada kata sandi tautan kini dihitung per pengunjung: sepuluh dalam 15 menit mengunci orang yang melakukannya, dan tidak orang lain. Tautan tetap punya hitungan sendiri, lima puluh dari semua orang. Pengunjung dibedakan dengan delapan karakter yang dibuat dari alamatnya dengan salt yang diganti setiap hari; alamat itu sendiri tidak disimpan. [#59](https://github.com/0t2/flux-bio/pull/59)
+- Percobaan salah pada kata sandi tautan kini dihitung per pengunjung: sepuluh dalam 15 menit mengunci orang yang melakukannya, dan tidak orang lain. Tautan tetap punya hitungan sendiri, lima puluh dari semua orang. Pengunjung dibedakan dengan empat karakter yang dibuat dari alamatnya dengan salt yang diganti setiap hari; alamat itu sendiri tidak disimpan. [#59](https://github.com/0t2/flux-bio/pull/59)
 
 ## 0.4.9 - 2026-11-20
 

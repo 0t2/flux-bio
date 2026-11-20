@@ -519,7 +519,11 @@ export function writeMetaStatement(db: D1Database, key: string, value: unknown):
  * Two counts, each for a quarter of an hour. A visitor's: ten, then that visitor is read no password until the time
  * is up, and nobody else is the worse for it. And the link's, from everyone together: fifty, then the link reads
  * none from anyone, which is what holds someone who comes from many addresses. A visitor here is a few characters
- * that say only "the same as before" (passwordVisitor in lib/password.ts), in a row that is deleted when it is past.
+ * that say only "the same as before" (passwordVisitor in lib/password.ts).
+ *
+ * A visitor's row goes when a try given back leaves it at none, when the link's next quarter of an hour begins,
+ * when the link gets a new password, and when the site's state is read (forgetPastTries). No try looks through
+ * the rows to find what is past: someone sending thousands at once would have each of them read all the others.
  */
 export const PASSWORD_TRIES = 10
 export const PASSWORD_TRIES_LINK = 50
@@ -552,7 +556,7 @@ export interface TriesSince {
 /**
  * Counts a try before the password is looked at, and answers whether it may be looked at. Counted first, in one
  * statement each for the visitor and the link, so that a thousand tries sent at once are a thousand counts and not
- * a thousand looks. Counts that are past are deleted on the way, every link's: none is kept longer than it counts.
+ * a thousand looks.
  */
 export async function takePasswordTry(db: D1Database, linkId: string, visitor: string, now = Date.now()): Promise<{ ok: boolean; since: TriesSince }> {
 	const count = (key: string) =>
@@ -565,13 +569,16 @@ export async function takePasswordTry(db: D1Database, linkId: string, visitor: s
 				 RETURNING json_extract(value, '$.n') AS n, json_extract(value, '$.since') AS since`,
 			)
 			.bind(key, now, now - PASSWORD_WINDOW)
-	const [, mine, links] = await db.batch<{ n: number; since: number }>([
-		// ";" is the character after ":", so this is every key that starts with "tries:".
-		db.prepare(`DELETE FROM _meta WHERE key >= ?1 AND key < ?2 AND json_extract(value, '$.since') <= ?3`).bind(TRIES, `${TRIES.slice(0, -1)};`, now - PASSWORD_WINDOW),
-		count(visitorTries(linkId, visitor)),
-		count(linkTries(linkId)),
-	])
+	const [mine, links] = await db.batch<{ n: number; since: number }>([count(visitorTries(linkId, visitor)), count(linkTries(linkId))])
 	const [visitorRow, linkRow] = [mine?.results[0], links?.results[0]]
+	// The link's quarter of an hour has just begun: its visitors' rows from the one before go. Once for each, and
+	// only this link's rows are looked through. ";" is the character after ":".
+	if (linkRow?.n === 1) {
+		await db
+			.prepare(`DELETE FROM _meta WHERE key >= ?1 AND key < ?2 AND json_extract(value, '$.since') <= ?3`)
+			.bind(`${linkTries(linkId)}:`, `${linkTries(linkId)};`, now - PASSWORD_WINDOW)
+			.run()
+	}
 	return {
 		ok: (visitorRow?.n ?? 1) <= PASSWORD_TRIES && (linkRow?.n ?? 1) <= PASSWORD_TRIES_LINK,
 		since: { visitor: visitorRow?.since ?? now, link: linkRow?.since ?? now },
@@ -586,7 +593,17 @@ export async function takePasswordTry(db: D1Database, linkId: string, visitor: s
 export async function returnPasswordTry(db: D1Database, linkId: string, visitor: string, since: TriesSince): Promise<void> {
 	const back = (key: string, began: number) =>
 		db.prepare(`UPDATE _meta SET value = json_set(value, '$.n', max(0, json_extract(value, '$.n') - 1)) WHERE key = ?1 AND json_extract(value, '$.since') = ?2`).bind(key, began)
-	await db.batch([back(visitorTries(linkId, visitor), since.visitor), back(linkTries(linkId), since.link)])
+	await db.batch([
+		back(visitorTries(linkId, visitor), since.visitor),
+		// A visitor with no wrong try to their name has no row: the right password leaves nothing behind.
+		db.prepare(`DELETE FROM _meta WHERE key = ?1 AND json_extract(value, '$.n') <= 0`).bind(visitorTries(linkId, visitor)),
+		back(linkTries(linkId), since.link),
+	])
+}
+
+/** Takes out every count that is past, any link's: for a look at the site's state, so none lies about on a site where nobody tries again. */
+export function forgetPastTries(db: D1Database, now = Date.now()): D1PreparedStatement {
+	return db.prepare(`DELETE FROM _meta WHERE key >= ?1 AND key < ?2 AND json_extract(value, '$.since') <= ?3`).bind(TRIES, `${TRIES.slice(0, -1)};`, now - PASSWORD_WINDOW)
 }
 
 /** A new password starts with no wrong tries, the link's and every visitor's: the owner who changes it because it was being guessed isn't locked out with the guessers. */

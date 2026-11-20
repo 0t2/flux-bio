@@ -8,7 +8,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.10 - 2026-11-20
 
 ### Geändert
-- Falsche Versuche beim Passwort eines Links werden jetzt pro Besucher gezählt: Zehn in 15 Minuten sperren den aus, der sie gemacht hat, und niemanden sonst. Der Link hat weiterhin einen eigenen Zähler, fünfzig von allen zusammen. Ein Besucher wird an acht Zeichen erkannt, die aus seiner Adresse und einem täglich ersetzten Salt gebildet werden; die Adresse selbst wird nicht gespeichert. [#59](https://github.com/0t2/flux-bio/pull/59)
+- Falsche Versuche beim Passwort eines Links werden jetzt pro Besucher gezählt: Zehn in 15 Minuten sperren den aus, der sie gemacht hat, und niemanden sonst. Der Link hat weiterhin einen eigenen Zähler, fünfzig von allen zusammen. Ein Besucher wird an vier Zeichen erkannt, die aus seiner Adresse und einem täglich ersetzten Salt gebildet werden; die Adresse selbst wird nicht gespeichert. [#59](https://github.com/0t2/flux-bio/pull/59)
 
 ## 0.4.9 - 2026-11-20
 

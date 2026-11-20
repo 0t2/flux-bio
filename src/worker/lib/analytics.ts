@@ -78,7 +78,7 @@ export interface EventInput {
 }
 
 /** The rows of _meta that hold a day's salt (daySalt). */
-export const SALT_KEYS = ['visitor-salt']
+export const SALT_KEYS = ['visitor-salt', 'tries-salt']
 
 /**
  * Takes out a salt whose day is well past. A later day's writes over it, but only when something asks for one: on

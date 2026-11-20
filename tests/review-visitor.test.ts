@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PreviewLinkResponse } from '../src/shared/api'
 import { env } from 'cloudflare:test'
-import { PASSWORD_TRIES, PASSWORD_TRIES_LINK, PASSWORD_WINDOW, returnPasswordTry, takePasswordTry } from '../src/worker/lib/db'
+import { forgetPastTries, PASSWORD_TRIES, PASSWORD_TRIES_LINK, PASSWORD_WINDOW, returnPasswordTry, takePasswordTry } from '../src/worker/lib/db'
 import { visitorNetwork } from '../src/worker/lib/password'
 import { distance } from '../src/worker/routes/site'
 import { api, apiJson, call, visit } from './helpers'
@@ -124,6 +124,10 @@ describe('a draft’s preview link', () => {
 })
 
 describe('a link’s password', () => {
+	// A wrong try waits half a second before its answer. These are about what is counted, so it doesn't here.
+	beforeEach(() => void vi.spyOn(scheduler, 'wait').mockResolvedValue(undefined))
+	afterEach(() => vi.restoreAllMocks())
+
 	const guess = (slug: string, password: string, ip = '203.0.113.7') =>
 		call(`/${slug}`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': 'Mozilla/5.0 (iPhone)', 'cf-connecting-ip': ip }, body: `password=${encodeURIComponent(password)}` })
 
@@ -252,7 +256,8 @@ describe('a link’s password', () => {
 		await api('/links/rv-kept-1', { method: 'PATCH', json: { password: 'the right one' } })
 		expect((await guess('rv-kept-door', 'wrong', '198.51.100.77')).status).toBe(401)
 		const kept = await rows('rv-kept-1')
-		expect(kept.map((row) => row.key)).toEqual(['tries:rv-kept-1', expect.stringMatching(/^tries:rv-kept-1:[0-9a-f]{8}$/)])
+		// Four characters: sixty-five thousand addresses share each, so a row says one of that many was here.
+		expect(kept.map((row) => row.key)).toEqual(['tries:rv-kept-1', expect.stringMatching(/^tries:rv-kept-1:[0-9a-f]{4}$/)])
 		// Not the address, in any part of it, and nothing of the browser.
 		const everything = JSON.stringify((await env.DB.prepare('SELECT key, value FROM _meta WHERE key LIKE ?1').bind('tries%').all()).results)
 		for (const part of ['198.51.100.77', '198.51', '100.77', 'iPhone', 'Mozilla']) expect(everything).not.toContain(part)
@@ -261,11 +266,46 @@ describe('a link’s password', () => {
 		await api('/links/rv-kept-2', { method: 'PATCH', json: { password: 'the right one' } })
 		await guess('rv-kept-other', 'wrong', '198.51.100.77')
 		expect((await rows('rv-kept-2'))[1]!.key.split(':')[2]).not.toBe(kept[1]!.key.split(':')[2])
-		// And once the quarter of an hour is over, the next wrong try at any link takes the rows away.
-		await takePasswordTry(env.DB, 'rv-someone-else', 'bbbbbbbb', Date.now() + PASSWORD_WINDOW + 1)
+		// The right password leaves nothing: a try given back that was a visitor's only one takes their row with it.
+		expect((await guess('rv-kept-other', 'the right one', '203.0.113.200')).status).toBe(303)
+		expect(await rows('rv-kept-2')).toHaveLength(2)
+		// Once the quarter of an hour is over, the link's next try takes its visitors' old rows away,
+		const later = Date.now() + PASSWORD_WINDOW + 1
+		await takePasswordTry(env.DB, 'rv-kept-1', 'bbbb', later)
+		expect((await rows('rv-kept-1')).map((row) => row.key)).toEqual(['tries:rv-kept-1', 'tries:rv-kept-1:bbbb'])
+		// and a look at the site's state takes every link's, where nobody tries again.
+		expect((await rows('rv-kept-2')).length).toBe(2)
+		await forgetPastTries(env.DB, later + PASSWORD_WINDOW + 1).run()
 		expect(await rows('rv-kept-1')).toEqual([])
 		expect(await rows('rv-kept-2')).toEqual([])
 	}, 30_000)
+
+	it('costs a try the same however many others there are: none looks through the rows', async () => {
+		await pageWith('rv-cost', [link('rv-cost-1', 'rv-cost-door', 'https://example.com/cost')])
+		await api('/links/rv-cost-1', { method: 'PATCH', json: { password: 'the right one' } })
+		// Three hundred at once, each from a network of its own. Fifty are looked at; the others are turned away,
+		// given back, and leave no row.
+		const together = await Promise.all(Array.from({ length: 300 }, (_, n) => guess('rv-cost-door', `guess ${n}`, `2001:db8:${n.toString(16)}::1`)))
+		expect(together.filter((response) => response.status === 401)).toHaveLength(PASSWORD_TRIES_LINK)
+		expect((await rows('rv-cost-1')).length).toBeLessThanOrEqual(PASSWORD_TRIES_LINK + 1)
+		// And the one after reads no row but its own two.
+		const read: number[] = []
+		const DB = new Proxy(env.DB, {
+			get(target, key) {
+				if (key === 'batch') {
+					return async (statements: D1PreparedStatement[]) => {
+						const results = await target.batch(statements)
+						read.push(...results.map((result) => (result.meta as { rows_read?: number }).rows_read ?? 0))
+						return results
+					}
+				}
+				const value = Reflect.get(target, key)
+				return typeof value === 'function' ? value.bind(target) : value
+			},
+		})
+		await takePasswordTry(DB, 'rv-cost-1', 'cccc')
+		expect(read.reduce((sum, rows) => sum + rows, 0)).toBeLessThan(10)
+	}, 60_000)
 
 	it('starts everyone again with a new password, not only the link', async () => {
 		await pageWith('rv-fresh', [link('rv-fresh-1', 'rv-fresh-door', 'https://example.com/fresh')])

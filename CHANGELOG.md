@@ -8,7 +8,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.10 - 2026-11-20
 
 ### Changed
-- Wrong tries at a link's password are now counted for each visitor: ten in 15 minutes lock out the one who made them, and nobody else. The link still has a count of its own, fifty from everyone together. A visitor is told apart by eight characters made from their address with a salt that is replaced each day; the address itself is not stored. [#59](https://github.com/0t2/flux-bio/pull/59)
+- Wrong tries at a link's password are now counted for each visitor: ten in 15 minutes lock out the one who made them, and nobody else. The link still has a count of its own, fifty from everyone together. A visitor is told apart by four characters made from their address with a salt that is replaced each day; the address itself is not stored. [#59](https://github.com/0t2/flux-bio/pull/59)
 
 ## 0.4.9 - 2026-11-20
 

@@ -99,6 +99,7 @@ import {
 	ensureSchema,
 	findTokenByHash,
 	getLink,
+	forgetPastTries,
 	getPage,
 	getPageVersion,
 	listPageVersions,
@@ -451,9 +452,9 @@ api.get('/state', async (c) => {
 	c.executionCtx.waitUntil(tidyStats(db, settings).catch((error: unknown) => console.error('Could not tidy old stats', error)))
 	// And what is kept only for a while, where nothing has come along to write over it.
 	c.executionCtx.waitUntil(
-		forgetPastSalts(db)
-			.run()
-			.catch((error: unknown) => console.error('Could not take out a past salt', error)),
+		db
+			.batch([forgetPastSalts(db), forgetPastTries(db)])
+			.catch((error: unknown) => console.error('Could not take out a past salt or count', error)),
 	)
 	// A settings change that D1 has and KV refused is sent again when the dashboard is next opened: nobody has to
 	// know to save twice. Not the dropping of a large site's pages, which goes on with settings calls only.

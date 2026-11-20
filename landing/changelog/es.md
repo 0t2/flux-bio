@@ -8,7 +8,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.10 - 2026-11-20
 
 ### Cambios
-- Los intentos fallidos con la contraseña de un enlace ahora se cuentan por visitante: diez en 15 minutos bloquean a quien los hizo y a nadie más. El enlace conserva un recuento propio, de cincuenta entre todos. A un visitante se le distingue por ocho caracteres obtenidos de su dirección con una sal que se reemplaza cada día; la dirección en sí no se guarda. [#59](https://github.com/0t2/flux-bio/pull/59)
+- Los intentos fallidos con la contraseña de un enlace ahora se cuentan por visitante: diez en 15 minutos bloquean a quien los hizo y a nadie más. El enlace conserva un recuento propio, de cincuenta entre todos. A un visitante se le distingue por cuatro caracteres obtenidos de su dirección con una sal que se reemplaza cada día; la dirección en sí no se guarda. [#59](https://github.com/0t2/flux-bio/pull/59)
 
 ## 0.4.9 - 2026-11-20
 

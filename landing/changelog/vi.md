@@ -8,7 +8,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.10 - 2026-11-20
 
 ### Đã thay đổi
-- Số lần nhập sai mật khẩu của liên kết giờ được tính theo từng khách truy cập: mười lần trong 15 phút sẽ khóa người đã nhập sai, không ảnh hưởng đến ai khác. Liên kết vẫn có bộ đếm riêng, năm mươi lần tính chung mọi người. Khách truy cập được phân biệt bằng tám ký tự tạo từ địa chỉ của họ với một muối thay đổi mỗi ngày; bản thân địa chỉ không được lưu. [#59](https://github.com/0t2/flux-bio/pull/59)
+- Số lần nhập sai mật khẩu của liên kết giờ được tính theo từng khách truy cập: mười lần trong 15 phút sẽ khóa người đã nhập sai, không ảnh hưởng đến ai khác. Liên kết vẫn có bộ đếm riêng, năm mươi lần tính chung mọi người. Khách truy cập được phân biệt bằng bốn ký tự tạo từ địa chỉ của họ với một muối thay đổi mỗi ngày; bản thân địa chỉ không được lưu. [#59](https://github.com/0t2/flux-bio/pull/59)
 
 ## 0.4.9 - 2026-11-20
 

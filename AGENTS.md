@@ -459,10 +459,13 @@ Rules worth knowing:
   read no password until the time is up, at one query and nothing written, and nobody else is the worse for it. The link has
   a count too, of fifty from everyone together, which is what holds someone who comes from many addresses. A try is counted
   before it is looked at, and given back when it was right or was turned away unread, so only wrong tries that were looked at
-  stay counted. Setting the password again clears them all. A visitor there is eight characters of a hash of the link, the
-  address (an IPv6 one cut to its network) and a salt that is random and gone the next day (`passwordVisitor` in
-  `lib/password.ts`): the one place D1 holds anything made from an address, for a quarter of an hour, and it can't be turned
-  back into one. The address itself is stored nowhere, here as everywhere. A draft's preview link shows a link
+  stay counted. Setting the password again clears them all. A visitor there is four characters of a hash of the link, the
+  address (an IPv6 one cut to its network) and a salt that is random and kept for the day (`passwordVisitor` in
+  `lib/password.ts`): the one place D1 holds anything made from an address. Four on purpose: sixty-five thousand IPv4
+  addresses share each, so a row says one of that many was here, to someone who has the salt too. A row goes when a try
+  given back leaves it at none, when the link's next quarter of an hour begins, with a new password, and when the site's
+  state is read (`forgetPastTries`); no try looks through the rows, or a flood of them would each read all the others.
+  The address itself is stored nowhere, here as everywhere. A draft's preview link shows a link
   behind a password, or with `hideUrl`, as its short link, as the live page does (`keepPrivate` in `render.ts`).
 - **Smart routing** (per short link): `lineExternal` adds `openExternalBrowser=1` inside LINE;
   `inAppPrompt` shows Instagram, Threads and Facebook users how to open the link in their browser

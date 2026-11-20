@@ -38,13 +38,15 @@ export function visitorNetwork(ip: string): string {
 }
 
 /**
- * Who is trying a link's password, as far as counting their wrong tries needs: eight characters that are the same
- * for the same visitor at the same link on the same day, and say nothing else. Made from the address with a salt
- * that is random, kept for the day and then gone (daySalt), so no one can go from the characters to an address
- * afterwards, and cut short, so many addresses share each. Nothing here keeps the address itself.
+ * Who is trying a link's password, as far as counting their wrong tries needs: four characters that are the same
+ * for the same visitor at the same link on the same day. Made from the address with a salt that is random and kept
+ * for the day (daySalt), and cut that short on purpose: sixty-five thousand IPv4 addresses share each, so even
+ * someone who reads the salt out of D1, as whoever has the Cloudflare account can for a month afterwards, learns
+ * from a row that one of that many was here, and not which. Two visitors at one link share a count about once in
+ * sixty-five thousand pairs, which costs them tries and nothing else. Nothing here keeps the address itself.
  */
 export async function passwordVisitor(env: Env, linkId: string, ip: string, now = Date.now()): Promise<string> {
 	const salt = await daySalt(env, new Date(now).toISOString().slice(0, 10), 'tries-salt')
-	return (await sha256Hex(`${salt}|${linkId}|${visitorNetwork(ip)}`)).slice(0, 8)
+	return (await sha256Hex(`${salt}|${linkId}|${visitorNetwork(ip)}`)).slice(0, 4)
 }
 

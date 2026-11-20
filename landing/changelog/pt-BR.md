@@ -8,7 +8,7 @@ The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (new
 ## 0.4.10 - 2026-11-20
 
 ### Alterações
-- As tentativas erradas na senha de um link agora são contadas por visitante: dez em 15 minutos bloqueiam quem as fez, e mais ninguém. O link continua com uma contagem própria, de cinquenta somando todos. Um visitante é distinguido por oito caracteres feitos a partir do endereço dele com um sal trocado a cada dia; o endereço em si não é armazenado. [#59](https://github.com/0t2/flux-bio/pull/59)
+- As tentativas erradas na senha de um link agora são contadas por visitante: dez em 15 minutos bloqueiam quem as fez, e mais ninguém. O link continua com uma contagem própria, de cinquenta somando todos. Um visitante é distinguido por quatro caracteres feitos a partir do endereço dele com um sal trocado a cada dia; o endereço em si não é armazenado. [#59](https://github.com/0t2/flux-bio/pull/59)
 
 ## 0.4.9 - 2026-11-20
 
