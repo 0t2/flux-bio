@@ -5,6 +5,16 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.9 - 2026-11-20
+
+### セキュリティ
+- 詳細統計にある訪問者ごとのその日の ID は、管理パスワードではなく、毎日入れ替わるランダムな値でソルトされるようになりました。パスワードを知っていても、あるアドレスが訪問したかどうかを確かめる手段にはなりません。この更新を行った日のユニーク訪問者数は多めに出ます。 [#58](https://github.com/0t2/flux-bio/pull/58)
+
+### 修正
+- 公開中にほかの誰かが下書きを保存した場合、応答は下書きの実際のバージョンを返し、下書きが保持されたこと（`draftKept`）を伝えるようになりました。ダッシュボードはその下書きを採用するか、どちらを残すかを尋ねます。 [#58](https://github.com/0t2/flux-bio/pull/58)
+- 公開と同時にページのアドレスが変更されたり、リンクの短縮アドレスが変更されたり、設定変更でフォントがコピーされていたりしても、古いコピー、余分な短縮アドレス、まちがったフォントファイルが残らなくなりました。 [#58](https://github.com/0t2/flux-bio/pull/58)
+- 統計のダウンロード中に古い日別データが月にまとめられても、ファイルから数字が抜けることはなくなりました。ダウンロードにその旨が伝えられ、最初からやり直します。 [#58](https://github.com/0t2/flux-bio/pull/58)
+
 ## 0.4.8 - 2026-11-20
 
 ### 修正

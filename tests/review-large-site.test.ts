@@ -148,13 +148,20 @@ describe('copying fonts turned off', () => {
 		await give()
 		// The files of a slice are deleted, and D1 then fails to forget their lists.
 		let failed = 0
+		let forgetting = false
 		const DB = new Proxy(env.DB, {
 			get(target, key) {
 				if (key === 'prepare') {
 					return (text: string) => {
-						if (!/^DELETE FROM _meta WHERE key IN/.test(text)) return target.prepare(text)
+						if (/^DELETE FROM _meta WHERE key = \?1 AND value = \?2/.test(text)) forgetting = true
+						return target.prepare(text)
+					}
+				}
+				if (key === 'batch') {
+					return (statements: D1PreparedStatement[]) => {
+						if (!forgetting || failed) return target.batch(statements)
 						failed++
-						return { bind: () => ({ run: () => Promise.reject(new Error('D1_ERROR: storage operation exceeded timeout')) }) }
+						return Promise.reject(new Error('D1_ERROR: storage operation exceeded timeout'))
 					}
 				}
 				const value = Reflect.get(target, key)

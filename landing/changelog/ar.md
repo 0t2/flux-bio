@@ -5,6 +5,16 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.9 - 2026-11-20
+
+### الأمان
+- معرّف الزائر اليومي في الإحصاءات التفصيلية صار يُملَّح بقيمة عشوائية تُستبدل كل يوم، لا بكلمة مرور المشرف. فلم تعد معرفة كلمة المرور وسيلة للتحقق مما إذا كان عنوان معيّن قد زار الموقع. يكون عدد زوار اليوم أعلى من الواقع في يوم هذا التحديث. [#58](https://github.com/0t2/flux-bio/pull/58)
+
+### إصلاحات
+- النشر أثناء حفظ شخص آخر للمسودة صار يجيب بالنسخة الفعلية للمسودة ويذكر أن المسودة أُبقيت (`draftKept`)؛ وتأخذ لوحة التحكم تلك المسودة أو تسأل أيهما يُحتفظ به. [#58](https://github.com/0t2/flux-bio/pull/58)
+- الصفحة التي تُنشر في اللحظة نفسها التي تُنقل فيها، أو يُعطى أحد روابطها عنوانًا قصيرًا آخر، أو ينسخ تغيير في الإعدادات خطوطها، لم تعد تحتفظ بنسخة قديمة أو عنوان قصير شارد أو ملفات خطوط خاطئة. [#58](https://github.com/0t2/flux-bio/pull/58)
+- تنزيل الإحصاءات أثناء دمج الأيام القديمة في أشهر لم يعد يُسقط أعدادًا من الملف: يُبلَّغ التنزيل بذلك ويبدأ من جديد. [#58](https://github.com/0t2/flux-bio/pull/58)
+
 ## 0.4.8 - 2026-11-20
 
 ### إصلاحات

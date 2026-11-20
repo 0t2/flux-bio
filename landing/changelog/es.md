@@ -5,6 +5,16 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.9 - 2026-11-20
+
+### Seguridad
+- El identificador diario de un visitante en las estadísticas detalladas ahora lleva como sal un valor aleatorio que se reemplaza cada día, no la contraseña de administración. Conocer la contraseña ya no sirve para comprobar si una dirección concreta visitó el sitio. El recuento de visitantes del día sale demasiado alto el día de esta actualización. [#58](https://github.com/0t2/flux-bio/pull/58)
+
+### Correcciones
+- Publicar mientras otra persona guarda el borrador ahora responde con la versión real del borrador y dice que el borrador se conservó (`draftKept`); el panel toma ese borrador o pregunta cuál conservar. [#58](https://github.com/0t2/flux-bio/pull/58)
+- Una página publicada en el mismo instante en que se mueve, en que uno de sus enlaces recibe otra dirección corta o en que un cambio de ajustes copia sus fuentes ya no conserva una copia antigua, una dirección corta suelta ni archivos de fuentes equivocados. [#58](https://github.com/0t2/flux-bio/pull/58)
+- Descargar las estadísticas mientras los días antiguos se fusionan en meses ya no deja recuentos fuera del archivo: la descarga recibe el aviso y vuelve a empezar. [#58](https://github.com/0t2/flux-bio/pull/58)
+
 ## 0.4.8 - 2026-11-20
 
 ### Correcciones

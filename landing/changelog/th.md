@@ -5,6 +5,16 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.9 - 2026-11-20
+
+### ความปลอดภัย
+- รหัสประจำวันของผู้เข้าชมในสถิติแบบละเอียดใช้ค่าสุ่มที่เปลี่ยนทุกวันเป็น salt แทนรหัสผ่านผู้ดูแล การรู้รหัสผ่านจึงใช้ตรวจสอบไม่ได้อีกว่าที่อยู่ใดเคยเข้าชม จำนวนผู้เข้าชมของวันจะสูงเกินจริงในวันที่อัปเดตนี้ [#58](https://github.com/0t2/flux-bio/pull/58)
+
+### แก้ไข
+- การเผยแพร่ในขณะที่คนอื่นบันทึกฉบับร่าง ตอนนี้จะตอบกลับด้วยเวอร์ชันจริงของฉบับร่างและแจ้งว่าฉบับร่างถูกเก็บไว้ (`draftKept`) แดชบอร์ดจะใช้ฉบับร่างนั้นหรือถามว่าจะเก็บฉบับใด [#58](https://github.com/0t2/flux-bio/pull/58)
+- หน้าที่เผยแพร่ในจังหวะเดียวกับที่ถูกย้าย ลิงก์ในหน้าได้ที่อยู่สั้นใหม่ หรือการเปลี่ยนการตั้งค่ากำลังคัดลอกฟอนต์ จะไม่เหลือสำเนาเก่า ที่อยู่สั้นที่ค้างอยู่ หรือไฟล์ฟอนต์ที่ผิดอีกต่อไป [#58](https://github.com/0t2/flux-bio/pull/58)
+- การดาวน์โหลดสถิติในขณะที่ข้อมูลรายวันเก่าถูกรวมเป็นรายเดือนจะไม่ทำให้ตัวเลขตกหล่นจากไฟล์อีก การดาวน์โหลดจะได้รับแจ้งและเริ่มใหม่ตั้งแต่ต้น [#58](https://github.com/0t2/flux-bio/pull/58)
+
 ## 0.4.8 - 2026-11-20
 
 ### แก้ไข

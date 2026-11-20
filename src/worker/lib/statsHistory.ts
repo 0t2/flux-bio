@@ -48,6 +48,16 @@ async function loadState(db: D1Database): Promise<State> {
 	return stateOf((await readMeta(db, KEY)) as Partial<State> | undefined)
 }
 
+/**
+ * How many times old rows have been merged into months or deleted: a number in _meta that goes up in the same
+ * transaction as each such change. The stats download is a thousand rows a request, oldest first, and a merge in
+ * between two of its pages moves days it hasn't reached into a month's row, which sorts before where it has got
+ * to: their counts would be in no file. So each page of a download carries this number on, and one that finds it
+ * changed is told to start again (exportStats). Nothing is written for a download, and nothing waits for one.
+ */
+const REV_KEY = 'stats-rev'
+const bumpRev = (db: D1Database) => db.prepare('INSERT INTO _meta (key, value) VALUES (?1, 1) ON CONFLICT (key) DO UPDATE SET value = value + 1').bind(REV_KEY)
+
 const utcDay = (now: number) => new Date(now).toISOString().slice(0, 10)
 const monthOf = (timeZone: string, now: number) => dayIn(timeZone, now).slice(0, 7)
 
@@ -83,8 +93,8 @@ export async function tidyStats(db: D1Database, settings: Settings, now = Date.n
 
 	if (state.clear) {
 		// A month sorts before its days and after the days of the month before, so `< "YYYY-MM"` is exactly the months before it.
-		const result = await db.prepare(`DELETE FROM stats WHERE (day, target, kind, dim, value) IN (${SLICE})`).bind('', state.clear, room).run()
-		const rows = result.meta.changes ?? 0
+		const [result] = await db.batch([db.prepare(`DELETE FROM stats WHERE (day, target, kind, dim, value) IN (${SLICE})`).bind('', state.clear, room), bumpRev(db)])
+		const rows = result?.meta.changes ?? 0
 		await save(rows < room ? { clear: null, from: state.from < state.clear ? state.clear : state.from } : {}, rows)
 		return
 	}
@@ -113,6 +123,7 @@ export async function tidyStats(db: D1Database, settings: Settings, now = Date.n
 			)
 			.bind(`${month}-01`, until, room, month),
 		db.prepare(`DELETE FROM stats WHERE (day, target, kind, dim, value) IN (${SLICE})`).bind(`${month}-01`, until, room),
+		bumpRev(db),
 	])
 	await save({ from: month }, merged?.meta.changes ?? 0)
 }
@@ -188,12 +199,14 @@ const EXPORT_PAGE = 1_000
 
 type Key = [string, string, string, string, string]
 
-const encodeCursor = (key: Key) => btoa(JSON.stringify(key)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+/** Where a download has got to, and the number old rows had been tidied to when it began (REV_KEY). */
+const encodeCursor = (key: Key, rev: number) => btoa(JSON.stringify([...key, String(rev)])).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 
-function decodeCursor(cursor: string): Key | null {
+function decodeCursor(cursor: string): { key: Key; rev: number } | null {
 	try {
-		const key = JSON.parse(atob(cursor.replace(/-/g, '+').replace(/_/g, '/'))) as unknown
-		return Array.isArray(key) && key.length === 5 && key.every((part) => typeof part === 'string') ? (key as Key) : null
+		const parts = JSON.parse(atob(cursor.replace(/-/g, '+').replace(/_/g, '/'))) as unknown
+		if (!Array.isArray(parts) || parts.length !== 6 || !parts.every((part) => typeof part === 'string')) return null
+		return { key: parts.slice(0, 5) as Key, rev: Number(parts[5]) }
 	} catch {
 		return null
 	}
@@ -206,21 +219,28 @@ function decodeCursor(cursor: string): Key | null {
 export async function exportStats(db: D1Database, cursor: string | undefined, before?: string): Promise<{ rows: ExportRow[]; nextCursor: string | null }> {
 	const after = cursor ? decodeCursor(cursor) : null
 	if (cursor && !after) throw new ApiError(400, 'invalid', msg('查詢參數不正確'))
-	const { results } = await db
-		.prepare(
-			`SELECT s.day, s.kind, s.target, s.dim, s.value, s.count, p.handle, l.slug, l.title
-			FROM stats s
-			LEFT JOIN links l ON l.id = s.target
-			LEFT JOIN pages p ON p.id = COALESCE(s.page, l.page_id, CASE WHEN s.kind = 'view' THEN s.target END)
-			WHERE (s.day, s.target, s.kind, s.dim, s.value) > (?1, ?2, ?3, ?4, ?5) AND s.day < ?6
-			ORDER BY s.day, s.target, s.kind, s.dim, s.value LIMIT ?7`,
-		)
-		.bind(...(after ?? ['', '', '', '', '']), before ?? '9999', EXPORT_PAGE + 1)
-		.all<{ day: string; kind: string; target: string; dim: string; value: string; count: number; handle: string | null; slug: string | null; title: string | null }>()
+	// The number and the rows in one transaction, so the rows are as they were at that number.
+	const [tidied, read] = await db.batch<Record<string, unknown>>([
+		db.prepare('SELECT value FROM _meta WHERE key = ?1').bind(REV_KEY),
+		db
+			.prepare(
+				`SELECT s.day, s.kind, s.target, s.dim, s.value, s.count, p.handle, l.slug, l.title
+				FROM stats s
+				LEFT JOIN links l ON l.id = s.target
+				LEFT JOIN pages p ON p.id = COALESCE(s.page, l.page_id, CASE WHEN s.kind = 'view' THEN s.target END)
+				WHERE (s.day, s.target, s.kind, s.dim, s.value) > (?1, ?2, ?3, ?4, ?5) AND s.day < ?6
+				ORDER BY s.day, s.target, s.kind, s.dim, s.value LIMIT ?7`,
+			)
+			.bind(...(after?.key ?? ['', '', '', '', '']), before ?? '9999', EXPORT_PAGE + 1),
+	])
+	const rev = Number(tidied?.results[0]?.value ?? 0)
+	// Old days were merged into months, or deleted, since this download began: what it has may be short of them.
+	if (after && after.rev !== rev) throw new ApiError(409, 'stats-changed', msg('舊的點擊數據在下載途中被整理過，請從頭再下載一次'))
+	const results = (read?.results ?? []) as { day: string; kind: string; target: string; dim: string; value: string; count: number; handle: string | null; slug: string | null; title: string | null }[]
 	const page = results.slice(0, EXPORT_PAGE)
 	const last = page.at(-1)
 	return {
 		rows: page.map((row) => [row.day, row.kind, row.target, row.handle ?? '', row.slug?.startsWith('~') ? '' : (row.slug ?? ''), row.title ?? '', row.value, row.count]),
-		nextCursor: results.length > EXPORT_PAGE && last ? encodeCursor([last.day, last.target, last.kind, last.dim, last.value]) : null,
+		nextCursor: results.length > EXPORT_PAGE && last ? encodeCursor([last.day, last.target, last.kind, last.dim, last.value], rev) : null,
 	}
 }

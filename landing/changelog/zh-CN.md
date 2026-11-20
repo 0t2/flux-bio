@@ -5,6 +5,16 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.9 - 2026-11-20
+
+### 安全
+- 详细统计里每位访客当天的代号，现在用每天更换的随机值加盐，不再用管理密码。知道密码也不再能用来验证某个地址是否来访过。更新当天的独立访客数会偏高。 [#58](https://github.com/0t2/flux-bio/pull/58)
+
+### 修复
+- 发布的同时如果有人保存了草稿，响应现在会带草稿真正的版本，并说明草稿被保留（`draftKept`）；后台会采用那份草稿，或询问要保留哪一份。 [#58](https://github.com/0t2/flux-bio/pull/58)
+- 页面在发布的同一刻被改网址、其中链接被改短链接、或设置变更正在复制字体时，不再留下旧的副本、多余的短链接或错误的字体文件。 [#58](https://github.com/0t2/flux-bio/pull/58)
+- 下载统计的途中如果旧的每日数据被合并成月份，不会再有数字漏在文件之外：下载会被告知并从头再来。 [#58](https://github.com/0t2/flux-bio/pull/58)
+
 ## 0.4.8 - 2026-11-20
 
 ### 修复

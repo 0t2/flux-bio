@@ -76,7 +76,7 @@ import communityThemes from '../../../themes/community.json'
 import { baseThemeNames, CommunityListSchema } from '../../shared/community'
 import { guideNames, guideSite, openApi, workerNameOf } from '../lib/agent'
 import { guideTopic } from '../lib/agentTopics'
-import { accountUse, countsSince, insights, type Insights } from '../lib/analytics'
+import { accountUse, countsSince, forgetPastSalts, insights, type Insights } from '../lib/analytics'
 import { D1_DAILY_LIMITS, D1_STORAGE, KV_DAILY_LIMITS } from '../../shared/usage'
 import {
 	adminPasswordProblem,
@@ -449,6 +449,12 @@ api.get('/state', async (c) => {
 	}
 	// Old numbers are merged, or deleted as asked, a slice per dashboard visit, after it has its answer.
 	c.executionCtx.waitUntil(tidyStats(db, settings).catch((error: unknown) => console.error('Could not tidy old stats', error)))
+	// And what is kept only for a while, where nothing has come along to write over it.
+	c.executionCtx.waitUntil(
+		forgetPastSalts(db)
+			.run()
+			.catch((error: unknown) => console.error('Could not take out a past salt', error)),
+	)
 	// A settings change that D1 has and KV refused is sent again when the dashboard is next opened: nobody has to
 	// know to save twice. Not the dropping of a large site's pages, which goes on with settings calls only.
 	if (owed) c.executionCtx.waitUntil(sendOwed(c.env).catch((error: unknown) => console.error('Could not send what KV is owed', error)))
