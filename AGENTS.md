@@ -455,11 +455,17 @@ Rules worth knowing:
   `qrLogo`, else nothing. Codes are drawn in the dashboard, or for an agent by `GET /api/links/:id/qr` (an SVG file, at most one KV read for its picture), so these cost visitors nothing and write no KV. Changing one changes codes in the dashboard and new
   downloads, not files already saved or printed.
 - **A link's password** is hashed fast, since a slow hash would cost every visit its 10 ms, so what stops guessing is a
-  count: ten wrong tries in 15 minutes (`takePasswordTry` in `lib/db.ts`, one row in `_meta`), then the link reads no password
-  until the time is up, at one row read and nothing written. A try is counted before it is looked at, and given back when it
-  was right or was turned away unread, so only wrong tries that were looked at stay counted. The count is the link's, for
-  every visitor together, since nothing here knows one visitor from another: guessing locks the link for the people it is
-  for too. Setting the password again clears it. A draft's preview link shows a link
+  count (`takePasswordTry` in `lib/db.ts`, rows in `_meta`): a visitor has ten wrong tries in 15 minutes, then that visitor is
+  read no password until the time is up, at one query and nothing written, and nobody else is the worse for it. The link has
+  a count too, of fifty from everyone together, which is what holds someone who comes from many addresses. A try is counted
+  before it is looked at, and given back when it was right or was turned away unread, so only wrong tries that were looked at
+  stay counted. Setting the password again clears them all. A visitor there is four characters of a hash of the link, the
+  address (an IPv6 one cut to its network) and a salt that is random and kept for the day (`passwordVisitor` in
+  `lib/password.ts`): the one place D1 holds anything made from an address. Four on purpose: sixty-five thousand IPv4
+  addresses share each, so a row says one of that many was here, to someone who has the salt too. A row goes when a try
+  given back leaves it at none, when the link's next quarter of an hour begins, with a new password, and when the site's
+  state is read (`forgetPastTries`); no try looks through the rows, or a flood of them would each read all the others.
+  The address itself is stored nowhere, here as everywhere. A draft's preview link shows a link
   behind a password, or with `hideUrl`, as its short link, as the live page does (`keepPrivate` in `render.ts`).
 - **Smart routing** (per short link): `lineExternal` adds `openExternalBrowser=1` inside LINE;
   `inAppPrompt` shows Instagram, Threads and Facebook users how to open the link in their browser
