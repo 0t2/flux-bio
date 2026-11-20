@@ -77,6 +77,19 @@ export interface EventInput {
 	utm?: UtmTags
 }
 
+/** The rows of _meta that hold a day's salt (daySalt). */
+export const SALT_KEYS = ['visitor-salt']
+
+/**
+ * Takes out a salt whose day is well past. A later day's writes over it, but only when something asks for one: on
+ * a site nobody visits for a week, last week's salt would lie there all that time. Two days, since a site's day
+ * can be a day ahead of UTC or behind it, and a salt taken out while its day goes on would be made again, another.
+ */
+export function forgetPastSalts(db: D1Database, now = Date.now()): D1PreparedStatement {
+	const before = new Date(now - 2 * 86_400_000).toISOString().slice(0, 10)
+	return db.prepare(`DELETE FROM _meta WHERE key IN (${SALT_KEYS.map((_, n) => `?${n + 2}`).join(', ')}) AND json_extract(value, '$.day') < ?1`).bind(before, ...SALT_KEYS)
+}
+
 const salts = perSite<Map<string, { day: string; salt: Promise<string> }>>()
 
 /**

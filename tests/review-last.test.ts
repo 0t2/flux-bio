@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:test'
 import { describe, expect, it } from 'vitest'
-import { daySalt, EVENT_FIELDS, eventBlobs } from '../src/worker/lib/analytics'
+import { daySalt, EVENT_FIELDS, eventBlobs, forgetPastSalts } from '../src/worker/lib/analytics'
 import { NAME_PREFIX } from '../src/worker/lib/cache'
 import { ensureSchema, loadSettings } from '../src/worker/lib/db'
 import { publishPage, renamePage } from '../src/worker/lib/ops'
@@ -100,6 +100,23 @@ describe('a visitor’s id for the day', () => {
 		expect(await daySalt(copy, held.day)).not.toBe(held.salt)
 		expect(failed).toBe(true)
 		expect(await daySalt(copy, held.day)).toBe(held.salt)
+	})
+
+	it('is not left lying about on a site nobody visits: a look at the site’s state takes out a salt two days past', async () => {
+		const held = await salt()
+		const day = (now: number) => new Date(now).toISOString().slice(0, 10)
+		const at = Date.parse(`${held.day}T12:00:00Z`)
+		// The day after, the salt may still be some site's today, and stays.
+		await forgetPastSalts(env.DB, at + 86_400_000).run()
+		expect(await salt()).toEqual(held)
+		expect(day(at + 3 * 86_400_000) > held.day).toBe(true)
+		await forgetPastSalts(env.DB, at + 3 * 86_400_000).run()
+		expect(await env.DB.prepare("SELECT count(*) AS n FROM _meta WHERE key = 'visitor-salt'").first<{ n: number }>()).toEqual({ n: 0 })
+		// And reading the state is what does it.
+		await id('2026-11-02', { ...env, SITE: 'a-copy-for-this-test' } as unknown as Env)
+		expect((await salt()).day).toBe('2026-11-02')
+		expect((await api('/state')).status).toBe(200)
+		expect(await env.DB.prepare("SELECT count(*) AS n FROM _meta WHERE key = 'visitor-salt'").first<{ n: number }>()).toEqual({ n: 0 })
 	})
 
 	it('keeps one salt for a day whatever is asked for in between: a visit counted late doesn’t take the day’s away', async () => {
@@ -213,6 +230,8 @@ describe('publishing a page that is deleted meanwhile', () => {
 		expect(await status('/rl-deleted')).toBe(404)
 		expect(await status('/rl-gone')).toBe(404)
 		expect(await status('/rl-gone-too')).toBe(404)
+		// The link that was live before and didn't change is not left with a copy either.
+		expect(await env.KV.get(`${NAME_PREFIX}rl-gone`)).toBeNull()
 		expect(await env.KV.get(`${NAME_PREFIX}rl-deleted`)).toBeNull()
 		expect(await env.DB.prepare('SELECT count(*) AS n FROM page_versions WHERE page_id = ?1').bind(id).first<{ n: number }>()).toEqual({ n: 0 })
 		expect(await env.DB.prepare("SELECT count(*) AS n FROM links WHERE page_id = ?1 AND status = 'active'").bind(id).first<{ n: number }>()).toEqual({ n: 0 })
@@ -275,6 +294,9 @@ describe('the stats download', () => {
 	it('starts again when old days were merged into months between two of its pages, so no count is in neither', async () => {
 		await ensureSchema(env.DB)
 		const now = Date.now()
+		// As on a site whose old days are still to be merged: an earlier look at the state found none here, and
+		// noted that there were none before this month.
+		await env.DB.prepare("DELETE FROM _meta WHERE key = 'stats_history'").run()
 		// More rows than one page of the download, on days old enough to be merged: fifteen hundred pages' views.
 		const insert = env.DB.prepare("INSERT INTO stats (day, target, kind, dim, value, count) VALUES (?1, ?2, 'view', 'source', 'direct', 2)")
 		const rows = Array.from({ length: 1500 }, (_, n) => insert.bind(`${month(now)}-${String((n % 28) + 1).padStart(2, '0')}`, `rl-target-${n}`))
