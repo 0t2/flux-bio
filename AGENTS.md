@@ -577,8 +577,23 @@ tests/                  Vitest tests (run in workerd)
   those, run `pnpm api:surface` and commit the file: `tests/api-surface.test.mjs` fails until it matches. Adding a name is
   free. A name that goes, which a rename is too, breaks whoever used it, so the test also compares with the list where the
   branch left `main` and fails unless the change is a release with an "Action needed" saying what to use instead. Keeping
-  the old name working beside the new one needs none. A field's type and whether it is required are not in the list, so
-  changing those is still on you to call out.
+  the old name working beside the new one needs none. A field that changes in a way that breaks a caller loses a line
+  too, so the same rule holds it:
+  - *Requests.* A parameter, and a field of a body or of a page's content, has `<field> optional` where it may be left
+    out, which goes when it becomes required, and `<field>: <type>` for each kind of JSON value it takes (`string`,
+    `integer`, `number`, `boolean`, `null`, `array`, `object`), which goes when it stops taking one. A field that takes
+    any number has both `integer` and `number`, and one that is a schema with lines of its own has only its
+    `=PageContent`. Taking more, or asking for less, only adds lines.
+  - *Responses.* A field has `type <Interface>.<field> always` unless it is written with a `?`, which goes when it may
+    be missing, and `type <Interface>.<field>: <type>` with the type as `src/shared/api.ts` writes it, on one line, which
+    goes when the type changes at all: a reader meets a value it never handled, so a wider type breaks it too. An object
+    type written in place reads `{…}` there, because its fields have lines of their own and one more of them breaks
+    nobody. A type the file names (`export type Role = …`) has a line with what it stands for. The type is compared as
+    text, so writing the same type another way, such as a union in another order, reads as a change: leave it as it is.
+  - *Not in the list, and still on you to call out.* A string's pattern, format or length, a number's range, a list's
+    length and a default. The bodies of owner-only routes, which the OpenAPI document leaves out. What a response type
+    from another file holds (`Settings`, `Params`, `Problem`), since a field only says its name. Whether a response
+    always carries a field of a page's content: that is listed the way a request takes it.
 - **D1 is the source of truth.** It holds `pages`, `page_versions`, `links`, `stats` and
   `api_tokens`, which the Worker creates and upgrades on first use. To change the schema, append a
   migration to `MIGRATIONS` in `src/worker/lib/db.ts`. Never edit an existing migration.

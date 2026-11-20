@@ -5,7 +5,13 @@
 // tests/api-surface.test.mjs fails while the file isn't what the code says, so a change to the API always shows in a
 // pull request's diff. Adding is free. Taking a name away, which is what a rename is too, breaks whoever used it:
 // the test then asks for a release with an "Action needed" that says so (AGENTS.md, "The changelog and the version").
-// A field's type, and whether it is required, are not in the list: only names and listed values.
+// A change to a field that breaks whoever used it takes a line away too, so the same rule holds it:
+//   requests    "<field> optional" where a field may be left out, which goes when it becomes required, and
+//               "<field>: <type>" for each JSON type it takes, which goes when it stops taking one
+//   responses   "<field> always" where a field is always there, which goes when it may be missing, and
+//               "<field>: <type as written>", which goes when the type changes at all
+// Taking more in a request only adds lines. A reader of a response is broken by a type it never saw, so there
+// any change counts.
 import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -25,16 +31,49 @@ function memberTag(member) {
 	return ''
 }
 
+/** The kinds of JSON value. A whole number is a kind of its own, so that a field taking any number after only whole ones took more, not something else. */
+const JSON_TYPES = ['array', 'boolean', 'integer', 'null', 'number', 'object', 'string']
+const typeOfValue = (value) => (value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value === 'number' ? (Number.isInteger(value) ? 'integer' : 'number') : typeof value)
+
 /**
- * Every name and listed value a JSON Schema holds, each as `prefix` and the path to it. `known` names schemas that
- * have lines of their own, by their JSON: where one turns up inside another, as a page's content does in a backup,
- * it is named there and not unfolded again.
+ * The kinds of JSON value a schema takes. A schema that says nothing takes them all. One named elsewhere gives none:
+ * its "=Name" line is its type, and goes when it does.
+ */
+function acceptedTypes(schema, known = new Map(), rootSchema = schema, open = new Set()) {
+	if (!schema || typeof schema !== 'object') return JSON_TYPES
+	if (schema !== rootSchema && known.size && schema.properties && known.has(JSON.stringify(schema))) return []
+	if (typeof schema.$ref === 'string') {
+		if ((!schema.$ref.startsWith('#/$defs/') && !schema.$ref.startsWith('#/definitions/')) || open.has(schema.$ref)) return []
+		open.add(schema.$ref)
+		const types = acceptedTypes(resolveRef(rootSchema, schema.$ref), known, rootSchema, open)
+		open.delete(schema.$ref)
+		return types
+	}
+	const of = (member) => acceptedTypes(member, known, rootSchema, open)
+	if (schema.type !== undefined) return [...new Set([schema.type, schema.nullable ? 'null' : []].flat().flatMap((type) => (type === 'number' ? ['integer', 'number'] : [type])))].sort()
+	if ('const' in schema) return [typeOfValue(schema.const)]
+	if (Array.isArray(schema.enum)) return [...new Set(schema.enum.map(typeOfValue))].sort()
+	const either = [...(schema.anyOf ?? []), ...(schema.oneOf ?? [])]
+	if (either.length) return [...new Set(either.flatMap(of))].sort()
+	if (schema.allOf?.length) return schema.allOf.map(of).reduce((all, types) => all.filter((type) => types.includes(type)))
+	if (schema.properties || schema.additionalProperties) return ['object']
+	if (schema.items) return ['array']
+	return JSON_TYPES
+}
+
+/**
+ * Every name and listed value a JSON Schema holds, each as `prefix` and the path to it, and for each field whether it
+ * may be left out and the kinds of value it takes. `known` names schemas that have lines of their own, by their JSON:
+ * where one turns up inside another, as a page's content does in a backup, it is named there and not unfolded again.
  */
 export function schemaNames(schema, prefix, out = new Set(), known = new Map(), rootSchema = schema, open = new Set()) {
 	if (!schema || typeof schema !== 'object') return out
 	if (schema !== rootSchema && known.size && schema.properties) {
 		const name = known.get(JSON.stringify(schema))
 		if (name) return out.add(`${prefix}=${name}`)
+	}
+	const types = (inner, at) => {
+		for (const type of acceptedTypes(inner, known, rootSchema)) out.add(`${at}: ${type}`)
 	}
 	if (typeof schema.$ref === 'string') {
 		// Another document's schema is named, not unfolded: it has its own lines. A schema inside itself stops here.
@@ -49,10 +88,18 @@ export function schemaNames(schema, prefix, out = new Set(), known = new Map(), 
 	if (Array.isArray(schema.enum) && schema.enum.length <= VALUES_LISTED) for (const value of schema.enum) out.add(`${prefix}=${value}`)
 	for (const [name, property] of Object.entries(schema.properties ?? {})) {
 		out.add(`${prefix}.${name}`)
+		if (!schema.required?.includes(name)) out.add(`${prefix}.${name} optional`)
+		types(property, `${prefix}.${name}`)
 		schemaNames(property, `${prefix}.${name}`, out, known, rootSchema, open)
 	}
-	if (schema.items) schemaNames(schema.items, `${prefix}[]`, out, known, rootSchema, open)
-	if (schema.additionalProperties && typeof schema.additionalProperties === 'object') schemaNames(schema.additionalProperties, `${prefix}.*`, out, known, rootSchema, open)
+	if (schema.items) {
+		types(schema.items, `${prefix}[]`)
+		schemaNames(schema.items, `${prefix}[]`, out, known, rootSchema, open)
+	}
+	if (schema.additionalProperties && typeof schema.additionalProperties === 'object') {
+		types(schema.additionalProperties, `${prefix}.*`)
+		schemaNames(schema.additionalProperties, `${prefix}.*`, out, known, rootSchema, open)
+	}
 	for (const key of ['anyOf', 'oneOf', 'allOf']) {
 		for (const member of schema[key] ?? []) {
 			const resolved = typeof member?.$ref === 'string' && member.$ref.startsWith('#/$defs/') ? resolveRef(rootSchema, member.$ref) : member
@@ -80,7 +127,47 @@ function closing(text, start) {
 	throw new Error(`src/shared/api.ts: a bracket opened at character ${start} never closes.`)
 }
 
-/** The properties written between an interface's or an object type's braces, with those of the object types inside them. */
+/**
+ * The type written from `start`: where it ends, and its text on one line. It runs to the end of the line, or over the
+ * next ones while a bracket is open or a union goes on. With a name in `inside`, the properties of the object types
+ * in it are read into `out` under that name, and the text has `{…}` for each: its fields have lines of their own, so
+ * one more of them changes no line. An object type inside other brackets is not read, and stays in the text as written.
+ */
+function typeAt(body, start, inside, out) {
+	let written = ''
+	let i = start
+	for (; i < body.length; i++) {
+		const char = body[i]
+		let end = i
+		if (char === "'" || char === '"' || char === '`') {
+			end = body.indexOf(char, i + 1)
+			if (end < 0) throw new Error(`src/shared/api.ts: a quote opened at character ${i} never closes.`)
+		} else if (char === '{' && inside !== null) {
+			end = closing(body, i)
+			typeNames(body.slice(i + 1, end), `${inside}${body.startsWith('[]', end + 1) ? '[]' : ''}`, out)
+			written += '{…}'
+			i = end
+			continue
+		} else if (char === '/' && body[i + 1] === '/') {
+			// A comment after a field is no part of its type.
+			const line = body.indexOf('\n', i)
+			i = (line < 0 ? body.length : line) - 1
+			continue
+		} else if (char === '(' || char === '[' || char === '{') end = closing(body, i)
+		else if (char === ';') break
+		else if (char === '\n' && !/^\s*[|&]/.test(body.slice(i + 1)) && !/[|&:=]\s*$/.test(body.slice(0, i))) break
+		written += body.slice(i, end + 1)
+		i = end
+	}
+	// One line: spaces and line breaks become one space, except inside quotes, and a union's leading bar goes.
+	const type = written.replace(/('[^']*'|"[^"]*"|`[^`]*`)|\s+/g, (_, quoted) => quoted ?? ' ').trim().replace(/^[|&] /, '').replace(/\s*,$/, '')
+	return { end: i, type }
+}
+
+/**
+ * The properties written between an interface's or an object type's braces, with those of the object types inside
+ * them. Each also has "always" unless it is written with a "?", and its type as written.
+ */
 function typeNames(body, prefix, out) {
 	let i = 0
 	while (i < body.length) {
@@ -91,29 +178,26 @@ function typeNames(body, prefix, out) {
 			continue
 		}
 		// Anything else between the braces, a method or an index signature, is passed over to where it ends.
-		const property = /^(?:readonly\s+)?(\w+)\??\s*:/.exec(rest)
+		const property = /^(?:readonly\s+)?(\w+)(\??)\s*:/.exec(rest)
 		const inside = property ? `${prefix}.${property[1]}` : null
 		if (property) {
 			out.add(inside)
 			i += property[0].length
 		}
-		// A type runs to the end of the line, or over the next ones while a bracket is open or a union goes on.
-		for (; i < body.length; i++) {
-			const char = body[i]
-			if (char === "'" || char === '"' || char === '`') i = body.indexOf(char, i + 1)
-			else if (char === '{' && inside) {
-				const end = closing(body, i)
-				typeNames(body.slice(i + 1, end), `${inside}${body.startsWith('[]', end + 1) ? '[]' : ''}`, out)
-				i = end
-			} else if (char === '(' || char === '[' || char === '{') i = closing(body, i)
-			else if (char === ';') break
-			else if (char === '\n' && !/^\s*[|&]/.test(body.slice(i + 1)) && !/[|&:=]\s*$/.test(body.slice(0, i))) break
+		const { end, type } = typeAt(body, i, inside, out)
+		i = end
+		if (property) {
+			if (!property[2]) out.add(`${inside} always`)
+			out.add(`${inside}: ${type}`)
 		}
 	}
 	return out
 }
 
-/** The fields of every response: each exported interface in src/shared/api.ts, with what it extends. */
+/**
+ * The fields of every response: each exported interface in src/shared/api.ts, with what it extends. A type the file
+ * gives a name to (`export type Role = …`) has a line with what it stands for, since fields only say its name.
+ */
 export function responseNames(source) {
 	const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
 	const own = new Map()
@@ -124,6 +208,11 @@ export function responseNames(source) {
 		parents.set(match[1], match[2] ? match[2].split(',').map((name) => name.trim()) : [])
 	}
 	const out = new Set()
+	for (const match of code.matchAll(/^export type (\w+) =/gm)) {
+		const fields = new Set()
+		out.add(`type ${match[1]}: ${typeAt(code, match.index + match[0].length, '', fields).type}`)
+		for (const field of fields) out.add(`type ${match[1]}${field}`)
+	}
 	const add = (name, from, seen = new Set()) => {
 		if (seen.has(from)) return
 		seen.add(from)
@@ -152,8 +241,11 @@ export async function surface() {
 		if (!described) continue
 		for (const parameter of described.parameters ?? []) {
 			out.add(`${name} ${parameter.in}:${parameter.name}`)
+			if (!parameter.required) out.add(`${name} ${parameter.in}:${parameter.name} optional`)
+			for (const type of acceptedTypes(parameter.schema)) out.add(`${name} ${parameter.in}:${parameter.name}: ${type}`)
 			for (const value of parameter.schema?.enum ?? []) out.add(`${name} ${parameter.in}:${parameter.name}=${value}`)
 		}
+		if (described.requestBody && !described.requestBody.required) out.add(`${name} body optional`)
 		for (const [type, body] of Object.entries(described.requestBody?.content ?? {})) {
 			if (type === 'application/json') schemaNames(body.schema, `${name} body`, out, known)
 			else out.add(`${name} body=${type}`)
