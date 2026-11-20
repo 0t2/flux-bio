@@ -5,6 +5,14 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.4 - 2026-11-20
+
+### Fixed
+- `pnpm reset-password` checks that the address you give is served by the Worker your folder deploys before it changes anything. Run with a test site's or a local site's address, as their sign-in pages gave it, it replaced the live site's password. It also takes the list of sites from the running Worker, saves the password before setting it, and says which site got no token. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `pnpm run deploy` looks at every Worker on the account before it makes a new site: it only saw the first ten, so an existing FluxBio further down the list was missed. It also stops when a Worker can't be read, and no longer makes a test site for a live site that isn't there. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `pnpm update:code` no longer replaces a file of your own when a new release starts using its name, loses a file a release renamed only in its capitals, or stops halfway where a file became a folder. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `worker.json` takes any Worker name Cloudflare does: underscores, and up to 63 characters. [#51](https://github.com/0t2/flux-bio/pull/51)
+
 ## 0.4.3 - 2026-11-20
 
 ### New

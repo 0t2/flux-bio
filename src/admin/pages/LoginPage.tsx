@@ -8,8 +8,11 @@ import { t } from '../i18n'
 import { CopyButton } from '../components/ui'
 import '../styles/library.css'
 
-// Makes a new password for the Worker this folder deploys, and writes it to a file there without printing it.
-const RESET_COMMAND = `pnpm reset-password --site ${location.origin}`
+/**
+ * Makes a new password for the Worker this folder deploys, and writes it to a file there without printing it. A test
+ * site is another Worker than the live one, so its command has to say so: without that it is refused.
+ */
+const resetCommand = (testSite: boolean) => `pnpm reset-password --site ${location.origin}${testSite ? ' --mode staging' : ''}`
 
 /** Where to go after signing in: a path inside the dashboard, never another site ("//evil.example"). */
 function nextPath(search: string): string {
@@ -126,9 +129,9 @@ export function LoginPage() {
 							<div className="lib-cmd">
 								<code>
 									<span aria-hidden="true">$ </span>
-									{RESET_COMMAND}
+									{resetCommand(info?.testSite ?? false)}
 								</code>
-								<CopyButton text={RESET_COMMAND} className="btn square lib-compact" />
+								<CopyButton text={resetCommand(info?.testSite ?? false)} className="btn square lib-compact" />
 							</div>
 							<p>{t('它會設一組新密碼，存在資料夾裡的 .secrets.env。所有人會被登出，原本的 API token 也會失效。')}</p>
 						</div>

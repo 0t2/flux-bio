@@ -30,6 +30,8 @@ export type Role = 'admin' | 'token'
 export interface AuthInfo {
 	/** Why the dashboard can't be used yet (e.g. ADMIN_PASSWORD missing), or null. */
 	setup: string | null
+	/** Whether this is the owner's test site, whose password is another Worker's than the live site's. */
+	testSite: boolean
 }
 
 export interface PageSummary {

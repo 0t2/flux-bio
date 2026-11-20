@@ -5,6 +5,14 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.4 - 2026-11-20
+
+### Correcciones
+- `pnpm reset-password` comprueba ahora que la dirección que le das la sirve el Worker que despliega tu carpeta antes de cambiar nada. Ejecutado con la dirección de un sitio de pruebas o de un sitio local, tal como la daban sus páginas de inicio de sesión, reemplazaba la contraseña del sitio real. Además toma la lista de sitios del Worker en ejecución, guarda la contraseña antes de establecerla y dice qué sitio se quedó sin token. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `pnpm run deploy` revisa todos los Workers de la cuenta antes de crear un sitio nuevo: solo veía los diez primeros, así que un FluxBio que estuviera más abajo en la lista pasaba inadvertido. También se detiene cuando no puede leer un Worker, y ya no crea un sitio de pruebas para un sitio real que no existe. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `pnpm update:code` ya no reemplaza un archivo tuyo cuando una versión nueva empieza a usar su nombre, ni pierde un archivo cuyo nombre solo cambió de mayúsculas, ni se queda a medias cuando un archivo pasa a ser una carpeta. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `worker.json` acepta cualquier nombre de Worker que acepte Cloudflare: con guiones bajos y de hasta 63 caracteres. [#51](https://github.com/0t2/flux-bio/pull/51)
+
 ## 0.4.3 - 2026-11-20
 
 ### Novedades

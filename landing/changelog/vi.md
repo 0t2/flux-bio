@@ -5,6 +5,14 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.4 - 2026-11-20
+
+### Đã sửa
+- `pnpm reset-password` giờ kiểm tra rằng địa chỉ bạn đưa ra đúng là do Worker mà thư mục của bạn triển khai phục vụ rồi mới thay đổi. Trước đây, khi chạy với địa chỉ của trang thử nghiệm hoặc trang chạy trên máy, đúng như trang đăng nhập của chúng hiển thị, lệnh này thay mật khẩu của trang chính thức. Lệnh cũng lấy danh sách trang web từ Worker đang chạy, lưu mật khẩu trước khi đặt, và cho biết trang nào chưa có token. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `pnpm run deploy` xem tất cả Worker trong tài khoản trước khi tạo trang mới: trước đây chỉ thấy mười Worker đầu, nên một FluxBio nằm phía sau trong danh sách bị bỏ sót. Lệnh cũng dừng lại khi không đọc được một Worker, và không còn tạo trang thử nghiệm cho một trang chính thức không tồn tại. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `pnpm update:code` không còn ghi đè tệp của riêng bạn khi bản phát hành mới bắt đầu dùng cùng tên, không còn làm mất tệp chỉ đổi chữ hoa chữ thường, và không còn dừng giữa chừng khi một tệp trở thành thư mục. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `worker.json` nhận mọi tên Worker mà Cloudflare chấp nhận: có thể có dấu gạch dưới và dài tối đa 63 ký tự. [#51](https://github.com/0t2/flux-bio/pull/51)
+
 ## 0.4.3 - 2026-11-20
 
 ### Mới

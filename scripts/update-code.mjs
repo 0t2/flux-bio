@@ -10,7 +10,7 @@
 // A release is a tag in the project's repository, which is how the script knows what this folder's files were when
 // they were downloaded, and so whether someone has changed one since.
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 
@@ -112,8 +112,27 @@ function files(dir, under = '') {
 	})
 }
 
+/**
+ * Whether this folder has a file of exactly this name. A Mac or Windows finds a file whatever its capitals, so a
+ * release that renames one only in its capitals would look as if it brought nothing new: the folders are listed.
+ */
+function here(path) {
+	let at = root
+	for (const part of path.split('/')) {
+		let names
+		try {
+			names = readdirSync(at)
+		} catch {
+			return false
+		}
+		if (!names.includes(part)) return false
+		at = join(at, part)
+	}
+	return lstatSync(at).isFile()
+}
+
 /** The files of FluxBio's that aren't in this folder as `base` has them: someone changed or removed them. */
-const changedSince = (base) => files(base).filter((path) => !existsSync(join(root, path)) || !readFileSync(join(root, path)).equals(readFileSync(join(base, path))))
+const changedSince = (base) => files(base).filter((path) => !here(path) || !readFileSync(join(root, path)).equals(readFileSync(join(base, path))))
 
 /**
  * The commits on main from one release to the next, oldest first, the next release's own left out. A folder is
@@ -133,11 +152,14 @@ async function commitsAfter(version) {
 
 let was = await release(current)
 let changed = changedSince(was)
+let unlisted = false
 if (changed.length) {
 	// Not the release as tagged. Before calling that someone's changes, see whether it is main a little later.
 	const commits = await commitsAfter(current)
-	if (commits === null) console.log(`The commits made after ${current} could not be listed, so some of what is called changed below may only be newer.\n`)
-	for (const sha of (commits ?? []).reverse()) {
+	unlisted = commits === null
+	// Oldest first, and only a closer match replaces an earlier one: where two fit equally, the older is the one
+	// that calls more of the folder changed, and a wrong "changed" asks a question where a wrong "same" loses work.
+	for (const sha of commits ?? []) {
 		const response = await download(`/archive/${sha}.tar.gz`)
 		if (!response.ok) continue
 		const dir = await unpack(response, sha)
@@ -151,51 +173,78 @@ if (changed.length) {
 	}
 }
 const next = await release(target)
-const before = files(was)
+const before = new Set(files(was))
 const after = new Set(files(next))
+
 const same = (a, b) => readFileSync(a).equals(readFileSync(b))
 /** Whether the update does anything to a file: brings it, or brings it changed. One both releases have alike is left as it is here. */
-const brought = (path) => !existsSync(join(was, path)) || !same(join(next, path), join(was, path))
-// What of those changes the update would undo. Not a file both releases have alike, nor one the owner removed that
-// the release drops too, nor one that is already what the update brings.
-const lost = changed.filter((path) => {
-	const here = existsSync(join(root, path))
-	if (!after.has(path)) return here
-	return brought(path) && !(here && same(join(root, path), join(next, path)))
-})
+const brought = (path) => !before.has(path) || !same(join(next, path), join(was, path))
+// What the update would undo. Of FluxBio's files changed here: not one both releases have alike, nor one the owner
+// removed that the release drops too, nor one that is already what the update brings.
+const lost = changed.filter((path) => (after.has(path) ? brought(path) && !(here(path) && same(join(root, path), join(next, path))) : here(path)))
+// And a file of the owner's own at a path the new release starts to use: it was never FluxBio's, so nothing above saw it.
+for (const path of after) if (!before.has(path) && here(path) && !same(join(root, path), join(next, path))) lost.push(path)
+/** Changed here and left alone by this update, because the releases don't differ there. */
+const stays = changed.filter((path) => !lost.includes(path) && after.has(path) && !brought(path))
 
 if (lost.length && !opts.overwrite) {
+	if (unlisted) console.error(`The commits made after ${current} could not be listed, so some of what is called changed below may only be newer.\n`)
 	fail(
-		`Nothing was changed. ${lost.length === 1 ? 'One file of FluxBio\'s was' : `${lost.length} files of FluxBio's were`} changed in this folder since ${current}, and the update would replace ${lost.length === 1 ? 'it' : 'them'}:\n` +
-		lost.slice(0, 30).map((path) => `  ${path}${existsSync(join(root, path)) ? '' : ' (removed here)'}`).join('\n') + (lost.length > 30 ? `\n  …and ${lost.length - 30} more` : '') +
+		`Nothing was changed. ${lost.length === 1 ? 'One file in this folder is' : `${lost.length} files in this folder are`} not as FluxBio ${current} had ${lost.length === 1 ? 'it' : 'them'}, and the update would replace ${lost.length === 1 ? 'it' : 'them'}:\n` +
+		lost.slice(0, 30).map((path) => `  ${path}${here(path) ? (before.has(path) ? '' : ' (yours: the new release has a file of this name)') : ' (removed here)'}`).join('\n') + (lost.length > 30 ? `\n  …and ${lost.length - 30} more` : '') +
 		`\n\nIf those changes are meant, make them again after updating: pass --overwrite, and a copy of each goes to changed-before-${target}/ in this folder.\nWhat is this site's own belongs in worker.json and sites.json, which an update leaves alone.`,
 	)
 }
+const staying = stays.length ? `${stays.length === 1 ? 'One file changed in this folder is' : `${stays.length} files changed in this folder are`} left as ${stays.length === 1 ? 'it is' : 'they are'}, because the update doesn't touch ${stays.length === 1 ? 'it' : 'them'}: ${stays.slice(0, 10).join(', ')}${stays.length > 10 ? '…' : ''}.` : ''
 
 if (opts.check) {
-	console.log(lost.length ? `${lost.length} of FluxBio's files were changed in this folder and would be replaced.` : 'FluxBio\'s files in this folder are as that release had them, so the update can go ahead.')
+	console.log(lost.length ? `${lost.length === 1 ? 'One file' : `${lost.length} files`} changed in this folder would be replaced, with a copy kept.` : 'The update would replace nothing that was changed in this folder, so it can go ahead.')
+	if (staying) console.log(staying)
 	console.log('Nothing was changed: run it without --check to update.')
 	process.exit(0)
 }
 
+// What the release drops goes first, and the folders that leaves empty: a file renamed only in its capitals is the
+// same file on a Mac or on Windows, and one that became a folder has to make way for it.
+const dropped = [...before].filter((path) => !after.has(path) && here(path))
+const bringing = [...after].filter((path) => brought(path))
+// Before anything is touched: where the release needs a folder there may be a file of the owner's, or the reverse.
+const kind = (path) => {
+	try {
+		return lstatSync(join(root, path))
+	} catch {
+		// Nothing there, or a file where a folder on the way would be.
+		return undefined
+	}
+}
+for (const path of bringing) {
+	const parts = path.split('/')
+	for (let depth = 1; depth < parts.length; depth++) {
+		const parent = parts.slice(0, depth).join('/')
+		if (kind(parent)?.isFile() && !dropped.includes(parent)) fail(`Nothing was changed. ${parent} is a file in this folder, and FluxBio ${target} has a folder of that name. Move it away and run this again.`)
+	}
+	if (kind(path)?.isDirectory() && files(root, path).some((inside) => !dropped.includes(inside))) fail(`Nothing was changed. ${path} is a folder in this folder, and FluxBio ${target} has a file of that name. Move it away and run this again.`)
+}
+
 for (const path of lost) {
-	if (!existsSync(join(root, path))) continue
+	if (!here(path)) continue
 	mkdirSync(dirname(join(root, `changed-before-${target}`, path)), { recursive: true })
 	cpSync(join(root, path), join(root, `changed-before-${target}`, path))
 }
-for (const path of after) {
-	if (!brought(path)) continue
+for (const path of dropped) {
+	rmSync(join(root, path))
+	// The folders it leaves empty, up to this one.
+	for (let dir = dirname(path); dir !== '.' && readdirSync(join(root, dir)).length === 0; dir = dirname(dir)) rmdirSync(join(root, dir))
+}
+// package.json last: it is what says which version a folder has, so a run that stops halfway can be run again.
+for (const path of [...bringing.filter((path) => path !== 'package.json'), ...bringing.filter((path) => path === 'package.json')]) {
+	if (kind(path)?.isDirectory()) rmSync(join(root, path), { recursive: true })
 	mkdirSync(dirname(join(root, path)), { recursive: true })
 	cpSync(join(next, path), join(root, path))
 }
-let removed = 0
-for (const path of before) {
-	if (after.has(path) || !existsSync(join(root, path))) continue
-	rmSync(join(root, path))
-	removed++
-}
 const kept = lost.filter((path) => existsSync(join(root, `changed-before-${target}`, path))).length
-console.log(`This folder now has the code of FluxBio ${target}${removed ? ` (${removed === 1 ? 'one file it no longer has was' : `${removed} files it no longer has were`} removed)` : ''}.${kept ? ` ${kept === 1 ? 'A copy of the file changed here is' : `Copies of the ${kept} files changed here are`} in changed-before-${target}/.` : ''}`)
+console.log(`This folder now has the code of FluxBio ${target}${dropped.length ? ` (${dropped.length === 1 ? 'one file it no longer has was' : `${dropped.length} files it no longer has were`} removed)` : ''}.${kept ? ` ${kept === 1 ? 'A copy of the file changed here is' : `Copies of the ${kept} files changed here are`} in changed-before-${target}/.` : ''}`)
+if (staying) console.log(staying)
 
 if (opts.install) {
 	const installed = spawnSync('pnpm', ['install'], { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' })

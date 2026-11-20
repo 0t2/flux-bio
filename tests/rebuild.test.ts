@@ -50,3 +50,17 @@ describe('the commands the guide gives for the folder', () => {
 		for (const part of ['run `pnpm update:code` in it', 'pass `--overwrite` only on their yes', 'A folder from before 0.4.3 has no such command']) expect(update).toContain(part)
 	})
 })
+
+describe('the password command a site gives', () => {
+	it('says --mode staging on a test site, whose Worker is not the live one, and sends a local site to .dev.vars', () => {
+		const live = guideTopic('password', guideNames('https://bio.example', 'my-worker'))!
+		expect(live).toContain('`pnpm reset-password --site https://bio.example`')
+		// Run as given without it, the command would be for the live Worker: it is refused, and this is why it isn't given so.
+		const test = guideTopic('password', guideNames('https://test.example', 'my-worker-staging'))!
+		expect(test).toContain('`pnpm reset-password --site https://test.example --mode staging`')
+		expect(guideTopic('password', guideNames('http://localhost:5173', 'my-worker'))).toContain('its password is `ADMIN_PASSWORD` in `.dev.vars`')
+		// The command reads which Worker serves a site out of this topic, so the name has to stay in it.
+		expect(live).toMatch(/--worker my-worker[\s`']/)
+		expect(test).toMatch(/--worker my-worker-staging[\s`']/)
+	})
+})

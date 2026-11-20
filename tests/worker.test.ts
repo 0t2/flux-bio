@@ -62,7 +62,7 @@ describe('admin API auth', () => {
 	})
 
 	it('reports setup problems before sign-in and refuses an empty password', async () => {
-		expect(await (await call('/api/auth/info')).json()).toEqual({ setup: null })
+		expect(await (await call('/api/auth/info')).json()).toEqual({ setup: null, testSite: false })
 		expect((await call('/api/auth/login', { method: 'POST', body: JSON.stringify({ password: '' }) })).status).toBe(401)
 	})
 

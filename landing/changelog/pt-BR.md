@@ -5,6 +5,14 @@ If you host your own, you take `main`. Your site says which version it runs, in 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.4 - 2026-11-20
+
+### Correções
+- `pnpm reset-password` agora confere se o endereço informado é servido pelo Worker que a sua pasta publica antes de alterar qualquer coisa. Executado com o endereço de um site de teste ou de um site local, como as páginas de login deles mostravam, ele substituía a senha do site real. Ele também passa a obter a lista de sites do Worker em execução, salva a senha antes de defini-la e diz qual site ficou sem token. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `pnpm run deploy` examina todos os Workers da conta antes de criar um site novo: ele só via os dez primeiros, então um FluxBio mais abaixo na lista passava despercebido. Ele também para quando não consegue ler um Worker e não cria mais um site de teste para um site real que não existe. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `pnpm update:code` não substitui mais um arquivo seu quando uma nova versão passa a usar o mesmo nome, não perde um arquivo renomeado apenas nas maiúsculas e não para no meio quando um arquivo vira uma pasta. [#51](https://github.com/0t2/flux-bio/pull/51)
+- `worker.json` aceita qualquer nome de Worker que o Cloudflare aceite: com sublinhados e até 63 caracteres. [#51](https://github.com/0t2/flux-bio/pull/51)
+
 ## 0.4.3 - 2026-11-20
 
 ### Novidades
