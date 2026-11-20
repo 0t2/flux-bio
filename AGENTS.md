@@ -579,7 +579,7 @@ tests/                  Vitest tests (run in workerd)
   - *Not in the list, and still on you to call out.* A string's pattern, format or length, a number's range, a list's
     length and a default. The bodies of owner-only routes, which the OpenAPI document leaves out. What a response type
     from another file holds (`Settings`, `Params`, `Problem`), since a field only says its name. Whether a response
-    always carries a field of a page's content, which is listed as a request takes it.
+    always carries a field of a page's content: that is listed the way a request takes it.
 - **D1 is the source of truth.** It holds `pages`, `page_versions`, `links`, `stats` and
   `api_tokens`, which the Worker creates and upgrades on first use. To change the schema, append a
   migration to `MIGRATIONS` in `src/worker/lib/db.ts`. Never edit an existing migration.
