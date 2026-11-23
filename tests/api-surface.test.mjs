@@ -2,7 +2,7 @@
 // added freely, and can only go in a release that tells owners what to change. A field that starts asking for more,
 // or giving something else, loses a line too.
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { canonical, newestRelease, readSurface, removalProblem, responseNames, schemaNames, surface, SURFACE_FILE, surfacesBefore } from '../scripts/api-surface.mjs'
 
@@ -274,7 +274,8 @@ test('a response type written another way is the same type', () => {
 test('every route that answers with JSON says which type, and its handler answers with that type', async () => {
 	const { runnerImport } = await import('vite')
 	const { module: openapi } = await runnerImport('src/worker/lib/openapi.ts')
-	const routes = readFileSync('src/worker/routes/api.ts', 'utf8')
+	const routeFiles = ['src/worker/routes/api.ts', ...readdirSync('src/worker/routes/api').filter((f) => f.endsWith('.ts')).map((f) => `src/worker/routes/api/${f}`)]
+	const routes = routeFiles.map((file) => readFileSync(file, 'utf8')).join('\n')
 	const problems = []
 	for (const op of openapi.OPERATIONS) {
 		const name = `${op.method.toUpperCase()} ${op.path}`
@@ -284,9 +285,10 @@ test('every route that answers with JSON says which type, and its handler answer
 			continue
 		}
 		const start = routes.indexOf(`api.${op.method}('${op.path.slice('/api'.length).replace(/\{(\w+)\}/g, ':$1')}'`)
-		if (start < 0) { problems.push(`${name} has no handler in src/worker/routes/api.ts.`); continue }
-		const end = routes.indexOf('\napi.', start + 1)
-		const handler = routes.slice(start, end < 0 ? undefined : end)
+		if (start < 0) { problems.push(`${name} has no handler in src/worker/routes/api.`); continue }
+		const rest = routes.slice(start + 1)
+		const nextMatch = /\n\t?api\./.exec(rest)
+		const handler = nextMatch ? routes.slice(start, start + 1 + nextMatch.index) : routes.slice(start)
 		if (!handler.includes(`<${op.returns}`) && !handler.includes(`: ${op.returns}`)) problems.push(`${name} says it returns ${op.returns}, and its handler doesn't answer with that type.`)
 	}
 	assert.deepEqual(problems, [])
