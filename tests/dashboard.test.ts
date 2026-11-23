@@ -8,10 +8,12 @@ import editor from '../src/admin/pages/EditorPage.tsx?raw'
 import pagesPage from '../src/admin/pages/PagesPage.tsx?raw'
 import setupPage from '../src/admin/pages/SetupPage.tsx?raw'
 import pageState from '../src/admin/state/page.tsx?raw'
-import styles from '../src/admin/styles.css?raw'
+import tokensCss from '../src/admin/styles/tokens.css?raw'
+import componentsCss from '../src/admin/styles/components.css?raw'
 import { emptyContent, emptyLink } from '../src/shared/content'
 import { renderBioPage } from '../src/templates/render'
 
+const styles = `${tokensCss}\n${componentsCss}`
 const rule = (selector: string) => styles.slice(styles.indexOf(`\n${selector} {`)).split('}')[0] ?? ''
 const px = (block: string, property: string) => Number(block.match(new RegExp(`\\n\\s*${property}: (\\d+)px`))?.[1])
 

@@ -1,0 +1,124 @@
+/* Framed sheet (tasteskill app style, seed 178103831): one tinted frame holds the menu and the top
+   bar, and the work sits on a white sheet. The frame is one low-chroma step of the brand's lime.
+   The lime itself is only the logo and the publish button; --accent is its readable dark form, for data. */
+:root {
+	--bg: #f4f6ee;
+	--topbar: #f4f6ee;
+	--card: #ffffff;
+	--raised: #f6f7f2;
+	--raised-2: #e9ebe3;
+	--row-on: #f4f6ee;
+	--line: #e8eae4;
+	--line-2: #e2e4dd;
+	--line-3: #cdcfc8;
+	--text: #131416;
+	--text-2: #131416;
+	--text-3: #3c3e3f;
+	--muted: #5d5f60;
+	--faint: #6b6d6e;
+	--brand: #ccff4d;
+	--accent: #4f7000;
+	--accent-strong: #3e5900;
+	--accent-soft: #eef5d8;
+	--positive: var(--accent);
+	--info: #27639f;
+	--info-soft: #e8f1fb;
+	--danger: #c4242a;
+	--danger-soft: #ffedea;
+	--warning: #92400e;
+	--warning-soft: #fffbeb;
+	--control: 34px;
+	--pad: 24px;
+	--r-sheet: 16px;
+	--r-card: 8px;
+	--r-control: 6px;
+	--r-chip: 4px;
+	--sans: 'IBM Plex Sans', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif;
+	--display: var(--sans);
+	--mono: 'IBM Plex Mono', ui-monospace, 'Noto Sans TC', monospace;
+	color-scheme: light;
+}
+
+/* Each dashboard language reads in fonts made for it (setLanguage() sets <html lang>).
+   Noto Sans TC draws ’ “ ” full-width, which looks like stray spaces in Latin text. */
+:root:lang(zh-CN) {
+	--sans: 'IBM Plex Sans', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', 'Noto Sans TC', system-ui, sans-serif;
+}
+:root:lang(ja) {
+	--sans: 'IBM Plex Sans', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', Meiryo, 'Noto Sans JP', system-ui, sans-serif;
+}
+:root:lang(ko) {
+	--sans: 'IBM Plex Sans', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', system-ui, sans-serif;
+}
+:root:lang(ar) {
+	--sans: 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, 'Noto Sans Arabic', 'Geeza Pro', Tahoma, sans-serif;
+	/* Arabic in a monospaced font is pulled apart, so it stays in the page's font. */
+	--mono: 'IBM Plex Mono', 'IBM Plex Sans Arabic', ui-monospace, monospace;
+}
+:root:lang(th) {
+	--sans: 'IBM Plex Sans', system-ui, Thonburi, 'Leelawadee UI', 'Noto Sans Thai', sans-serif;
+}
+:root:lang(en),
+:root:lang(es),
+:root:lang(pt),
+:root:lang(fr),
+:root:lang(de),
+:root:lang(id),
+:root:lang(vi) {
+	--sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Noto Sans TC', sans-serif;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	font-family: var(--sans);
+	-webkit-font-smoothing: antialiased;
+}
+
+a {
+	color: var(--accent);
+}
+a:hover {
+	color: var(--accent-strong);
+}
+
+button,
+input,
+select,
+textarea {
+	font: inherit;
+	color: inherit;
+}
+
+button {
+	cursor: pointer;
+}
+
+button:disabled {
+	cursor: not-allowed;
+	opacity: 0.55;
+}
+
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+.mono {
+	font-family: var(--mono);
+}

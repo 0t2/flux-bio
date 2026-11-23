@@ -7,13 +7,9 @@ import landing from '../landing/template.html?raw'
 import renderSource from '../src/templates/render.ts?raw'
 import compositions from '../src/templates/compositions.ts?raw'
 import systemSource from '../src/templates/system.ts?raw'
-import styles from '../src/admin/styles.css?raw'
-import qr from '../src/admin/qr.css?raw'
-import library from '../src/admin/styles/library.css?raw'
-import settings from '../src/admin/styles/settings.css?raw'
-import stats from '../src/admin/styles/stats.css?raw'
 
 const words = import.meta.glob<Record<string, string>>('../landing/locales/*.json', { import: 'default', eager: true })
+const dashboardCss = import.meta.glob<string>('../src/admin/**/*.css', { query: '?raw', import: 'default', eager: true })
 
 describe('right to left', () => {
 	it('knows which languages run right to left', () => {
@@ -46,7 +42,7 @@ describe('right to left', () => {
 	// (margin-inline-start, inset-inline-end, text-align:start) follow the page's direction by themselves.
 	const SIDES = /(?:margin|padding|border)-(?:left|right)\s*:|text-align:\s*(?:left|right)|(?<![-\w])(?:left|right):(?!\s*50%)\s*[^;}]/g
 	const PAGES = { 'render.ts': renderSource, 'compositions.ts': compositions, 'system.ts': systemSource, 'template.html': landing }
-	const DASHBOARD = { 'styles.css': styles, 'qr.css': qr, 'library.css': library, 'settings.css': settings, 'stats.css': stats }
+	const DASHBOARD = Object.fromEntries(Object.entries(dashboardCss).map(([path, source]) => [path.replace('../src/admin/', ''), source]))
 
 	for (const [name, source] of Object.entries(PAGES)) {
 		it(`lays out ${name} in logical properties`, () => {
