@@ -230,6 +230,23 @@ button:disabled {
 .save-state.error {
 	color: var(--danger);
 }
+.save-retry {
+	border: 0;
+	padding: 0;
+	background: none;
+	color: inherit;
+	font-weight: 500;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+.error-boundary {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 14px;
+	max-width: 520px;
+	text-align: center;
+}
 
 /* ---------- Buttons ---------- */
 

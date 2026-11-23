@@ -1011,5 +1011,6 @@
 	"已經儲存。網站的頁面很多，還有一些沒更新完，請稍後再儲存一次。": "Saved. This site has many pages and some aren’t up to date yet. Save again in a while.",
 	"已經儲存。網站的頁面很多，還有一些頁面還沒下線，重新整理這一頁會繼續。": "Saved. This site has many pages and some are still online. Reloading this page goes on with it.",
 	"舊的點擊數據在下載途中被整理過，請從頭再下載一次": "Old numbers were tidied while they were being downloaded. Start the download again.",
-	"嘗試次數太多，請稍後再試": "Too many attempts. Please try again later."
+	"嘗試次數太多，請稍後再試": "Too many attempts. Please try again later.",
+	"畫面發生錯誤，請重新整理": "Something went wrong on this screen. Please reload."
 }

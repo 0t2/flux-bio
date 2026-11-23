@@ -2,10 +2,12 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { Redirect, Route, Router, Switch, useLocation } from 'wouter'
 import type { StateResponse } from '../shared/api'
 import { ApiError, request, setUnauthorizedHandler } from './api'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { Loading } from './components/Loading'
 import { Shell } from './components/Shell'
 import { ToastHost } from './components/ui'
 import { t, useLanguage } from './i18n'
+import { ADMIN_BASE, currentAdminLocation } from './lib/route'
 import { EditorPage } from './pages/EditorPage'
 import { LoginPage } from './pages/LoginPage'
 import { SetupPage } from './pages/SetupPage'
@@ -22,32 +24,36 @@ const StatsPage = lazy(() => import('./pages/StatsPage').then((m) => ({ default:
 const ShortLinksStats = lazy(() => import('./pages/StatsPage').then((m) => ({ default: m.ShortLinksStats })))
 
 export function App() {
-	// A new language re-mounts everything, so text computed while rendering is redone in it.
-	const language = useLanguage()
+	// Subscribing here re-renders the tree when the language changes without remounting state or refetching data.
+	useLanguage()
 	return (
-		<Router base="/admin" key={language}>
-			<Switch>
-				<Route path="/login">
-					<LoginPage />
-				</Route>
-				<Route>
-					<Dashboard />
-				</Route>
-			</Switch>
-		</Router>
+		<ErrorBoundary>
+			<Router base={ADMIN_BASE}>
+				<Switch>
+					<Route path="/login">
+						<LoginPage />
+					</Route>
+					<Route>
+						<Dashboard />
+					</Route>
+				</Switch>
+			</Router>
+		</ErrorBoundary>
 	)
 }
 
 function Dashboard() {
-	const [location, navigate] = useLocation()
+	const [, navigate] = useLocation()
 	const [state, setState] = useState<StateResponse | null>(null)
 	const [error, setError] = useState<string | null>(null)
 
 	useEffect(() => {
-		// Keep the query too. Worked out once: a 401 calls this twice, and by the
-		// second time the address is already the login page's, which would go inside its own "next".
-		const next = encodeURIComponent(location + window.location.search)
-		const toLogin = () => navigate(`/login?next=${next}`, { replace: true })
+		const toLogin = () => {
+			// Compute lazily so a 401 after navigating returns to the current screen, while skipping /login itself.
+			const current = currentAdminLocation(window.location.pathname, window.location.search)
+			if (current === '/login' || current.startsWith('/login?')) return
+			navigate(`/login?next=${encodeURIComponent(current)}`, { replace: true })
+		}
 		setUnauthorizedHandler(toLogin)
 		request<StateResponse>('/state')
 			.then(setState)

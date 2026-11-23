@@ -1011,5 +1011,6 @@
 	"已經儲存。網站的頁面很多，還有一些沒更新完，請稍後再儲存一次。": "Enregistré. Ce site compte beaucoup de pages et certaines ne sont pas encore à jour. Enregistrez de nouveau dans un moment.",
 	"已經儲存。網站的頁面很多，還有一些頁面還沒下線，重新整理這一頁會繼續。": "Enregistré. Ce site compte beaucoup de pages et certaines sont encore en ligne. Recharger cette page poursuit l’opération.",
 	"舊的點擊數據在下載途中被整理過，請從頭再下載一次": "Les anciennes données ont été réorganisées pendant le téléchargement. Recommencez le téléchargement.",
-	"嘗試次數太多，請稍後再試": "Trop de tentatives. Réessayez plus tard."
+	"嘗試次數太多，請稍後再試": "Trop de tentatives. Réessayez plus tard.",
+	"畫面發生錯誤，請重新整理": "Une erreur est survenue sur cet écran. Veuillez recharger."
 }

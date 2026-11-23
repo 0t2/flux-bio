@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import indexHtml from '../admin/index.html?raw'
+import appSource from '../src/admin/App.tsx?raw'
+import { currentAdminLocation } from '../src/admin/lib/route'
 import main from '../src/admin/main.tsx?raw'
 import connectAi from '../src/admin/pages/settings/ConnectAi.tsx?raw'
 import editor from '../src/admin/pages/EditorPage.tsx?raw'
 import pagesPage from '../src/admin/pages/PagesPage.tsx?raw'
 import setupPage from '../src/admin/pages/SetupPage.tsx?raw'
+import pageState from '../src/admin/state/page.tsx?raw'
 import styles from '../src/admin/styles.css?raw'
 
 const rule = (selector: string) => styles.slice(styles.indexOf(`\n${selector} {`)).split('}')[0] ?? ''
@@ -66,5 +69,26 @@ describe('the page editor', () => {
 	it('has the tabs 內容 and 外觀, with looks beyond those left to the AI', () => {
 		expect([...editor.matchAll(/\{ href: '([^']+)', label: msg\(/g)].map((match) => match[1])).toEqual(['/', '/appearance'])
 		expect(editor).not.toContain('ThemesPanel')
+	})
+})
+
+describe('dashboard reliability', () => {
+	it('computes the current admin path lazily for login redirects', () => {
+		expect(currentAdminLocation('/admin', '')).toBe('/')
+		expect(currentAdminLocation('/admin/', '')).toBe('/')
+		expect(currentAdminLocation('/admin/short-links', '?q=sale')).toBe('/short-links?q=sale')
+		expect(currentAdminLocation('/admin/login', '?next=%2F')).toBe('/login?next=%2F')
+	})
+
+	it('wraps the dashboard in an ErrorBoundary and keeps Router mounted across language switches', () => {
+		expect(appSource).toContain('<ErrorBoundary>')
+		expect(appSource).not.toContain('key={language}')
+	})
+
+	it('clears load errors on page switch, retries transient autosave failures, and memoizes PageStore', () => {
+		expect(pageState).toContain('setError(null)')
+		expect(pageState).toContain('RETRY_BASE_DELAY')
+		expect(pageState).toContain("addEventListener('online'")
+		expect(pageState).toContain('useMemo<PageStore>')
 	})
 })
