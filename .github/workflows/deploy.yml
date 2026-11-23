@@ -45,6 +45,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm test
+      - run: pnpm build
       - run: pnpm landing
       # A release is dated the day it reaches main: today in Taipei, where the project is kept, or by UTC, which is
       # what a cloud session's clock says. This runs when the pull request is pushed to, so one that waits overnight
