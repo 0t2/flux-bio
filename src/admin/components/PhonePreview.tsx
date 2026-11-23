@@ -85,6 +85,7 @@ export function PhonePreview({
 		() =>
 			deferred.custom?.kind === 'redirect' ? redirectNote(deferred.custom.url, t('訪客打開這一頁，會直接轉到：')) : renderBioPage(deferred, {
 				mode: 'preview',
+				keyed: true,
 				locale: shownLocale,
 				mediaUrl: (id) => `/media/${id}`,
 				timeZone: app.settings.timezone,

@@ -444,6 +444,28 @@ export async function countsSince(env: Env, since: string): Promise<{ views: num
 	return { views: count('view'), clicks: count('click') }
 }
 
+/** Short-TTL cache for Analytics Engine insights: switching tabs/ranges within a minute reuses one query set. */
+const INSIGHTS_TTL_MS = 60_000
+const INSIGHTS_CACHE_MAX = 32
+const insightsCache = perSite<Map<string, { at: number; pending: Promise<Insights | null> }>>()
+
+export function clearInsightsCache(env?: Env): void {
+	if (env) insightsCache.delete(siteId(env))
+	else insightsCache.clear()
+}
+
+function rollupRanked(rows: readonly { value: string; n: number }[], limit: number): Ranked[] {
+	const totals = new Map<string, number>()
+	for (const row of rows) {
+		const key = String(row.value ?? '')
+		totals.set(key, (totals.get(key) ?? 0) + Number(row.n))
+	}
+	return [...totals]
+		.sort((a, b) => b[1] - a[1])
+		.slice(0, limit)
+		.map(([value, count]) => ({ value, count }))
+}
+
 /**
  * Reads the detailed numbers for a period. Returns null when Analytics Engine
  * isn't available, e.g. in local development where the SQL binding has no
@@ -452,6 +474,30 @@ export async function countsSince(env: Env, since: string): Promise<{ views: num
 export async function insights(env: Env, scope: Scope, period: Period): Promise<Insights | null> {
 	const source = sqlOf(env)
 	if (!source) return null
+	const site = siteId(env)
+	let bucket = insightsCache.get(site)
+	if (!bucket) {
+		bucket = new Map()
+		insightsCache.set(site, bucket)
+	}
+	const cacheKey = `${'page' in scope ? `p:${scope.page}` : `t:${scope.target}`}|${period.from}|${period.to}|${period.previousFrom}`
+	const now = Date.now()
+	const cached = bucket.get(cacheKey)
+	if (cached && now - cached.at < INSIGHTS_TTL_MS) return cached.pending
+
+	const pending = fetchInsights(source, scope, period).then((result) => {
+		if (!result && bucket.get(cacheKey)?.pending === pending) bucket.delete(cacheKey)
+		return result
+	})
+	if (bucket.size >= INSIGHTS_CACHE_MAX) {
+		const oldest = bucket.keys().next().value
+		if (oldest !== undefined) bucket.delete(oldest)
+	}
+	bucket.set(cacheKey, { at: now, pending })
+	return pending
+}
+
+async function fetchInsights(source: { sql: SqlBinding; from: string }, scope: Scope, period: Period): Promise<Insights | null> {
 	const { sql, from } = source
 	const scoped = 'page' in scope ? `${column('page')} = $scope` : `${column('target')} = $scope AND ${column('kind')} = 'click'`
 	const params = {
@@ -477,7 +523,7 @@ export async function insights(env: Env, scope: Scope, period: Period): Promise<
 		).map((row) => ({ value: String(row.value), count: Number(row.n) }))
 
 	try {
-		const [visitorRows, previous, countries, cities, places, devices, os, browsers, languages, referrers, campaigns, hours, recent, networks, spots] =
+		const [visitorRows, previous, countries, cities, places, clientRows, languages, referrers, campaigns, hours, recent, networks, spots] =
 			await Promise.all([
 				query<{ d: number; n: number }>(
 					`SELECT ${day} AS d, COUNT(DISTINCT ${column('visitor')}) AS n FROM ${from} ${where(people)} GROUP BY d`,
@@ -495,9 +541,11 @@ export async function insights(env: Env, scope: Scope, period: Period): Promise<
 					`SELECT ${column('country')} AS country, ${column('region')} AS region, SUM(sampleInterval) AS n FROM ${from}
 					${where('click')} GROUP BY country, region ORDER BY n DESC LIMIT 60`,
 				),
-				top('device', people, 3),
-				top('os', people, 6),
-				top('browser', people, 8),
+				// Device, OS and browser share low cardinality and identical filters: one query rolled up in JS.
+				query<{ device: string; os: string; browser: string; n: number }>(
+					`SELECT ${column('device')} AS device, ${column('os')} AS os, ${column('browser')} AS browser, SUM(sampleInterval) AS n FROM ${from}
+					${where(people)} GROUP BY device, os, browser ORDER BY n DESC LIMIT 200`,
+				),
 				top('language', people, 6, `AND ${column('language')} != ''`),
 				top('referrer', people, 8, `AND ${column('referrer')} != ''`),
 				// Campaign tags count on both page views and clicks.
@@ -529,6 +577,10 @@ export async function insights(env: Env, scope: Scope, period: Period): Promise<
 					GROUP BY lat, lon, country, city ORDER BY n DESC LIMIT 300`,
 				),
 			])
+
+		const devices = rollupRanked(clientRows.map((row) => ({ value: row.device, n: row.n })), 3)
+		const os = rollupRanked(clientRows.map((row) => ({ value: row.os, n: row.n })), 6)
+		const browsers = rollupRanked(clientRows.map((row) => ({ value: row.browser, n: row.n })), 8)
 
 		const visitorsByDay: Record<string, number> = {}
 		for (const row of visitorRows) visitorsByDay[dayFromNumber(Number(row.d))] = Number(row.n)

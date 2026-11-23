@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:test'
 import { describe, expect, it } from 'vitest'
 import config from '../cloudflare.config.ts?raw'
-import { EVENT_FIELDS, EVENT_NUMBERS, eventBlobs, eventDoubles } from '../src/worker/lib/analytics'
+import { clearInsightsCache, EVENT_FIELDS, EVENT_NUMBERS, eventBlobs, eventDoubles, insights } from '../src/worker/lib/analytics'
 
 const IP = '203.0.113.77'
 const UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 350.0.0'
@@ -134,5 +134,52 @@ describe('logs', () => {
 		expect(inProduction).toContain('ANALYTICS_SQL: bindings.analytics()')
 		expect(config.slice(0, local)).not.toMatch(/ANALYTICS(_SQL)?: bindings\./)
 		expect(config).not.toMatch(/remote: true/)
+	})
+})
+
+describe('insights query caching and rollup', () => {
+	it('rolls up device/os/browser from one query and caches repeated calls within the TTL', async () => {
+		clearInsightsCache()
+		let queries = 0
+		const mockEnv = {
+			...env,
+			ANALYTICS_DATASET: 'flux_bio',
+			ANALYTICS_SQL: {
+				async query({ query }: { query: string }) {
+					queries++
+					if (query.includes('GROUP BY device, os, browser')) {
+						return {
+							data: [
+								{ device: 'mobile', os: 'iOS', browser: 'Safari', n: 10 },
+								{ device: 'mobile', os: 'Android', browser: 'Chrome', n: 6 },
+								{ device: 'desktop', os: 'macOS', browser: 'Chrome', n: 4 },
+							],
+						}
+					}
+					return { data: [] }
+				},
+			},
+		} as unknown as Env
+		const period = { from: '2026-10-01', to: '2026-10-30', previousFrom: '2026-09-01' }
+		const [first, second] = await Promise.all([insights(mockEnv, { page: 'p1' }, period), insights(mockEnv, { page: 'p1' }, period)])
+		expect(queries).toBe(13)
+		expect(first).toEqual(second)
+		expect(first?.devices).toEqual([
+			{ value: 'mobile', count: 16 },
+			{ value: 'desktop', count: 4 },
+		])
+		expect(first?.os).toEqual([
+			{ value: 'iOS', count: 10 },
+			{ value: 'Android', count: 6 },
+			{ value: 'macOS', count: 4 },
+		])
+		expect(first?.browsers).toEqual([
+			{ value: 'Safari', count: 10 },
+			{ value: 'Chrome', count: 10 },
+		])
+		// Cached follow-up makes zero additional queries.
+		await insights(mockEnv, { page: 'p1' }, period)
+		expect(queries).toBe(13)
+		clearInsightsCache()
 	})
 })

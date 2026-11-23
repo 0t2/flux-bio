@@ -9,6 +9,8 @@ import pagesPage from '../src/admin/pages/PagesPage.tsx?raw'
 import setupPage from '../src/admin/pages/SetupPage.tsx?raw'
 import pageState from '../src/admin/state/page.tsx?raw'
 import styles from '../src/admin/styles.css?raw'
+import { emptyContent, emptyLink } from '../src/shared/content'
+import { renderBioPage } from '../src/templates/render'
 
 const rule = (selector: string) => styles.slice(styles.indexOf(`\n${selector} {`)).split('}')[0] ?? ''
 const px = (block: string, property: string) => Number(block.match(new RegExp(`\\n\\s*${property}: (\\d+)px`))?.[1])
@@ -90,5 +92,16 @@ describe('dashboard reliability', () => {
 		expect(pageState).toContain('RETRY_BASE_DELAY')
 		expect(pageState).toContain("addEventListener('online'")
 		expect(pageState).toContain('useMemo<PageStore>')
+	})
+
+	it('stamps data-key only when keyed preview is requested, never in live or plain preview HTML', () => {
+		const content = emptyContent('Mei')
+		content.items = [{ ...emptyLink(), id: 'item-key-1', title: 'Docs', url: 'https://example.com', slug: 'docs' }]
+		const keyed = renderBioPage(content, { mode: 'preview', keyed: true, mediaUrl: (id) => `/media/${id}` })
+		const plain = renderBioPage(content, { mode: 'preview', mediaUrl: (id) => `/media/${id}` })
+		const live = renderBioPage(content, { mode: 'live', mediaUrl: (id) => `/media/${id}`, linkHref: (l) => `/${l.slug}` })
+		expect(keyed).toContain('data-key="item-key-1"')
+		expect(plain).not.toContain('data-key=')
+		expect(live).not.toContain('data-key=')
 	})
 })
