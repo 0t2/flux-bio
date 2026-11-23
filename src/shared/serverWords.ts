@@ -65,6 +65,7 @@ export const ENGLISH: Record<string, string> = {
 	"和我約個時間": "Book a time with me",
 	"商品、營業時間、地圖": "Products, opening hours, map",
 	"商品：{name}": "Product: {name}",
+	"嘗試次數太多，請稍後再試": "Too many attempts. Please try again later.",
 	"圖片 id 格式不正確": "Invalid image id",
 	"圖片太大了，不能超過 2 MB": "The image is too large. It can’t be over 2 MB.",
 	"圖片：{name}": "Image: {name}",

@@ -92,7 +92,7 @@ import {
 	verifySession,
 } from '../lib/auth'
 import { clearAllData, exportData, importData } from '../lib/backup'
-import { deleteUnusedMedia, listMedia, readMedia, unusedMedia, UNUSED_AFTER, type MediaMetadata } from '../lib/media'
+import { deleteUnusedMedia, listMedia, matchesImageType, readMedia, unusedMedia, UNUSED_AFTER, type MediaMetadata } from '../lib/media'
 import { mediaKey } from '../lib/cache'
 import {
 	deleteToken,
@@ -113,8 +113,11 @@ import {
 	listTokens,
 	loadSettings,
 	loadThemes,
+	passwordLocked,
+	returnPasswordTry,
 	saveDraft,
 	saveThemesStatement,
+	takePasswordTry,
 	touchToken,
 	type LinkRow,
 	type PageRow,
@@ -122,6 +125,7 @@ import {
 } from '../lib/db'
 import { verifyDomain } from '../lib/domain'
 import { adminPassword, isTestSite } from '../lib/mode'
+import { passwordVisitor } from '../lib/password'
 import { siteId, sitesOf } from '../lib/sites'
 import {
 	createPage,
@@ -363,16 +367,30 @@ api.get('/auth/info', (c) => {
 	return c.json(body)
 })
 
+/** Reserved rate-limit bucket for admin password attempts; "/" never appears in a link id. */
+const ADMIN_TRIES = '/admin'
+const tooManyTries = () => new ApiError(429, 'rate-limited', msg('嘗試次數太多，請稍後再試'))
+
 api.post('/auth/login', async (c) => {
 	const secret = adminPassword(c.env)
 	const problem = adminPasswordProblem(secret)
 	if (problem) throw new ApiError(503, 'setup', problem)
 	const { password } = await readBody(c, LoginInput)
+	await ensureSchema(c.env.DB)
+	const visitor = await passwordVisitor(c.env, ADMIN_TRIES, c.req.header('cf-connecting-ip') ?? '')
+	if (await passwordLocked(c.env.DB, ADMIN_TRIES, visitor)) throw tooManyTries()
+	const tried = await takePasswordTry(c.env.DB, ADMIN_TRIES, visitor)
+	const giveBack = () => c.executionCtx.waitUntil(returnPasswordTry(c.env.DB, ADMIN_TRIES, visitor, tried.since).catch(() => {}))
+	if (!tried.ok) {
+		giveBack()
+		throw tooManyTries()
+	}
 	if (!(await secretsMatch(password, secret))) {
 		// Slows down guessing without spending CPU time.
 		await scheduler.wait(800)
 		throw new ApiError(401, 'wrong-password', msg('密碼不正確'))
 	}
+	giveBack()
 	setCookie(c, SESSION_COOKIE, await createSession(await sessionKeyOf(c.env)), {
 		httpOnly: true,
 		secure: new URL(c.req.url).protocol === 'https:',
@@ -416,9 +434,19 @@ api.use('*', async (c, next) => {
 			if (!token.lastUsedAt || now - token.lastUsedAt > 60_000) c.executionCtx.waitUntil(touchToken(c.env.DB, token.id, now).catch(() => {}))
 		}
 	} else if (bearer) {
+		await ensureSchema(c.env.DB)
+		const visitor = await passwordVisitor(c.env, ADMIN_TRIES, c.req.header('cf-connecting-ip') ?? '')
+		if (await passwordLocked(c.env.DB, ADMIN_TRIES, visitor)) throw tooManyTries()
 		if (await secretsMatch(bearer, secret)) auth = { role: 'admin' }
-		// A wrong password waits here as it does at the sign-in form, or this would be the quicker place to guess at.
-		else await scheduler.wait(800)
+		// A wrong password counts and waits here as it does at the sign-in form, or this would be the quicker place to guess at.
+		else {
+			const tried = await takePasswordTry(c.env.DB, ADMIN_TRIES, visitor)
+			if (!tried.ok) {
+				c.executionCtx.waitUntil(returnPasswordTry(c.env.DB, ADMIN_TRIES, visitor, tried.since).catch(() => {}))
+				throw tooManyTries()
+			}
+			await scheduler.wait(800)
+		}
 	} else {
 		if (await verifySession(await sessionKeyOf(c.env), getCookie(c, SESSION_COOKIE))) auth = { role: 'admin' }
 	}
@@ -648,18 +676,19 @@ api.post('/pages/:id/preview-link', async (c) => {
 
 api.put('/settings', async (c) => {
 	const input = await readBody(c, SettingsInput)
-	const current = await loadSettings(c.env.DB)
-	// Whatever a request leaves out stays as it is.
-	const domain = input.domain === undefined ? current.domain : normalizeDomain(input.domain)
-	if (domain !== current.domain) {
-		if (domain) {
+	let patch = input
+	if (input.domain !== undefined) {
+		const current = await loadSettings(c.env.DB)
+		const domain = normalizeDomain(input.domain)
+		if (domain !== current.domain && domain) {
 			const check = await verifyDomain(c.env, domain, new URL(c.req.url))
 			if (!check.ok) throw new ApiError(400, 'domain', { key: check.key, params: check.params })
 		}
+		patch = { ...input, domain }
 	}
 	// Only what was asked for is handed on. What it leaves out is read again when it is saved, not taken from the
 	// settings read above: checking a domain can take seconds, and someone else may have saved in that time.
-	const { settings, copiesLeft } = await updateSettings(c.env, input.domain === undefined ? input : { ...input, domain })
+	const { settings, copiesLeft } = await updateSettings(c.env, patch)
 	return c.json<SettingsResponse>({ settings, ...(copiesLeft ? { copiesLeft } : {}) })
 })
 
@@ -689,6 +718,7 @@ async function readImage(c: Context<AppEnv>): Promise<{ bytes: ArrayBuffer; type
 	const bytes = await c.req.arrayBuffer()
 	if (!bytes.byteLength) throw new ApiError(400, 'invalid', msg('沒有收到圖片'))
 	if (bytes.byteLength > MAX_MEDIA_BYTES) throw new ApiError(413, 'too-large', msg('圖片太大了，不能超過 2 MB'))
+	if (!matchesImageType(bytes, type)) throw new ApiError(415, 'unsupported', msg('只接受 PNG、JPEG、WebP、GIF 或 AVIF 圖片'))
 	return { bytes, type, ext }
 }
 
@@ -1007,15 +1037,47 @@ function rawGithubUrl(input: string): string | null {
 	return null
 }
 
+const MAX_THEME_BYTES = 512 * 1024
+
+/** Reads a response as UTF-8 text up to `limit` bytes, aborting if the body is larger. */
+export async function readCappedText(response: Response, limit: number): Promise<string> {
+	if (Number(response.headers.get('content-length') ?? 0) > limit) throw new Error('Response too large')
+	if (!response.body) {
+		const text = await response.text()
+		if (new TextEncoder().encode(text).byteLength > limit) throw new Error('Response too large')
+		return text
+	}
+	const reader = response.body.getReader()
+	const chunks: Uint8Array[] = []
+	let total = 0
+	for (;;) {
+		const { done, value } = await reader.read()
+		if (done) break
+		total += value.byteLength
+		if (total > limit) {
+			await reader.cancel().catch(() => {})
+			throw new Error('Response too large')
+		}
+		chunks.push(value)
+	}
+	const combined = new Uint8Array(total)
+	let offset = 0
+	for (const chunk of chunks) {
+		combined.set(chunk, offset)
+		offset += chunk.byteLength
+	}
+	return new TextDecoder().decode(combined)
+}
+
 api.post('/themes/fetch', async (c) => {
 	const { url } = await readBody(c, ThemeFetchInput)
 	const raw = rawGithubUrl(url)
 	if (!raw) throw new ApiError(400, 'invalid', msg('請貼 GitHub 上的主題檔網址（github.com 或 raw.githubusercontent.com）'))
 	let json: unknown
 	try {
-		const response = await fetch(raw, { signal: AbortSignal.timeout(5000) })
+		const response = await fetch(raw, { redirect: 'error', signal: AbortSignal.timeout(5000) })
 		if (!response.ok) throw new Error(String(response.status))
-		json = await response.json()
+		json = JSON.parse(await readCappedText(response, MAX_THEME_BYTES))
 	} catch {
 		throw new ApiError(400, 'fetch', msg('讀不到這個主題檔，請確認網址是公開的 JSON 檔'))
 	}

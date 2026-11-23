@@ -67,7 +67,6 @@ async function newCopy(): Promise<Worker> {
 	return (await import('../src/worker/index')).default
 }
 
-const owner = { authorization: `Bearer ${PASSWORD}` }
 let pageId = ''
 let linkId = ''
 let cookie = ''
@@ -126,7 +125,7 @@ describe('the dashboard, once the Worker is running', () => {
 		['a page', () => `/api/pages/${pageId}`, 1],
 		['the short links', () => '/api/links', 2],
 	])('reads %s without waiting for D1 more often than it has to', async (_, path, most) => {
-		const asked = await trips(warm, path(), { headers: owner })
+		const asked = await trips(warm, path(), { headers: { cookie } })
 		expect(asked.status).toBe(200)
 		expect(asked.trips).toBeLessThanOrEqual(most)
 		expect(asked.trips).toBeGreaterThan(0)

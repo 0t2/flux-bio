@@ -4,7 +4,10 @@ import type { CreateLinkResponse, LinkJson, LinksResponse, PageJson } from '../s
 import type { Backup } from '../src/shared/backup'
 import { emptyContent, emptyLink } from '../src/shared/content'
 import { createSession, sessionKey, verifySession } from '../src/worker/lib/auth'
+import { PASSWORD_TRIES } from '../src/worker/lib/db'
+import { matchesImageType } from '../src/worker/lib/media'
 import { SOURCE_LIMIT } from '../src/worker/lib/stats'
+import { readCappedText } from '../src/worker/routes/api'
 import app from '../src/worker/index'
 import { api, apiJson, ORIGIN, PASSWORD, visit } from './helpers'
 
@@ -176,5 +179,73 @@ describe('import', () => {
 		}
 		expect((await api('/import', { method: 'POST', json: backup })).status).toBe(200)
 		expect((await visit('/sec')).status).toBe(404)
+	})
+})
+
+describe('admin password rate limiting', () => {
+	it('locks out an IP after too many wrong login attempts without locking another IP', async () => {
+		const attacker = '198.51.100.11'
+		const owner = '198.51.100.22'
+		const attempt = (password: string, ip: string) =>
+			callWith({}, '/api/auth/login', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json', 'cf-connecting-ip': ip },
+				body: JSON.stringify({ password }),
+			})
+		const results = await Promise.all(Array.from({ length: PASSWORD_TRIES + 4 }, () => attempt('wrong-guess-00', attacker)))
+		expect(results.filter((res) => res.status === 401)).toHaveLength(PASSWORD_TRIES)
+		expect(results.filter((res) => res.status === 429)).toHaveLength(4)
+		// Even the right password is refused from the locked IP.
+		expect((await attempt(PASSWORD, attacker)).status).toBe(429)
+		// Another IP can still sign in normally.
+		expect((await attempt(PASSWORD, owner)).status).toBe(200)
+	})
+
+	it('locks out an IP after too many wrong Bearer password attempts', async () => {
+		const attacker = '198.51.100.33'
+		const attempt = (bearer: string) =>
+			callWith({}, '/api/auth/me', {
+				headers: { authorization: `Bearer ${bearer}`, 'cf-connecting-ip': attacker },
+			})
+		const results = await Promise.all(Array.from({ length: PASSWORD_TRIES }, () => attempt('wrong-bearer-00')))
+		expect(results.every((res) => res.status === 401)).toBe(true)
+		expect((await attempt(PASSWORD)).status).toBe(429)
+	})
+})
+
+describe('image magic-byte validation', () => {
+	it('accepts valid headers and rejects spoofed or truncated payloads', async () => {
+		const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00])
+		const jpeg = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0])
+		const gif = new TextEncoder().encode('GIF89a\x01\x00')
+		const webp = new TextEncoder().encode('RIFF\x00\x00\x00\x00WEBP')
+		const avif = new TextEncoder().encode('\x00\x00\x00\x1cftypavif\x00\x00\x00\x00')
+		const html = new TextEncoder().encode('<html><script>alert(1)</script></html>')
+
+		expect(matchesImageType(png, 'image/png')).toBe(true)
+		expect(matchesImageType(jpeg, 'image/jpeg')).toBe(true)
+		expect(matchesImageType(gif, 'image/gif')).toBe(true)
+		expect(matchesImageType(webp, 'image/webp')).toBe(true)
+		expect(matchesImageType(avif, 'image/avif')).toBe(true)
+		expect(matchesImageType(html, 'image/png')).toBe(false)
+		expect(matchesImageType(png, 'image/jpeg')).toBe(false)
+
+		const spoofed = await api('/media', { method: 'POST', body: html, headers: { 'content-type': 'image/png' } })
+		expect(spoofed.status).toBe(415)
+	})
+})
+
+describe('capped external response reading', () => {
+	it('reads responses within the limit and rejects larger bodies', async () => {
+		expect(await readCappedText(new Response('{"ok":true}'), 64)).toBe('{"ok":true}')
+		await expect(readCappedText(new Response('x'.repeat(100), { headers: { 'content-length': '100' } }), 64)).rejects.toThrow(/too large/i)
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(new Uint8Array(40))
+				controller.enqueue(new Uint8Array(40))
+				controller.close()
+			},
+		})
+		await expect(readCappedText(new Response(stream), 64)).rejects.toThrow(/too large/i)
 	})
 })
