@@ -5,6 +5,20 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.12 - 2026-11-24
+
+### Nouveautés
+- Le tableau de bord suit le mode sombre de votre appareil. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Dans l’éditeur de page, le profil est tout en haut, replié sur une ligne avec le nom et l’adresse jusqu’à ce que vous l’ouvriez. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Chaque lien court de la liste a un bouton qui copie son adresse, et la phrase à dire à votre IA se copie en un clic. [#61](https://github.com/0t2/flux-bio/pull/61)
+
+### Corrections
+- Un GIF animé qui tient déjà dans la taille à laquelle il est affiché est envoyé tel quel et reste animé. Avant, il devenait une image fixe. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Un PNG garde sa transparence dans un navigateur qui ne sait pas créer de WebP, où elle devenait noire. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Un menu qui dépassait du bord sur un écran étroit est déplacé pour tenir. Fermer un menu rend le clavier à son bouton, et choisir un bloc dans « Ajouter un bloc » l’amène à l’éditeur du nouveau bloc. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Les lecteurs d’écran lisent désormais à chaque fois les messages courts du tableau de bord. [#61](https://github.com/0t2/flux-bio/pull/61)
+- En arabe, l’espacement de plusieurs cadres et des graphiques de statistiques était du mauvais côté. [#61](https://github.com/0t2/flux-bio/pull/61)
+
 ## 0.4.11 - 2026-11-24
 
 ### Sécurité

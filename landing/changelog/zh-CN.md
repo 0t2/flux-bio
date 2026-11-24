@@ -5,6 +5,20 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.12 - 2026-11-24
+
+### 新增
+- 后台会跟随设备的深色模式。 [#61](https://github.com/0t2/flux-bio/pull/61)
+- 页面编辑器里，个人资料移到了最上面，平时收成一行，显示名称和网址，要改时再展开。 [#61](https://github.com/0t2/flux-bio/pull/61)
+- 短链接列表的每一行多了复制网址的按钮；要对 AI 说的那句话，点一下就能复制。 [#61](https://github.com/0t2/flux-bio/pull/61)
+
+### 修复
+- 尺寸本来就合适的 GIF 动图会原样上传，继续会动。以前会变成静止的图。 [#61](https://github.com/0t2/flux-bio/pull/61)
+- 在无法生成 WebP 的浏览器里，PNG 的透明背景会保留，以前会变成黑色。 [#61](https://github.com/0t2/flux-bio/pull/61)
+- 菜单在窄屏幕上超出边缘时，会移回屏幕内。关闭菜单后，键盘焦点回到打开它的按钮；从“添加模块”选了模块，焦点会到新模块的编辑器。 [#61](https://github.com/0t2/flux-bio/pull/61)
+- 屏幕阅读器现在每次都会读出后台的简短提示消息。 [#61](https://github.com/0t2/flux-bio/pull/61)
+- 阿拉伯语界面里，有几处方框和统计图表的间距原本在错的一边。 [#61](https://github.com/0t2/flux-bio/pull/61)
+
 ## 0.4.11 - 2026-11-24
 
 ### 安全

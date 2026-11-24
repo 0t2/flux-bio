@@ -163,44 +163,80 @@ export function ShortLinksPage() {
 								</label>
 							</div>
 							<div className="table-scroll">
-								<div className={plain ? 'table plain' : 'table'}>
-									<div className="table-row head">
-										<span>{t('短網址')}</span>
-										<span>{t('目的網址')}</span>
-										<span>{t('來源')}</span>
-										<span>{t('近 7 天點擊')}</span>
-										<span>{t('狀態')}</span>
-									</div>
-									{visible.map((link) => {
-										const status = statusOf(link)
-										return (
-											<button key={link.id} type="button" className="table-row" aria-pressed={link.id === selectedId} onClick={() => setSelectedId(link.id)}>
-												<span className="cell-ellipsis short" dir="ltr">
-													<span>/</span>
-													<b>{link.slug.startsWith('~') ? t('（已移除）') : link.slug}</b>
-												</span>
-												<span className="cell-ellipsis dest" dir="ltr">
-													{link.url}
-												</span>
-												<span>
-													<span className="kind-pill">{link.kind === 'bio' ? 'Bio' : t('獨立')}</span>
-												</span>
-												<span className="clicks">
-													<Sparkline values={link.stats?.series ?? []} color="var(--faint)" />
-													{link.stats?.total ?? 0}
-												</span>
-												<span>
-													<span className={`status ${status}`}>{t(STATUS_LABEL[status])}</span>
-												</span>
-											</button>
-										)
-									})}
-									{data && visible.length === 0 && (
-										<p className="hint" style={{ padding: '32px 20px', borderTop: '1px solid rgba(19, 20, 22, 0.06)' }}>
-											{t('沒有符合的短網址。')}
-										</p>
-									)}
-								</div>
+								<table className={plain ? 'table plain' : 'table'}>
+									<thead>
+										<tr className="table-row head">
+											<th scope="col">{t('短網址')}</th>
+											<th scope="col">{t('目的網址')}</th>
+											<th scope="col">{t('來源')}</th>
+											<th scope="col">{t('近 7 天點擊')}</th>
+											<th scope="col">{t('狀態')}</th>
+										</tr>
+									</thead>
+									<tbody>
+										{visible.map((link) => {
+											const status = statusOf(link)
+											const removed = link.slug.startsWith('~')
+											const activeRow = link.id === selectedId
+											return (
+												<tr
+													key={link.id}
+													className={activeRow ? 'table-row selected' : 'table-row'}
+													onClick={() => setSelectedId(link.id)}
+												>
+													<td>
+														<span className="short-cell">
+															<button
+																type="button"
+																className="row-select"
+																aria-pressed={activeRow}
+																onClick={() => setSelectedId(link.id)}
+															>
+																<span className="cell-ellipsis short" dir="ltr">
+																	<span>/</span>
+																	<b>{removed ? t('（已移除）') : link.slug}</b>
+																</span>
+															</button>
+															{!removed && (
+																<CopyButton
+																	text={link.short}
+																	label=""
+																	done=""
+																	className="icon-btn row-copy"
+																	ariaLabel={t('複製網址')}
+																	stopPropagation
+																	toastOnCopy
+																/>
+															)}
+														</span>
+													</td>
+													<td>
+														<span className="cell-ellipsis dest" dir="ltr">
+															{link.url}
+														</span>
+													</td>
+													<td>
+														<span className="kind-pill">{link.kind === 'bio' ? 'Bio' : t('獨立')}</span>
+													</td>
+													<td>
+														<span className="clicks">
+															<Sparkline values={link.stats?.series ?? []} color="var(--faint)" />
+															{link.stats?.total ?? 0}
+														</span>
+													</td>
+													<td>
+														<span className={`status ${status}`}>{t(STATUS_LABEL[status])}</span>
+													</td>
+												</tr>
+											)
+										})}
+									</tbody>
+								</table>
+								{data && visible.length === 0 && (
+									<p className="hint" style={{ padding: '32px 20px', borderTop: '1px solid var(--line)' }}>
+										{t('沒有符合的短網址。')}
+									</p>
+								)}
 							</div>
 							{data?.nextCursor && (
 								<div style={{ display: 'flex', justifyContent: 'center', padding: 16 }}>

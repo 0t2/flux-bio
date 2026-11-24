@@ -5,6 +5,20 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.12 - 2026-11-24
+
+### Novidades
+- O painel acompanha o modo escuro do seu dispositivo. [#61](https://github.com/0t2/flux-bio/pull/61)
+- No editor da página, o perfil fica no topo, recolhido em uma linha com o nome e o endereço até você abri-lo. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Cada link curto da lista tem um botão que copia o endereço dele, e a frase para dizer à sua IA é copiada com um clique. [#61](https://github.com/0t2/flux-bio/pull/61)
+
+### Correções
+- Um GIF animado que já cabe no tamanho em que é exibido é enviado como está e continua se movendo. Antes, virava uma imagem parada. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Um PNG mantém a transparência em um navegador que não consegue criar WebP, onde antes ela ficava preta. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Um menu que passava da borda em uma tela estreita é movido para caber. Fechar um menu devolve o teclado ao botão dele, e escolher um bloco em “Adicionar bloco” leva o teclado ao editor do novo bloco. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Os leitores de tela agora leem sempre as mensagens curtas do painel. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Em árabe, o espaçamento de várias caixas e dos gráficos de estatísticas ficava do lado errado. [#61](https://github.com/0t2/flux-bio/pull/61)
+
 ## 0.4.11 - 2026-11-24
 
 ### Segurança

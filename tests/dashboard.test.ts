@@ -1,13 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import indexHtml from '../admin/index.html?raw'
 import appSource from '../src/admin/App.tsx?raw'
+import { fallbackImageFormat, isAnimatedGif, keepAnimatedGif, MAX_UPLOAD_BYTES } from '../src/admin/lib/imageFormat'
+import imageSource from '../src/admin/lib/image.ts?raw'
 import { currentAdminLocation } from '../src/admin/lib/route'
 import main from '../src/admin/main.tsx?raw'
 import connectAi from '../src/admin/pages/settings/ConnectAi.tsx?raw'
+import askAiSource from '../src/admin/components/AskAi.tsx?raw'
 import editor from '../src/admin/pages/EditorPage.tsx?raw'
+import linksPage from '../src/admin/pages/LinksPage.tsx?raw'
+import shortLinksPage from '../src/admin/pages/ShortLinksPage.tsx?raw'
 import pagesPage from '../src/admin/pages/PagesPage.tsx?raw'
 import setupPage from '../src/admin/pages/SetupPage.tsx?raw'
 import pageState from '../src/admin/state/page.tsx?raw'
+import uiSource from '../src/admin/components/ui.tsx?raw'
 import tokensCss from '../src/admin/styles/tokens.css?raw'
 import componentsCss from '../src/admin/styles/components.css?raw'
 import { emptyContent, emptyLink } from '../src/shared/content'
@@ -94,6 +100,8 @@ describe('dashboard reliability', () => {
 		expect(pageState).toContain('RETRY_BASE_DELAY')
 		expect(pageState).toContain("addEventListener('online'")
 		expect(pageState).toContain('useMemo<PageStore>')
+		expect(pageState).toContain('cloneDraftForEdit')
+		expect(pageState).toContain('useDeferredValue(draft)')
 	})
 
 	it('stamps data-key only when keyed preview is requested, never in live or plain preview HTML', () => {
@@ -105,5 +113,59 @@ describe('dashboard reliability', () => {
 		expect(keyed).toContain('data-key="item-key-1"')
 		expect(plain).not.toContain('data-key=')
 		expect(live).not.toContain('data-key=')
+	})
+
+	it('preserves animated GIFs within size limits and keeps PNG alpha when WebP encoding is unavailable', () => {
+		expect(keepAnimatedGif({ type: 'image/gif', size: 512_000 }, { width: 600, height: 400 }, { maxWidth: 1400, maxHeight: 1400 })).toBe(true)
+		expect(keepAnimatedGif({ type: 'image/gif', size: 512_000 }, { width: 400, height: 400 }, { maxWidth: 800, maxHeight: 800, square: true })).toBe(true)
+		// Non-square GIFs requested as square avatars must still be cropped on canvas.
+		expect(keepAnimatedGif({ type: 'image/gif', size: 512_000 }, { width: 600, height: 400 }, { maxWidth: 800, maxHeight: 800, square: true })).toBe(false)
+		// GIFs past the 2 MB Worker limit still resize through canvas.
+		expect(keepAnimatedGif({ type: 'image/gif', size: MAX_UPLOAD_BYTES + 1 }, { width: 400, height: 400 }, { maxWidth: 1400, maxHeight: 1400 })).toBe(false)
+		// One larger than what was asked for is made smaller like any picture: kept, a 3000 px avatar would be served whole.
+		expect(keepAnimatedGif({ type: 'image/gif', size: 512_000 }, { width: 3000, height: 3000 }, { maxWidth: 800, maxHeight: 800, square: true })).toBe(false)
+		expect(keepAnimatedGif({ type: 'image/gif', size: 512_000 }, { width: 600, height: 1500 }, { maxWidth: 1400, maxHeight: 1400 })).toBe(false)
+
+		// Only a GIF that moves is kept as a GIF: one picture in it is a still, which WebP holds in far less.
+		const picture = [0x2c, 0, 0, 0, 0, 1, 0, 1, 0, 0, 2, 2, 0x4c, 0x01, 0]
+		const ownColors = [0x2c, 0, 0, 0, 0, 1, 0, 1, 0, 0x80, 0, 0, 0, 255, 255, 255, 2, 2, 0x4c, 0x01, 0]
+		const timing = [0x21, 0xf9, 4, 0, 10, 0, 0, 0]
+		const looping = [0x21, 0xff, 11, ...new TextEncoder().encode('NETSCAPE2.0'), 3, 1, 0, 0, 0]
+		const gif = (...blocks: number[][]) =>
+			new Uint8Array([...new TextEncoder().encode('GIF89a'), 1, 0, 1, 0, 0x80, 0, 0, 0, 0, 0, 255, 255, 255, ...blocks.flat(), 0x3b])
+		expect(isAnimatedGif(gif(picture))).toBe(false)
+		expect(isAnimatedGif(gif(timing, picture))).toBe(false)
+		expect(isAnimatedGif(gif(looping, timing, picture, timing, picture))).toBe(true)
+		expect(isAnimatedGif(gif(ownColors, ownColors))).toBe(true)
+		expect(isAnimatedGif(gif())).toBe(false)
+		expect(isAnimatedGif(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49]))).toBe(false)
+		// A file cut short ends the reading; it never runs past the end.
+		expect(isAnimatedGif(gif(timing, picture).slice(0, 30))).toBe(false)
+
+		expect(fallbackImageFormat('image/png')).toEqual({ type: 'image/png', quality: 1 })
+		expect(fallbackImageFormat('image/webp')).toEqual({ type: 'image/png', quality: 1 })
+		expect(fallbackImageFormat('image/jpeg')).toEqual({ type: 'image/jpeg', quality: 0.88 })
+		expect(imageSource).toContain('keepAnimatedGif(file, bitmap, options) && isAnimatedGif(')
+		expect(imageSource).toContain('fallbackImageFormat(file.type)')
+	})
+
+	it('keeps a persistent ARIA live region for toasts and restores focus when closing popovers', () => {
+		expect(uiSource).toContain('className="toast-region" role="status" aria-live="polite" aria-atomic="true"')
+		expect(uiSource).not.toContain('if (!message) return null')
+		expect(uiSource).toContain('restoreTriggerFocus()')
+	})
+
+	it('places collapsible profile at the top of the editor, uses a semantic short-links table, and lets AskAi copy prompts in one click', () => {
+		expect(linksPage.indexOf('<ProfileSection collapsible />')).toBeLessThan(linksPage.indexOf('<ItemList'))
+		expect(linksPage).toContain('className="kind-grid kind-popover"')
+		expect(shortLinksPage).toContain("<table className={plain ? 'table plain' : 'table'}>")
+		expect(shortLinksPage).toContain('className="icon-btn row-copy"')
+		expect(askAiSource).toContain('copyText(say)')
+	})
+
+	it('defines prefers-color-scheme: dark tokens and keeps dark ink on the lime publish button', () => {
+		expect(tokensCss).toContain('color-scheme: light dark')
+		expect(tokensCss).toContain('@media (prefers-color-scheme: dark)')
+		expect(tokensCss).toContain('--brand-ink: #131416')
 	})
 })

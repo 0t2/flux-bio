@@ -6,14 +6,23 @@
 	--st-up: var(--positive);
 	--st-down: var(--danger);
 	--st-axis: var(--faint);
-	--st-grid: rgba(19, 20, 22, 0.06);
-	--st-base: rgba(19, 20, 22, 0.18);
-	--st-tip: #131416;
+	--st-grid: color-mix(in srgb, var(--text) 7%, transparent);
+	--st-base: color-mix(in srgb, var(--text) 18%, transparent);
+	--st-tip: var(--card);
 	/* Heatmap steps: --line for no clicks, then one lime ramp up to --lime. */
 	--st-heat-1: #e3edc2;
 	--st-heat-2: #bcd378;
 	--st-heat-3: #8fb034;
 	--st-heat-4: #6a8d12;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--st-heat-1: #263117;
+		--st-heat-2: #41581c;
+		--st-heat-3: #749f24;
+		--st-heat-4: #b4e639;
+	}
 }
 
 .st-page,
@@ -258,7 +267,8 @@ button.st-kpi[aria-pressed='true'] {
 	min-width: 2px;
 	height: 100%;
 	/* Square at the baseline, rounded at the value end. */
-	border-radius: 0 4px 4px 0;
+	border-start-end-radius: 4px;
+	border-end-end-radius: 4px;
 	background: var(--accent);
 }
 .st-bar-count,
@@ -297,7 +307,8 @@ button.st-kpi[aria-pressed='true'] {
 	font-size: 14px;
 }
 .st-table th {
-	padding: 0 12px 10px 0;
+	padding-block: 0 10px;
+	padding-inline: 0 12px;
 	font-size: 12px;
 	font-weight: 500;
 	text-align: start;
@@ -305,7 +316,8 @@ button.st-kpi[aria-pressed='true'] {
 	color: var(--muted);
 }
 .st-table td {
-	padding: 12px 12px 12px 0;
+	padding-block: 12px;
+	padding-inline: 0 12px;
 	border-top: 1px solid var(--st-grid);
 	vertical-align: middle;
 }
@@ -414,7 +426,8 @@ button.st-kpi[aria-pressed='true'] {
 	font-size: 14px;
 }
 .st-recent td {
-	padding: 10px 12px 10px 0;
+	padding-block: 10px;
+	padding-inline: 0 12px;
 }
 .st-recent .st-when {
 	white-space: nowrap;
@@ -427,10 +440,18 @@ button.st-kpi[aria-pressed='true'] {
 
 /* ---------- Trend chart ---------- */
 
+.st-trend {
+	direction: ltr;
+}
+[dir='rtl'] .st-tip {
+	direction: rtl;
+}
+
 .st-plot {
 	position: relative;
 	height: 240px;
-	margin: 30px 8px 0 56px;
+	margin-block: 30px 0;
+	margin-inline: 56px 8px;
 	/* Vertical swipes still scroll the page; horizontal ones scrub the chart. */
 	touch-action: pan-y;
 }
@@ -485,7 +506,8 @@ button.st-kpi[aria-pressed='true'] {
 	position: absolute;
 	width: 10px;
 	height: 10px;
-	margin: -5px 0 0 -5px;
+	margin-block-start: -5px;
+	margin-inline-start: -5px;
 	border-radius: 999px;
 	background: var(--accent);
 	box-shadow: 0 0 0 2px var(--card);
@@ -493,7 +515,8 @@ button.st-kpi[aria-pressed='true'] {
 .st-dot.small {
 	width: 6px;
 	height: 6px;
-	margin: -3px 0 0 -3px;
+	margin-block-start: -3px;
+	margin-inline-start: -3px;
 }
 .st-end {
 	position: absolute;
@@ -523,7 +546,7 @@ button.st-kpi[aria-pressed='true'] {
 	top: 0;
 	bottom: 0;
 	width: 1px;
-	background: rgba(19, 20, 22, 0.35);
+	background: color-mix(in srgb, var(--text) 35%, transparent);
 }
 .st-tip {
 	position: absolute;
@@ -538,7 +561,7 @@ button.st-kpi[aria-pressed='true'] {
 	border: 1px solid var(--line-2);
 	white-space: nowrap;
 	transform: translateX(12px);
-	box-shadow: 0 8px 24px rgba(19, 20, 22, 0.12);
+	box-shadow: 0 8px 24px var(--shadow);
 }
 .st-tip.flip {
 	transform: translateX(calc(-100% - 12px));
@@ -569,7 +592,7 @@ button.st-kpi[aria-pressed='true'] {
 }
 .st-hit:focus-visible {
 	outline: none;
-	background: rgba(79, 112, 0, 0.06);
+	background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 .st-hits:has(:focus-visible) {
 	outline: 2px solid var(--accent);
@@ -578,7 +601,8 @@ button.st-kpi[aria-pressed='true'] {
 .st-xaxis {
 	position: relative;
 	height: 18px;
-	margin: 10px 8px 0 56px;
+	margin-block: 10px 0;
+	margin-inline: 56px 8px;
 	font-size: 12px;
 	color: var(--st-axis);
 	font-variant-numeric: tabular-nums;
@@ -709,10 +733,10 @@ button.st-kpi[aria-pressed='true'] {
 	height: auto;
 }
 .st-empty-art .axis {
-	stroke: rgba(19, 20, 22, 0.2);
+	stroke: color-mix(in srgb, var(--text) 20%, transparent);
 }
 .st-empty-art .grid {
-	stroke: rgba(19, 20, 22, 0.06);
+	stroke: color-mix(in srgb, var(--text) 7%, transparent);
 }
 .st-empty-art .curve {
 	stroke: var(--accent);
@@ -826,10 +850,12 @@ button.st-kpi[aria-pressed='true'] {
 	}
 	.st-plot {
 		height: 168px;
-		margin: 28px 6px 0 44px;
+		margin-block: 28px 0;
+		margin-inline: 44px 6px;
 	}
 	.st-xaxis {
-		margin: 8px 6px 0 44px;
+		margin-block: 8px 0;
+		margin-inline: 44px 6px;
 		font-size: 12px;
 	}
 	.st-gridline span {
@@ -942,8 +968,8 @@ button.st-kpi[aria-pressed='true'] {
 	display: block;
 }
 .st-map path {
-	fill: rgba(19, 20, 22, 0.07);
-	stroke: rgba(19, 20, 22, 0.16);
+	fill: color-mix(in srgb, var(--text) 7%, transparent);
+	stroke: color-mix(in srgb, var(--text) 16%, transparent);
 	stroke-width: 1;
 	stroke-linejoin: round;
 	vector-effect: non-scaling-stroke;
@@ -953,10 +979,10 @@ button.st-kpi[aria-pressed='true'] {
 	transform: translate(-50%, -50%);
 	border: 1.5px solid var(--accent);
 	border-radius: 50%;
-	background: rgba(79, 112, 0, 0.28);
+	background: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 .st-map-dot:hover {
-	background: rgba(79, 112, 0, 0.6);
+	background: color-mix(in srgb, var(--accent) 60%, transparent);
 }
 
 /* 來源平台: long column names (e.g. "Click-through rate") wrap instead of widening the table. */
@@ -985,7 +1011,8 @@ button.st-kpi[aria-pressed='true'] {
 .st-page .st-kpi,
 .st-page button.st-kpi {
 	gap: 4px;
-	padding: 0 16px 14px 0;
+	padding-block: 0 14px;
+	padding-inline: 0 16px;
 	border: 0;
 	border-radius: 0;
 	background: none;

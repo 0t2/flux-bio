@@ -44,16 +44,40 @@ describe('right to left', () => {
 	const PAGES = { 'render.ts': renderSource, 'compositions.ts': compositions, 'system.ts': systemSource, 'template.html': landing }
 	const DASHBOARD = Object.fromEntries(Object.entries(dashboardCss).map(([path, source]) => [path.replace('../src/admin/', ''), source]))
 
+	/** Four-value box shorthands where right !== left, and border-radius shorthands with asymmetric horizontal corners. */
+	function asymmetricShorthands(source: string): string[] {
+		const found: string[] = []
+		for (const match of source.matchAll(/(?<![-\w])(padding|margin|border-width|border-style|border-color)\s*:\s*([^;}"]+)/g)) {
+			const parts = match[2]!.replace(/!important/i, '').trim().split(/\s+(?![^()]*\))/)
+			if (parts.length === 4 && parts[1] !== parts[3]) found.push(match[0].trim())
+		}
+		for (const match of source.matchAll(/(?<![-\w])border-radius\s*:\s*([^;}"]+)/g)) {
+			const raw = match[1]!.replace(/!important/i, '').trim()
+			if (raw.includes('/')) continue
+			const parts = raw.split(/\s+(?![^()]*\))/)
+			const asymmetric =
+				(parts.length === 4 && (parts[0] !== parts[1] || parts[2] !== parts[3])) ||
+				(parts.length === 3 && (parts[0] !== parts[1] || parts[1] !== parts[2])) ||
+				(parts.length === 2 && parts[0] !== parts[1])
+			if (asymmetric) found.push(match[0].trim())
+		}
+		return found
+	}
+
 	for (const [name, source] of Object.entries(PAGES)) {
 		it(`lays out ${name} in logical properties`, () => {
-			expect(source.match(SIDES) ?? []).toEqual([])
+			// .t-tick::after draws a rotated checkmark glyph, which stays ✓ in either direction.
+			const cleaned = source.replace(/\.t-tick::after\{[^}]*\}/, '')
+			expect(cleaned.match(SIDES) ?? []).toEqual([])
+			expect(asymmetricShorthands(cleaned)).toEqual([])
 		})
 	}
 	for (const [name, source] of Object.entries(DASHBOARD)) {
 		it(`lays out ${name} in logical properties`, () => {
 			// .lib-bio is scaled from its top left corner, so it sits there in either direction.
-			const found = source.replace(/\.lib-bio \{[^}]*\}/, '').match(SIDES) ?? []
-			expect(found).toEqual([])
+			const cleaned = source.replace(/\.lib-bio \{[^}]*\}/, '')
+			expect(cleaned.match(SIDES) ?? []).toEqual([])
+			expect(asymmetricShorthands(cleaned)).toEqual([])
 		})
 	}
 })

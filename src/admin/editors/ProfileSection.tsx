@@ -13,17 +13,63 @@ import '../styles/settings.css'
 const BIO_LIMIT = 80
 
 /** The top of the page being edited: avatar, address, name and bio. */
-export function ProfileSection() {
+export function ProfileSection({ collapsible = false }: { collapsible?: boolean }) {
+	const app = useApp()
+	const page = usePage()
+	const { avatar, name, bio } = page.draft.profile
+	const [open, setOpen] = useState(() => !collapsible || !name.trim())
+
+	if (!collapsible) {
+		return (
+			<Section title={t('個人資料')}>
+				<AvatarField />
+				<CoverField />
+				<div className="set-grid">
+					<HandleField />
+					<NameField />
+				</div>
+				<ShowNameField />
+				<BioField />
+			</Section>
+		)
+	}
+
+	const display = app.pageDisplay({ id: page.id, handle: page.handle })
 	return (
-		<Section title={t('個人資料')}>
-			<AvatarField />
-			<CoverField />
-			<div className="set-grid">
-				<HandleField />
-				<NameField />
-			</div>
-			<ShowNameField />
-			<BioField />
+		<Section
+			title={t('個人資料')}
+			action={
+				<button type="button" className="btn small" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+					<span>{open ? t('關閉') : t('編輯')}</span>
+					<Icon name="chevronDown" size={16} style={{ transform: open ? 'rotate(180deg)' : undefined }} />
+				</button>
+			}
+		>
+			{!open ? (
+				<button type="button" className="profile-summary" onClick={() => setOpen(true)}>
+					<span className={avatar ? 'avatar-box compact' : 'avatar-box compact set-initials'} aria-hidden="true">
+						{avatar ? <img src={`/media/${avatar}`} alt="" /> : initials(name) || '?'}
+					</span>
+					<span className="profile-summary-text">
+						<strong>{name.trim() || page.handle}</strong>
+						<span className="mono" dir="ltr">
+							{display}
+						</span>
+						{bio.trim() && <small>{bio.trim()}</small>}
+					</span>
+				</button>
+			) : (
+				<>
+					<AvatarField />
+					<CoverField />
+					<div className="set-grid">
+						<HandleField />
+						<NameField />
+					</div>
+					<ShowNameField />
+					<BioField />
+				</>
+			)}
 		</Section>
 	)
 }

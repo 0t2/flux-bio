@@ -1,4 +1,7 @@
 import { request } from '../api'
+import { fallbackImageFormat, isAnimatedGif, keepAnimatedGif, MAX_UPLOAD_BYTES } from './imageFormat'
+
+export { fallbackImageFormat, isAnimatedGif, keepAnimatedGif, MAX_UPLOAD_BYTES }
 
 function toBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob | null> {
 	return new Promise((resolve) => canvas.toBlob(resolve, type, quality))
@@ -10,6 +13,10 @@ function toBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promi
  */
 export async function prepareImage(file: File, options: { maxWidth: number; maxHeight: number; square?: boolean }): Promise<Blob> {
 	const bitmap = await createImageBitmap(file)
+	if (keepAnimatedGif(file, bitmap, options) && isAnimatedGif(new Uint8Array(await file.arrayBuffer()))) {
+		bitmap.close()
+		return file
+	}
 	let sx = 0
 	let sy = 0
 	let sw = bitmap.width
@@ -26,13 +33,21 @@ export async function prepareImage(file: File, options: { maxWidth: number; maxH
 	canvas.width = Math.max(1, Math.round(sw * scale))
 	canvas.height = Math.max(1, Math.round(sh * scale))
 	const context = canvas.getContext('2d')
-	if (!context) throw new Error('Canvas is not available')
+	if (!context) {
+		bitmap.close()
+		throw new Error('Canvas is not available')
+	}
 	context.drawImage(bitmap, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height)
 	bitmap.close()
 
-	// Safari can't encode WebP and silently returns PNG; use JPEG there.
+	// Browsers that can't encode WebP silently return PNG or null; preserve alpha for PNG/GIF/WebP/AVIF sources within the 2 MB limit.
 	const webp = await toBlob(canvas, 'image/webp', 0.86)
 	if (webp?.type === 'image/webp') return webp
+	const fallback = fallbackImageFormat(file.type)
+	if (fallback.type === 'image/png') {
+		const png = await toBlob(canvas, 'image/png', fallback.quality)
+		if (png?.type === 'image/png' && png.size <= MAX_UPLOAD_BYTES) return png
+	}
 	const jpeg = await toBlob(canvas, 'image/jpeg', 0.88)
 	if (!jpeg) throw new Error('Could not encode the image')
 	return jpeg

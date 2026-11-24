@@ -5,6 +5,20 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.12 - 2026-11-24
+
+### Novedades
+- El panel sigue el modo oscuro de tu dispositivo. [#61](https://github.com/0t2/flux-bio/pull/61)
+- En el editor de la página, el perfil está arriba del todo, plegado en una línea con el nombre y la dirección hasta que lo abres. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Cada enlace corto de la lista tiene un botón que copia su dirección, y la frase para decirle a tu IA se copia con un clic. [#61](https://github.com/0t2/flux-bio/pull/61)
+
+### Correcciones
+- Un GIF animado que ya cabe en el tamaño al que se muestra se sube tal cual y sigue moviéndose. Antes se quedaba en una imagen fija. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Un PNG conserva su transparencia en un navegador que no puede crear WebP, donde antes se volvía negra. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Un menú que se salía del borde en una pantalla estrecha se mueve para caber. Al cerrar un menú, el teclado vuelve a su botón, y al elegir un bloque en «Agregar bloque» pasa al editor del bloque nuevo. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Los lectores de pantalla ahora leen siempre los mensajes breves del panel. [#61](https://github.com/0t2/flux-bio/pull/61)
+- En árabe, el espaciado de varias cajas y de los gráficos de estadísticas estaba en el lado equivocado. [#61](https://github.com/0t2/flux-bio/pull/61)
+
 ## 0.4.11 - 2026-11-24
 
 ### Seguridad

@@ -1,4 +1,4 @@
-import { createContext, Fragment, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createContext, Fragment, useCallback, useContext, useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { LinkJson, PageJson, PageSummary, PublishResponse, ShortLinkResponse } from '../../shared/api'
 import { linkItems, type PageContent } from '../../shared/content'
 import type { Problem } from '../../shared/validate'
@@ -67,6 +67,13 @@ export function useOptionalPage(): PageStore | null {
 const AUTOSAVE_DELAY = 700
 const RETRY_BASE_DELAY = 2000
 const RETRY_MAX_DELAY = 30_000
+
+/** Clones the editable fields of a draft while sharing `translations` by reference, avoiding copying large translation dictionaries on every keystroke. */
+function cloneDraftForEdit(content: PageContent): PageContent {
+	const { translations, ...editable } = content
+	const cloned = structuredClone(editable)
+	return translations === undefined ? cloned : { ...cloned, translations }
+}
 
 /** A page's line in the list, as far as its content decides it: what the Worker would work out, without asking it. */
 function summaryOf(content: PageContent): Pick<PageSummary, 'name' | 'avatar' | 'theme' | 'kind' | 'items' | 'links'> {
@@ -223,7 +230,7 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 	const update = useCallback(
 		(mutate: (draft: PageContent) => void) => {
 			setDraft((previous) => {
-				const next = structuredClone(previous)
+				const next = cloneDraftForEdit(previous)
 				mutate(next)
 				latest.current = next
 				return next
@@ -502,7 +509,15 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 		setPublishError(null)
 	}, [])
 	const dismissConflict = useCallback(() => setConflict(false), [])
-	const dirty = useMemo(() => !published || JSON.stringify(draft) !== JSON.stringify(published), [draft, published])
+	const publishedJson = useMemo(() => (published ? JSON.stringify(published) : null), [published])
+	const deferredDraft = useDeferredValue(draft)
+	const deferredDirty = useMemo(
+		() => !publishedJson || (deferredDraft !== published && JSON.stringify(deferredDraft) !== publishedJson),
+		[deferredDraft, published, publishedJson],
+	)
+	// While the deferred draft is a keystroke behind, this is the answer for the one before, not "changed": an edit that
+	// changes nothing would otherwise flash 發布變更 on a page that is published as it stands, and let it be published again.
+	const dirty = deferredDirty
 	const publicUrl = app.pageUrl({ id, handle })
 
 	const store = useMemo<PageStore>(

@@ -17,6 +17,7 @@
 	--muted: #5d5f60;
 	--faint: #6b6d6e;
 	--brand: #ccff4d;
+	--brand-ink: #131416;
 	--accent: #4f7000;
 	--accent-strong: #3e5900;
 	--accent-soft: #eef5d8;
@@ -27,6 +28,11 @@
 	--danger-soft: #ffedea;
 	--warning: #92400e;
 	--warning-soft: #fffbeb;
+	--primary-hover: #2a2c2f;
+	--phone-ring: #131416;
+	--shadow: rgba(19, 20, 22, 0.12);
+	--shadow-lg: rgba(19, 20, 22, 0.16);
+	--backdrop: rgba(19, 20, 22, 0.4);
 	--control: 34px;
 	--pad: 24px;
 	--r-sheet: 16px;
@@ -36,7 +42,42 @@
 	--sans: 'IBM Plex Sans', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif;
 	--display: var(--sans);
 	--mono: 'IBM Plex Mono', ui-monospace, 'Noto Sans TC', monospace;
-	color-scheme: light;
+	color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #10120e;
+		--topbar: #10120e;
+		--card: #171a15;
+		--raised: #1e221b;
+		--raised-2: #282d24;
+		--row-on: #21261c;
+		--line: #282c25;
+		--line-2: #31362d;
+		--line-3: #43493e;
+		--text: #eef0ea;
+		--text-2: #e3e6de;
+		--text-3: #c0c4ba;
+		--muted: #989d92;
+		--faint: #858a7f;
+		--brand: #ccff4d;
+		--brand-ink: #131416;
+		--accent: #b4e639;
+		--accent-strong: #ccff4d;
+		--accent-soft: rgba(180, 230, 57, 0.14);
+		--info: #6cb2f7;
+		--info-soft: rgba(108, 178, 247, 0.14);
+		--danger: #ff6b70;
+		--danger-soft: rgba(255, 107, 112, 0.14);
+		--warning: #f5b041;
+		--warning-soft: rgba(245, 176, 65, 0.14);
+		--primary-hover: #d8dcd2;
+		--phone-ring: #2a2f26;
+		--shadow: rgba(0, 0, 0, 0.42);
+		--shadow-lg: rgba(0, 0, 0, 0.56);
+		--backdrop: rgba(0, 0, 0, 0.65);
+	}
 }
 
 /* Each dashboard language reads in fonts made for it (setLanguage() sets <html lang>).

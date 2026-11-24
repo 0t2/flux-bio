@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { LOCALES, type Locale } from '../../shared/content'
 import { otherLanguages } from '../../shared/locale'
 import { untranslated } from '../../shared/translations'
@@ -22,7 +22,7 @@ export function PageLanguages() {
 	const app = useApp()
 	const { locale, languages } = app.settings
 	const { draft } = usePage()
-	const missing = untranslated(draft, languages)
+	const missing = useMemo(() => untranslated(draft, languages), [draft, languages])
 	const pending = languages.filter((code) => missing[code]?.length)
 	const [busy, setBusy] = useState(false)
 

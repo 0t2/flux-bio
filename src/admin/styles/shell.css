@@ -4,7 +4,8 @@
 	display: flex;
 	align-items: center;
 	min-height: 48px;
-	padding: 0 8px 0 12px;
+	padding-block: 0;
+	padding-inline: 12px 8px;
 	background: var(--bg);
 	flex-wrap: nowrap;
 	gap: 12px;
@@ -45,9 +46,10 @@
 	gap: 8px;
 	min-width: 0;
 	min-height: var(--control);
-	padding: 0 4px 0 14px;
+	padding-block: 0;
+	padding-inline: 14px 4px;
 	background: var(--raised);
-	border: 1px solid rgba(19, 20, 22, 0.1);
+	border: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
 	font-family: var(--mono);
 	font-size: 14px;
 	color: var(--text-3);
@@ -88,7 +90,7 @@
 }
 .icon-btn:hover {
 	color: var(--text);
-	background: rgba(19, 20, 22, 0.06);
+	background: color-mix(in srgb, var(--text) 6%, transparent);
 }
 
 .spacer {
@@ -130,7 +132,7 @@
 	align-items: center;
 	justify-content: center;
 	gap: 8px;
-	border: 1px solid rgba(19, 20, 22, 0.18);
+	border: 1px solid color-mix(in srgb, var(--text) 18%, transparent);
 	background: transparent;
 	color: var(--text);
 	text-decoration: none;
@@ -143,7 +145,7 @@
 }
 .btn:hover {
 	color: var(--text);
-	background: rgba(19, 20, 22, 0.05);
+	background: color-mix(in srgb, var(--text) 5%, transparent);
 }
 .btn.primary {
 	padding: 0 20px;
@@ -152,7 +154,7 @@
 	border-color: var(--text);
 }
 .btn.primary:hover {
-	background: #2a2c2f;
+	background: var(--primary-hover);
 	color: var(--card);
 }
 .btn.square {
@@ -168,7 +170,7 @@
 }
 .btn.danger {
 	color: var(--danger);
-	border-color: rgba(196, 36, 42, 0.35);
+	border-color: color-mix(in srgb, var(--danger) 35%, transparent);
 }
 
 /* ---------- Layout ---------- */
@@ -407,7 +409,7 @@
 	overflow: hidden;
 	transform-origin: top left;
 	background: #000;
-	box-shadow: 0 0 0 8px var(--text);
+	box-shadow: 0 0 0 8px var(--phone-ring);
 	border: 0;
 }
 .phone iframe {

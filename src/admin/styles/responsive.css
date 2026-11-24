@@ -148,11 +148,11 @@
 .btn.publish {
 	background: var(--brand);
 	border-color: var(--brand);
-	color: var(--text);
+	color: var(--brand-ink);
 	font-weight: 600;
 }
 .btn.publish:hover:not(:disabled) {
 	background: #bdf02f;
 	border-color: #bdf02f;
-	color: var(--text);
+	color: var(--brand-ink);
 }

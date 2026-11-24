@@ -521,18 +521,23 @@ function fontLinks(look: ResolvedAppearance, shown?: string): string[] {
 /**
  * The characters of `text` past ASCII, each once, in the order they first appear. This reads a whole page on every
  * view, and a page is mostly markup, so ASCII is stepped over without being looked at twice: collecting every
- * character first was a quarter of what a view cost, and most of it on a long page.
+ * character first was a quarter of what a view cost, and most of it on a long page. What is past ASCII is kept as a
+ * number until the end, because a page of Chinese shows a thousand such characters and a hundred different ones, and
+ * making a string of each to look it up was most of what was left.
  */
 function beyondAscii(text: string): string[] {
-	const seen = new Set<string>()
+	const seen = new Set<number>()
 	for (let at = 0; at < text.length; at++) {
-		if (text.charCodeAt(at) <= 0x7e) continue
-		const point = text.codePointAt(at)!
+		const unit = text.charCodeAt(at)
+		if (unit <= 0x7e) continue
 		// A character outside the basic plane is two code units, and one character.
-		if (point > 0xffff) at++
-		seen.add(String.fromCodePoint(point))
+		if (unit >= 0xd800 && unit <= 0xdbff) {
+			const point = text.codePointAt(at)!
+			if (point > 0xffff) at++
+			seen.add(point)
+		} else seen.add(unit)
 	}
-	return [...seen]
+	return Array.from(seen, (point) => String.fromCodePoint(point))
 }
 
 /** Text as part of an address, with nothing left in it that HTML would write another way: encodeURIComponent keeps ' ( ) * ! as they are. */

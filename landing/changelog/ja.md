@@ -5,6 +5,20 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.12 - 2026-11-24
+
+### 新機能
+- ダッシュボードが端末のダークモードに合わせて表示されるようになりました。 [#61](https://github.com/0t2/flux-bio/pull/61)
+- ページの編集画面では、プロフィールがいちばん上になり、開くまでは名前とアドレスの 1 行にたたまれます。 [#61](https://github.com/0t2/flux-bio/pull/61)
+- 短縮URLの一覧の各行に、アドレスをコピーするボタンが付きました。AI に伝える文も、1 回のクリックでコピーできます。 [#61](https://github.com/0t2/flux-bio/pull/61)
+
+### 修正
+- 表示されるサイズにすでに収まっているアニメーション GIF は、そのままアップロードされ、動きが残ります。以前は静止画になっていました。 [#61](https://github.com/0t2/flux-bio/pull/61)
+- WebP を作れないブラウザーでも、PNG の透明部分が残るようになりました。以前は黒くなっていました。 [#61](https://github.com/0t2/flux-bio/pull/61)
+- せまい画面の端からはみ出すメニューは、収まる位置に動きます。メニューを閉じるとキーボードのフォーカスは開いたボタンに戻り、「ブロックを追加」でブロックを選ぶと新しいブロックの編集欄に移ります。 [#61](https://github.com/0t2/flux-bio/pull/61)
+- スクリーンリーダーが、ダッシュボードの短いメッセージを毎回読み上げるようになりました。 [#61](https://github.com/0t2/flux-bio/pull/61)
+- アラビア語の表示で、いくつかの枠と統計グラフの余白が逆の側に付いていました。 [#61](https://github.com/0t2/flux-bio/pull/61)
+
 ## 0.4.11 - 2026-11-24
 
 ### セキュリティ

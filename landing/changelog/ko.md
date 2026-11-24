@@ -5,6 +5,20 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.12 - 2026-11-24
+
+### 새 기능
+- 대시보드가 기기의 다크 모드를 따릅니다. [#61](https://github.com/0t2/flux-bio/pull/61)
+- 페이지 편집기에서 프로필이 맨 위로 올라갔고, 열기 전에는 이름과 주소가 있는 한 줄로 접혀 있습니다. [#61](https://github.com/0t2/flux-bio/pull/61)
+- 단축 링크 목록의 각 줄에 주소를 복사하는 버튼이 생겼고, AI에게 할 말도 한 번 클릭으로 복사됩니다. [#61](https://github.com/0t2/flux-bio/pull/61)
+
+### 수정
+- 표시되는 크기에 이미 맞는 움직이는 GIF는 그대로 업로드되어 계속 움직입니다. 전에는 정지 이미지가 되었습니다. [#61](https://github.com/0t2/flux-bio/pull/61)
+- WebP를 만들 수 없는 브라우저에서도 PNG의 투명한 부분이 유지됩니다. 전에는 검게 바뀌었습니다. [#61](https://github.com/0t2/flux-bio/pull/61)
+- 좁은 화면에서 가장자리를 넘어가던 메뉴가 화면 안으로 옮겨집니다. 메뉴를 닫으면 키보드 포커스가 메뉴를 연 버튼으로 돌아가고, '블록 추가'에서 블록을 고르면 새 블록의 편집기로 갑니다. [#61](https://github.com/0t2/flux-bio/pull/61)
+- 화면 낭독기가 대시보드의 짧은 알림 메시지를 매번 읽어 줍니다. [#61](https://github.com/0t2/flux-bio/pull/61)
+- 아랍어 화면에서 몇몇 상자와 통계 차트의 여백이 반대쪽에 있었습니다. [#61](https://github.com/0t2/flux-bio/pull/61)
+
 ## 0.4.11 - 2026-11-24
 
 ### 보안
