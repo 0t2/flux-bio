@@ -119,7 +119,8 @@ a.hint:hover {
 .prefixed input {
 	flex: 1;
 	min-width: 0;
-	padding: 0 12px 0 2px;
+	padding-block: 0;
+	padding-inline: 2px 12px;
 	background: transparent;
 	border: 0;
 	color: var(--text);

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import indexHtml from '../admin/index.html?raw'
 import appSource from '../src/admin/App.tsx?raw'
+import { fallbackImageFormat, keepAnimatedGif, MAX_UPLOAD_BYTES } from '../src/admin/lib/imageFormat'
+import imageSource from '../src/admin/lib/image.ts?raw'
 import { currentAdminLocation } from '../src/admin/lib/route'
 import main from '../src/admin/main.tsx?raw'
 import connectAi from '../src/admin/pages/settings/ConnectAi.tsx?raw'
@@ -105,5 +107,20 @@ describe('dashboard reliability', () => {
 		expect(keyed).toContain('data-key="item-key-1"')
 		expect(plain).not.toContain('data-key=')
 		expect(live).not.toContain('data-key=')
+	})
+
+	it('preserves animated GIFs within size limits and keeps PNG alpha when WebP encoding is unavailable', () => {
+		expect(keepAnimatedGif({ type: 'image/gif', size: 512_000 }, { width: 600, height: 400 }, { maxWidth: 1400, maxHeight: 1400 })).toBe(true)
+		expect(keepAnimatedGif({ type: 'image/gif', size: 512_000 }, { width: 400, height: 400 }, { maxWidth: 800, maxHeight: 800, square: true })).toBe(true)
+		// Non-square GIFs requested as square avatars must still be cropped on canvas.
+		expect(keepAnimatedGif({ type: 'image/gif', size: 512_000 }, { width: 600, height: 400 }, { maxWidth: 800, maxHeight: 800, square: true })).toBe(false)
+		// GIFs past the 2 MB Worker limit still resize through canvas.
+		expect(keepAnimatedGif({ type: 'image/gif', size: MAX_UPLOAD_BYTES + 1 }, { width: 400, height: 400 }, { maxWidth: 1400, maxHeight: 1400 })).toBe(false)
+
+		expect(fallbackImageFormat('image/png')).toEqual({ type: 'image/png', quality: 1 })
+		expect(fallbackImageFormat('image/webp')).toEqual({ type: 'image/png', quality: 1 })
+		expect(fallbackImageFormat('image/jpeg')).toEqual({ type: 'image/jpeg', quality: 0.88 })
+		expect(imageSource).toContain('keepAnimatedGif(file, bitmap, options)')
+		expect(imageSource).toContain('fallbackImageFormat(file.type)')
 	})
 })

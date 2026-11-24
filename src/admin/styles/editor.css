@@ -629,7 +629,8 @@ button.table-row[aria-pressed='true'] {
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	padding: 8px 10px 8px 6px;
+	padding-block: 8px;
+	padding-inline: 6px 10px;
 	border-top: 1px solid var(--line);
 	background: var(--card);
 	min-height: 56px;
@@ -1098,7 +1099,8 @@ button.table-row[aria-pressed='true'] {
 .language-select {
 	min-height: var(--control);
 	max-width: 100%;
-	padding: 0 32px 0 12px;
+	padding-block: 0;
+	padding-inline: 12px 32px;
 	font: inherit;
 	font-size: 14px;
 	color: var(--text-2);
@@ -1250,7 +1252,8 @@ samp {
 	align-items: center;
 	gap: 10px;
 	min-height: 48px;
-	padding: 6px 10px 6px 6px;
+	padding-block: 6px;
+	padding-inline: 6px 10px;
 	font: inherit;
 	font-size: 13px;
 	line-height: 1.25;

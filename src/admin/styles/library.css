@@ -83,7 +83,8 @@
 	align-items: center;
 	gap: 8px;
 	min-height: var(--control);
-	padding: 0 14px 0 8px;
+	padding-block: 0;
+	padding-inline: 8px 14px;
 	background: var(--raised);
 	border: 2px solid var(--line);
 	color: var(--text);
@@ -608,7 +609,8 @@
 	display: flex;
 	align-items: flex-start;
 	gap: 10px;
-	padding: 10px 10px 10px 14px;
+	padding-block: 10px;
+	padding-inline: 14px 10px;
 	border-radius: var(--r-card);
 	border: 1px solid var(--line);
 	background: var(--raised);

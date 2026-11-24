@@ -258,7 +258,8 @@ button.st-kpi[aria-pressed='true'] {
 	min-width: 2px;
 	height: 100%;
 	/* Square at the baseline, rounded at the value end. */
-	border-radius: 0 4px 4px 0;
+	border-start-end-radius: 4px;
+	border-end-end-radius: 4px;
 	background: var(--accent);
 }
 .st-bar-count,
@@ -297,7 +298,8 @@ button.st-kpi[aria-pressed='true'] {
 	font-size: 14px;
 }
 .st-table th {
-	padding: 0 12px 10px 0;
+	padding-block: 0 10px;
+	padding-inline: 0 12px;
 	font-size: 12px;
 	font-weight: 500;
 	text-align: start;
@@ -305,7 +307,8 @@ button.st-kpi[aria-pressed='true'] {
 	color: var(--muted);
 }
 .st-table td {
-	padding: 12px 12px 12px 0;
+	padding-block: 12px;
+	padding-inline: 0 12px;
 	border-top: 1px solid var(--st-grid);
 	vertical-align: middle;
 }
@@ -414,7 +417,8 @@ button.st-kpi[aria-pressed='true'] {
 	font-size: 14px;
 }
 .st-recent td {
-	padding: 10px 12px 10px 0;
+	padding-block: 10px;
+	padding-inline: 0 12px;
 }
 .st-recent .st-when {
 	white-space: nowrap;
@@ -427,10 +431,18 @@ button.st-kpi[aria-pressed='true'] {
 
 /* ---------- Trend chart ---------- */
 
+.st-trend {
+	direction: ltr;
+}
+[dir='rtl'] .st-tip {
+	direction: rtl;
+}
+
 .st-plot {
 	position: relative;
 	height: 240px;
-	margin: 30px 8px 0 56px;
+	margin-block: 30px 0;
+	margin-inline: 56px 8px;
 	/* Vertical swipes still scroll the page; horizontal ones scrub the chart. */
 	touch-action: pan-y;
 }
@@ -485,7 +497,8 @@ button.st-kpi[aria-pressed='true'] {
 	position: absolute;
 	width: 10px;
 	height: 10px;
-	margin: -5px 0 0 -5px;
+	margin-block-start: -5px;
+	margin-inline-start: -5px;
 	border-radius: 999px;
 	background: var(--accent);
 	box-shadow: 0 0 0 2px var(--card);
@@ -493,7 +506,8 @@ button.st-kpi[aria-pressed='true'] {
 .st-dot.small {
 	width: 6px;
 	height: 6px;
-	margin: -3px 0 0 -3px;
+	margin-block-start: -3px;
+	margin-inline-start: -3px;
 }
 .st-end {
 	position: absolute;
@@ -578,7 +592,8 @@ button.st-kpi[aria-pressed='true'] {
 .st-xaxis {
 	position: relative;
 	height: 18px;
-	margin: 10px 8px 0 56px;
+	margin-block: 10px 0;
+	margin-inline: 56px 8px;
 	font-size: 12px;
 	color: var(--st-axis);
 	font-variant-numeric: tabular-nums;
@@ -826,10 +841,12 @@ button.st-kpi[aria-pressed='true'] {
 	}
 	.st-plot {
 		height: 168px;
-		margin: 28px 6px 0 44px;
+		margin-block: 28px 0;
+		margin-inline: 44px 6px;
 	}
 	.st-xaxis {
-		margin: 8px 6px 0 44px;
+		margin-block: 8px 0;
+		margin-inline: 44px 6px;
 		font-size: 12px;
 	}
 	.st-gridline span {
@@ -985,7 +1002,8 @@ button.st-kpi[aria-pressed='true'] {
 .st-page .st-kpi,
 .st-page button.st-kpi {
 	gap: 4px;
-	padding: 0 16px 14px 0;
+	padding-block: 0 14px;
+	padding-inline: 0 16px;
 	border: 0;
 	border-radius: 0;
 	background: none;
