@@ -5,6 +5,23 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.11 - 2026-11-24
+
+### ความปลอดภัย
+- การใส่รหัสผ่านผู้ดูแลผิดจะนับแยกตามผู้เข้าชมแต่ละราย ทั้งในฟอร์มเข้าสู่ระบบและเมื่อส่งเป็น bearer token ของ API: เมื่อผิดครบสิบครั้งใน 15 นาที ผู้เข้าชมรายนั้นจะได้รับ `429` `rate-limited` จนกว่าจะครบเวลา และไม่มีใครอื่นถูกล็อก รหัสผ่านใหม่จะเริ่มนับจากศูนย์ [#60](https://github.com/0t2/flux-bio/pull/60)
+- รูปภาพที่อัปโหลดจะถูกตรวจจากเนื้อหาของไฟล์: ไฟล์ที่ไม่ใช่รูปภาพ PNG, JPEG, WebP, GIF หรือ AVIF จะถูกปฏิเสธด้วย `415` ไม่ว่าจะระบุว่าเป็นชนิดใด และรูปภาพจะถูกเก็บตามชนิดที่แท้จริงของมัน [#60](https://github.com/0t2/flux-bio/pull/60)
+- `POST /api/themes/fetch` ไม่ตามการเปลี่ยนเส้นทางอีกต่อไป และอ่านไฟล์ธีมได้ไม่เกิน 512 KB [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### เปลี่ยนแปลง
+- สถิติแบบละเอียดจะถูกจำไว้หนึ่งนาที การสลับไปมาระหว่างหน้าและช่วงเวลาจึงไม่ต้องขอข้อมูลใหม่ ตัวเลขอาจช้ากว่าจริงได้ไม่เกินหนึ่งนาที [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### แก้ไข
+- ฉบับร่างที่บันทึกไม่สำเร็จจะถูกส่งซ้ำเองโดยอัตโนมัติ และส่งอีกครั้งเมื่อการเชื่อมต่อกลับมา ตัวแก้ไขยังมีปุ่มให้ลองใหม่ด้วย [#60](https://github.com/0t2/flux-bio/pull/60)
+- ข้อผิดพลาดระหว่างแสดงหน้าจอของแดชบอร์ดจะไม่ทำให้หน้าต่างว่างเปล่าอีกต่อไป: ระบบจะแจ้งให้ทราบ พร้อมปุ่มโหลดใหม่ [#60](https://github.com/0t2/flux-bio/pull/60)
+- การเปลี่ยนภาษาของแดชบอร์ดจะคงสิ่งที่เปิดอยู่ไว้ และไม่โหลดทุกอย่างใหม่อีก [#60](https://github.com/0t2/flux-bio/pull/60)
+- เมื่อเข้าสู่ระบบอีกครั้งหลังเซสชันหมดอายุ จะกลับไปยังหน้าจอที่เปิดอยู่ก่อนหน้า [#60](https://github.com/0t2/flux-bio/pull/60)
+- ข้อผิดพลาดจากการโหลดหน้าหนึ่งจะไม่ค้างอยู่บนหน้าจอหลังสลับไปอีกหน้าหนึ่ง [#60](https://github.com/0t2/flux-bio/pull/60)
+
 ## 0.4.10 - 2026-11-20
 
 ### เปลี่ยนแปลง

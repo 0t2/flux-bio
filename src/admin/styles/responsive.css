@@ -1,0 +1,158 @@
+/* ---------- Phones: top bar, bottom tabs ---------- */
+
+@media (max-width: 760px) {
+	.topbar {
+		flex-wrap: nowrap;
+		gap: 8px;
+		padding: 8px 12px;
+	}
+	.brand span,
+	.save-text,
+	.preview-btn span,
+	.copy-url {
+		display: none;
+	}
+	.topbar .btn {
+		min-height: var(--control);
+		padding: 0 12px;
+	}
+	.topbar .btn.preview-btn {
+		width: 40px;
+		padding: 0;
+	}
+	.url-pill {
+		flex: 1 1 auto;
+		padding-inline-start: 10px;
+	}
+	.popover-root {
+		flex: 1 1 auto;
+	}
+	.sidenav {
+		position: fixed;
+		z-index: 20;
+		inset-inline-start: 0;
+		inset-inline-end: 0;
+		bottom: 0;
+		max-width: none;
+		flex-direction: row;
+		flex-wrap: nowrap;
+		justify-content: space-around;
+		gap: 0;
+		padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+		border: 0;
+		border-top: 1px solid var(--line-2);
+		background: var(--card);
+	}
+	.sidenav .nav-link {
+		flex: 1 1 0;
+		flex-direction: column;
+		justify-content: center;
+		gap: 3px;
+		min-height: 52px;
+		padding: 0 2px;
+		font-size: 12px;
+		border-radius: var(--r-card);
+	}
+	.sidenav .nav-link[aria-current='page'] {
+		background: transparent;
+		color: var(--accent);
+	}
+	.sidenav .nav-bottom {
+		display: none;
+	}
+	:root {
+		--control: 44px;
+	}
+	.main {
+		margin: 0;
+		border: 0;
+		border-radius: 0;
+		padding: 16px 16px calc(96px + env(safe-area-inset-bottom));
+	}
+	.layout {
+		display: block;
+		min-height: auto;
+	}
+	.brand {
+		width: auto;
+	}
+	/* The live preview lives behind the eye button on phones. */
+	.editor-grid {
+		display: block;
+		min-height: 0;
+	}
+	.editor-col {
+		padding: 0;
+	}
+	.editor-tabs {
+		margin: 0 -16px;
+		padding: 0 16px;
+	}
+	.editor-grid > .preview-col {
+		display: none;
+	}
+	.toast {
+		bottom: calc(84px + env(safe-area-inset-bottom));
+	}
+}
+
+/* Only the sheet scrolls: the frame stays in place. On phones the menu is already fixed
+   to the bottom of the screen, so the whole document scrolls there. */
+@media screen and (min-width: 761px) {
+	.shell {
+		display: flex;
+		flex-direction: column;
+		height: 100vh;
+		height: 100dvh;
+	}
+	/* Positioned so that absolute children, such as .sr-only labels, scroll with their area instead of stretching the document. */
+	.sidenav,
+	.main {
+		position: relative;
+		overflow-y: auto;
+	}
+	.main:has(> .editor-grid) {
+		padding: 0;
+	}
+}
+
+/* A narrow window has no room for both panes: the canvas goes under the editor. */
+@media screen and (min-width: 761px) and (max-width: 1020px) {
+	.editor-grid {
+		flex-wrap: wrap;
+	}
+	.editor-col {
+		flex: 1 1 100%;
+	}
+	.preview-col {
+		position: static;
+		flex: 1 1 100%;
+		height: auto;
+		padding: 24px 32px;
+		border-inline-start: 0;
+		border-top: 1px solid var(--line);
+	}
+}
+/* A starter's sample phone (.starter-phone, editor.css) is a preview column with nothing of a column about it, at
+   every width: after the rule above and in its layer, or that one would give it the padding of a pane again. */
+.starter-phone .preview-col {
+	position: static;
+	height: auto;
+	min-width: 0;
+	padding: 0;
+	background: none;
+	border: 0;
+}
+
+/* The one control in the brand's lime. */
+.btn.publish {
+	background: var(--brand);
+	border-color: var(--brand);
+	color: var(--text);
+	font-weight: 600;
+}
+.btn.publish:hover:not(:disabled) {
+	background: #bdf02f;
+	border-color: #bdf02f;
+	color: var(--text);
+}

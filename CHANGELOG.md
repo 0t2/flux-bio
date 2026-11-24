@@ -5,6 +5,23 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.11 - 2026-11-24
+
+### Security
+- Wrong tries at the admin password are now counted for each visitor, at the sign-in form and as an API bearer token: after ten in 15 minutes that visitor gets `429` `rate-limited` until the time is up, and nobody else is locked out. A new password starts with no count. [#60](https://github.com/0t2/flux-bio/pull/60)
+- An uploaded picture is now checked by its content: a file that is not a PNG, JPEG, WebP, GIF or AVIF image is refused with `415` whatever it is called, and a picture is kept as the kind it is. [#60](https://github.com/0t2/flux-bio/pull/60)
+- `POST /api/themes/fetch` no longer follows a redirect, and reads at most 512 KB of a theme file. [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### Changed
+- The detailed stats are remembered for a minute, so going back and forth between pages and ranges doesn't ask for them again. They can be up to a minute behind. [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### Fixed
+- A draft that couldn't be saved is sent again by itself, and again when the connection is back. The editor also has a button to try again. [#60](https://github.com/0t2/flux-bio/pull/60)
+- An error while drawing a screen of the dashboard no longer leaves the window blank: it says so, with a button to reload. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Changing the dashboard's language keeps what is open, and no longer loads everything again. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Signing in again after a session ended goes back to the screen that was open. [#60](https://github.com/0t2/flux-bio/pull/60)
+- An error from loading one page no longer stays on screen after switching to another. [#60](https://github.com/0t2/flux-bio/pull/60)
+
 ## 0.4.10 - 2026-11-20
 
 ### Changed

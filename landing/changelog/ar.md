@@ -5,6 +5,23 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.11 - 2026-11-24
+
+### الأمان
+- المحاولات الخاطئة لكلمة مرور الإدارة تُحسب الآن لكل زائر على حدة، في نموذج تسجيل الدخول وعند إرسالها كـ bearer token للـ API: بعد عشر محاولات خلال 15 دقيقة يتلقى ذلك الزائر `429` `rate-limited` حتى ينتهي الوقت، ولا يُقفل أحد غيره. كلمة المرور الجديدة تبدأ بلا محاولات محسوبة. [#60](https://github.com/0t2/flux-bio/pull/60)
+- الصورة المرفوعة يُفحص محتواها الآن: الملف الذي ليس صورة PNG أو JPEG أو WebP أو GIF أو AVIF يُرفض بـ `415` مهما كان النوع المعلن، وتُحفظ الصورة بنوعها الحقيقي. [#60](https://github.com/0t2/flux-bio/pull/60)
+- `POST /api/themes/fetch` لم يعد يتبع إعادة التوجيه، ويقرأ 512 KB على الأكثر من ملف السمة. [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### تغييرات
+- الإحصاءات التفصيلية تُحفظ لمدة دقيقة، فالتنقل بين الصفحات والفترات لا يطلبها من جديد. قد تتأخر الأرقام دقيقة واحدة على الأكثر. [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### إصلاحات
+- المسودة التي تعذّر حفظها تُرسل مجددًا تلقائيًا، ومرة أخرى عند عودة الاتصال. وفي المحرر زر لإعادة المحاولة. [#60](https://github.com/0t2/flux-bio/pull/60)
+- الخطأ أثناء عرض إحدى شاشات لوحة التحكم لم يعد يترك النافذة فارغة: يظهر تنبيه به مع زر لإعادة التحميل. [#60](https://github.com/0t2/flux-bio/pull/60)
+- تغيير لغة لوحة التحكم يُبقي ما هو مفتوح، ولم يعد يعيد تحميل كل شيء. [#60](https://github.com/0t2/flux-bio/pull/60)
+- تسجيل الدخول من جديد بعد انتهاء الجلسة يعيدك إلى الشاشة التي كانت مفتوحة. [#60](https://github.com/0t2/flux-bio/pull/60)
+- الخطأ الناتج عن تحميل صفحة لم يعد يبقى على الشاشة بعد الانتقال إلى صفحة أخرى. [#60](https://github.com/0t2/flux-bio/pull/60)
+
 ## 0.4.10 - 2026-11-20
 
 ### تغييرات

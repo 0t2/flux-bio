@@ -48,11 +48,12 @@ export interface RenderOptions {
 	badgeHref?: string
 	/** Fonts this Worker serves for the page; left out, they come from Google. See headHtml(). */
 	fonts?: readonly HostedFont[]
-	/**
-	 * A preview whose text stays as it is, such as a sample page made into a file: its fonts are then asked for by
+	/** A preview whose text stays as it is, such as a sample page made into a file: its fonts are then asked for by
 	 * what it shows, as a live page's are (fontLinks). The dashboard's preview leaves this out.
 	 */
 	settled?: boolean
+	/** Adds stable `data-key` attributes to items for O(1) DOM diffing in PhonePreview. */
+	keyed?: boolean
 	/** Time zone for opening hours. */
 	timeZone?: string
 	now?: number
@@ -867,23 +868,37 @@ function embedHtml(ctx: Context, item: EmbedItem): string {
 	return `<section class="panel embed" ${title ? `aria-labelledby="${esc(id)}"` : `aria-label="${esc(service.name)}"`}><div class="embed-head"><span class="embed-icon" aria-hidden="true">${iconSvg(service.icon, 28, 1.8)}</span><div class="embed-text">${heading}${note}</div></div>${button}</section>`
 }
 
+/** Stamps a stable data-key onto the first HTML tag for O(1) keyed DOM diffing in live previews. */
+function withKey(html: string, key: string): string {
+	return html.replace(/^(<[a-zA-Z][\w-]*)/, `$1 data-key="${esc(key)}"`)
+}
+
 function itemHtml(ctx: Context, item: Item): string {
+	let html: string
 	switch (item.kind) {
 		case 'link':
-			return linkHtml(ctx, item)
+			html = linkHtml(ctx, item)
+			break
 		case 'heading':
-			return `<h2 class="sep">${esc(item.title)}</h2>`
+			html = `<h2 class="sep">${esc(item.title)}</h2>`
+			break
 		case 'video':
-			return videoHtml(ctx, item)
+			html = videoHtml(ctx, item)
+			break
 		case 'gallery':
-			return galleryHtml(ctx, item)
+			html = galleryHtml(ctx, item)
+			break
 		case 'product':
-			return productHtml(ctx, item)
+			html = productHtml(ctx, item)
+			break
 		case 'hours':
-			return hoursHtml(ctx, item)
+			html = hoursHtml(ctx, item)
+			break
 		case 'embed':
-			return embedHtml(ctx, item)
+			html = embedHtml(ctx, item)
+			break
 	}
+	return ctx.options.keyed ? withKey(html, item.id) : html
 }
 
 /** Renders a public bio page as a complete HTML document, with no JavaScript but TAP_SCRIPT, when something on it reports a tap. */

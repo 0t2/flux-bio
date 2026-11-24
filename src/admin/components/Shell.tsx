@@ -83,6 +83,11 @@ export function Shell({ children }: { children: ReactNode }) {
 								<span className={page.saveStatus === 'error' ? 'save-state error' : 'save-state'} role="status">
 									{page.saveStatus === 'saved' && <Icon name="check" size={16} stroke={2} />}
 									<span className="save-text">{t(SAVE_TEXT[page.saveStatus])}</span>
+									{page.saveStatus === 'error' && !page.conflict && (
+										<button type="button" className="save-retry" onClick={() => void page.retrySave()}>
+											{t('重試')}
+										</button>
+									)}
 								</span>
 								<a className="btn preview-btn" href={`/api/pages/${page.id}/preview`} target="_blank" rel="noopener noreferrer" aria-label={t('預覽草稿')}>
 									<Icon name="eye" size={18} />

@@ -5,6 +5,23 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.11 - 2026-11-24
+
+### 安全
+- 管理密码的错误次数现在按每位访客计算，登录表单和 API 的 bearer token 都算：15 分钟内错十次，那位访客在时间到之前会收到 `429` `rate-limited`，其他人不受影响。换了新密码，次数从零开始。 [#60](https://github.com/0t2/flux-bio/pull/60)
+- 上传的图片现在会检查内容：不是 PNG、JPEG、WebP、GIF 或 AVIF 图片的文件，不管声称是什么类型，都会以 `415` 拒绝；图片则按它实际的类型保存。 [#60](https://github.com/0t2/flux-bio/pull/60)
+- `POST /api/themes/fetch` 不再跟随重定向，主题文件最多只读 512 KB。 [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### 变更
+- 详细统计会记住一分钟，在页面和日期范围之间来回切换时不用重新查询。数字最多可能慢一分钟。 [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### 修复
+- 没能保存的草稿会自动再发送一次，连接恢复时也会再发送。编辑器里也多了一个重试按钮。 [#60](https://github.com/0t2/flux-bio/pull/60)
+- 后台某个画面出错时，不再整个窗口一片空白：会显示提示，并有刷新的按钮。 [#60](https://github.com/0t2/flux-bio/pull/60)
+- 切换后台语言时，打开的内容会保留，也不会全部重新加载。 [#60](https://github.com/0t2/flux-bio/pull/60)
+- 登录超时后重新登录，会回到原来打开的画面。 [#60](https://github.com/0t2/flux-bio/pull/60)
+- 加载某一页时出现的错误，切换到另一页后不会再留在画面上。 [#60](https://github.com/0t2/flux-bio/pull/60)
+
 ## 0.4.10 - 2026-11-20
 
 ### 变更

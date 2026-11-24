@@ -26,6 +26,8 @@ interface PageStore {
 	/** Edit a copy of the draft; it is saved automatically shortly after. */
 	update: (mutate: (draft: PageContent) => void) => void
 	saveStatus: SaveStatus
+	/** Immediately retries saving the current draft. */
+	retrySave: () => Promise<boolean>
 	/** The draft differs from what visitors see. */
 	dirty: boolean
 	publishing: boolean
@@ -63,6 +65,8 @@ export function useOptionalPage(): PageStore | null {
 }
 
 const AUTOSAVE_DELAY = 700
+const RETRY_BASE_DELAY = 2000
+const RETRY_MAX_DELAY = 30_000
 
 /** A page's line in the list, as far as its content decides it: what the Worker would work out, without asking it. */
 function summaryOf(content: PageContent): Pick<PageSummary, 'name' | 'avatar' | 'theme' | 'kind' | 'items' | 'links'> {
@@ -81,11 +85,13 @@ export function CurrentPage({ children, fallback }: { children: ReactNode; fallb
 	const app = useApp()
 	const [page, setPage] = useState<PageJson | null>(null)
 	const [error, setError] = useState<string | null>(null)
+	const [attempt, setAttempt] = useState(0)
 	const id = app.currentId
 
 	useEffect(() => {
 		if (!id) return
 		let cancelled = false
+		setError(null)
 		setPage((current) => (current?.id === id ? current : null))
 		request<{ page: PageJson }>(`/pages/${id}`)
 			.then((result) => !cancelled && setPage(result.page))
@@ -93,13 +99,18 @@ export function CurrentPage({ children, fallback }: { children: ReactNode; fallb
 		return () => {
 			cancelled = true
 		}
-	}, [id])
+	}, [id, attempt])
 
 	if (!id) return <>{fallback}</>
 	if (error) {
 		return (
 			<div className="banner" role="alert">
-				{error}
+				<div className="section-row">
+					<span>{error}</span>
+					<button type="button" className="btn small" onClick={() => setAttempt((count) => count + 1)}>
+						{t('重試')}
+					</button>
+				</div>
 			</div>
 		)
 	}
@@ -138,24 +149,31 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 	statusRef.current = saveStatus
 	const savedJson = useRef(JSON.stringify(initial.draft))
 	const timer = useRef(0)
+	const retryTimer = useRef(0)
+	const retryAttempts = useRef(0)
+	const mounted = useRef(true)
 	const queue = useRef<Promise<boolean>>(Promise.resolve(true))
 
 	/** Saves the latest draft; resolves to false if saving failed. */
 	const save = useCallback((): Promise<boolean> => {
 		window.clearTimeout(timer.current)
+		window.clearTimeout(retryTimer.current)
 		queue.current = queue.current.then(async () => {
 			const snapshot = latest.current
 			const json = JSON.stringify(snapshot)
 			if (json === savedJson.current) {
-				setSaveStatus('saved')
+				retryAttempts.current = 0
+				if (mounted.current) setSaveStatus('saved')
 				return true
 			}
 			if (inConflict.current) {
-				setConflict(true)
-				setSaveStatus('error')
+				if (mounted.current) {
+					setConflict(true)
+					setSaveStatus('error')
+				}
 				return false
 			}
-			setSaveStatus('saving')
+			if (mounted.current) setSaveStatus('saving')
 			try {
 				const saved = await request<{ draftUpdatedAt: number }>(`/pages/${id}/draft`, {
 					method: 'PUT',
@@ -165,17 +183,30 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 				version.current = saved.draftUpdatedAt
 				savedJson.current = json
 				refused.current = null
-				setSaveStatus(JSON.stringify(latest.current) === json ? 'saved' : 'pending')
+				retryAttempts.current = 0
+				if (mounted.current) setSaveStatus(JSON.stringify(latest.current) === json ? 'saved' : 'pending')
 				return true
 			} catch (error) {
 				if (error instanceof ApiError && error.code === 'draft-changed') {
 					inConflict.current = true
-					setConflict(true)
+					if (mounted.current) setConflict(true)
 				}
 				// Trying again won't help a page that is too large: say so, with its size, where a publish says what is wrong.
 				refused.current = error instanceof ApiError && error.code === 'too-large' ? error.message : null
-				if (refused.current) setPublishError(refused.current)
-				setSaveStatus('error')
+				if (mounted.current) {
+					if (refused.current) setPublishError(refused.current)
+					setSaveStatus('error')
+					const retryable =
+						!inConflict.current &&
+						!refused.current &&
+						!(error instanceof ApiError && (error.status === 400 || error.status === 401 || error.status === 403 || error.status === 404))
+					if (retryable) {
+						const delay = Math.min(RETRY_MAX_DELAY, RETRY_BASE_DELAY * 2 ** retryAttempts.current)
+						retryAttempts.current += 1
+						window.clearTimeout(retryTimer.current)
+						retryTimer.current = window.setTimeout(() => void save(), delay)
+					}
+				}
 				return false
 			}
 		})
@@ -184,6 +215,8 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 
 	const schedule = useCallback(() => {
 		window.clearTimeout(timer.current)
+		window.clearTimeout(retryTimer.current)
+		retryAttempts.current = 0
 		timer.current = window.setTimeout(() => void save(), AUTOSAVE_DELAY)
 	}, [save])
 
@@ -204,6 +237,8 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 	/** Takes the page as it is on the server, in place of whatever this copy has. */
 	const adopt = useCallback((page: PageJson) => {
 		window.clearTimeout(timer.current)
+		window.clearTimeout(retryTimer.current)
+		retryAttempts.current = 0
 		version.current = page.draftUpdatedAt
 		latest.current = page.draft
 		savedJson.current = JSON.stringify(page.draft)
@@ -439,47 +474,91 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 	)
 
 	useEffect(() => {
+		mounted.current = true
 		const warn = (event: BeforeUnloadEvent) => {
 			if (statusRef.current !== 'saved') event.preventDefault()
 		}
+		const onOnline = () => {
+			if (statusRef.current === 'error' && !inConflict.current && !refused.current) {
+				retryAttempts.current = 0
+				void save()
+			}
+		}
 		window.addEventListener('beforeunload', warn)
+		window.addEventListener('online', onOnline)
 		return () => {
+			mounted.current = false
+			window.clearTimeout(timer.current)
+			window.clearTimeout(retryTimer.current)
 			window.removeEventListener('beforeunload', warn)
+			window.removeEventListener('online', onOnline)
 			// Switching to another page: don't lose the last keystrokes.
 			if (statusRef.current !== 'saved') void save()
 		}
 	}, [save])
 
+	const clearProblems = useCallback(() => {
+		setProblems([])
+		setPublishError(null)
+	}, [])
+	const dismissConflict = useCallback(() => setConflict(false), [])
 	const dirty = useMemo(() => !published || JSON.stringify(draft) !== JSON.stringify(published), [draft, published])
+	const publicUrl = app.pageUrl({ id, handle })
 
-	const store: PageStore = {
-		id,
-		handle,
-		home,
-		displayUrl,
-		publicUrl: app.pageUrl({ id, handle }),
-		draft,
-		published,
-		publishedAt,
-		update,
-		saveStatus,
-		dirty,
-		publishing,
-		publish,
-		publishError,
-		problems,
-		clearProblems: () => {
-			setProblems([])
-			setPublishError(null)
-		},
-		rename,
-		shortLink,
-		conflict,
-		dismissConflict: () => setConflict(false),
-		loadLatest,
-		overwriteLatest,
-		restoreVersion,
-	}
+	const store = useMemo<PageStore>(
+		() => ({
+			id,
+			handle,
+			home,
+			displayUrl,
+			publicUrl,
+			draft,
+			published,
+			publishedAt,
+			update,
+			saveStatus,
+			retrySave: save,
+			dirty,
+			publishing,
+			publish,
+			publishError,
+			problems,
+			clearProblems,
+			rename,
+			shortLink,
+			conflict,
+			dismissConflict,
+			loadLatest,
+			overwriteLatest,
+			restoreVersion,
+		}),
+		[
+			id,
+			handle,
+			home,
+			displayUrl,
+			publicUrl,
+			draft,
+			published,
+			publishedAt,
+			update,
+			saveStatus,
+			save,
+			dirty,
+			publishing,
+			publish,
+			publishError,
+			problems,
+			clearProblems,
+			rename,
+			shortLink,
+			conflict,
+			dismissConflict,
+			loadLatest,
+			overwriteLatest,
+			restoreVersion,
+		],
+	)
 	return (
 		<PageContext.Provider value={store}>
 			<Fragment key={revision}>{children}</Fragment>

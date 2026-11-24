@@ -9,7 +9,7 @@ import { Icon, Logo } from '../components/Icon'
 import { useMedia } from '../components/ui'
 import { LanguageSelect } from '../components/LanguageSelect'
 import { PhonePreview } from '../components/PhonePreview'
-import { language, msg, t, tr } from '../i18n'
+import { language, msg, t, tr, useLanguage } from '../i18n'
 import { useApp } from '../state/app'
 import '../styles/library.css'
 import { ThemeChoices } from '../components/ThemeChoices'
@@ -172,6 +172,7 @@ const STARTS: { id: Start; label: string; hint: string }[] = [
 
 function FirstPageForm({ onPreview, inlinePreview }: { onPreview: (content: PageContent) => void; inlinePreview: boolean }) {
 	const app = useApp()
+	const uiLang = useLanguage()
 	const [start, setStart] = useState<Start>('blank')
 	const [handle, setHandle] = useState('')
 	const [name, setName] = useState('')
@@ -185,7 +186,7 @@ function FirstPageForm({ onPreview, inlinePreview }: { onPreview: (content: Page
 		const shown = start === 'blank' ? emptyContent(shownName) : starterPreview(start, shownName, t)
 		shown.appearance.theme = theme
 		return shown
-	}, [start, name, theme])
+	}, [start, name, theme, uiLang])
 	useEffect(() => onPreview(content), [content, onPreview])
 
 	function chooseStart(next: Start) {

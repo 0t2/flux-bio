@@ -445,6 +445,37 @@ export async function countsSince(env: Env, since: string): Promise<{ views: num
 }
 
 /**
+ * Insights that were read in the last minute: switching between tabs and ranges asks Analytics Engine once.
+ *
+ * What is kept is the answer, never the promise of one. A promise belongs to the request that made it: when that
+ * request is cancelled, as by a reload while the queries are on their way, it never settles, and another request
+ * left waiting for it would hang until the runtime ended it. So two requests that ask at the same moment each ask.
+ */
+const INSIGHTS_TTL_MS = 60_000
+const INSIGHTS_CACHE_MAX = 32
+const insightsCache = perSite<Map<string, { at: number; result: Insights }>>()
+
+export function clearInsightsCache(env?: Env): void {
+	if (env) insightsCache.delete(siteId(env))
+	else insightsCache.clear()
+}
+
+/** More rows than there are combinations of device, system and browser, so none is cut off. */
+export const CLIENT_ROWS = 1000
+
+function rollupRanked(rows: readonly { value: string; n: number }[], limit: number): Ranked[] {
+	const totals = new Map<string, number>()
+	for (const row of rows) {
+		const key = String(row.value ?? '')
+		totals.set(key, (totals.get(key) ?? 0) + Number(row.n))
+	}
+	return [...totals]
+		.sort((a, b) => b[1] - a[1])
+		.slice(0, limit)
+		.map(([value, count]) => ({ value, count }))
+}
+
+/**
  * Reads the detailed numbers for a period. Returns null when Analytics Engine
  * isn't available, e.g. in local development where the SQL binding has no
  * local implementation.
@@ -452,6 +483,31 @@ export async function countsSince(env: Env, since: string): Promise<{ views: num
 export async function insights(env: Env, scope: Scope, period: Period): Promise<Insights | null> {
 	const source = sqlOf(env)
 	if (!source) return null
+	const site = siteId(env)
+	let bucket = insightsCache.get(site)
+	if (!bucket) {
+		bucket = new Map()
+		insightsCache.set(site, bucket)
+	}
+	const cacheKey = `${'page' in scope ? `p:${scope.page}` : `t:${scope.target}`}|${period.from}|${period.to}|${period.previousFrom}`
+	const now = Date.now()
+	const cached = bucket.get(cacheKey)
+	if (cached && now - cached.at < INSIGHTS_TTL_MS) return cached.result
+
+	const result = await fetchInsights(source, scope, period)
+	// A failed read isn't kept: the next request asks again.
+	if (!result) return null
+	bucket.delete(cacheKey)
+	if (bucket.size >= INSIGHTS_CACHE_MAX) {
+		const oldest = bucket.keys().next().value
+		if (oldest !== undefined) bucket.delete(oldest)
+	}
+	// Dated from when it was asked for, so the numbers are never older than the minute.
+	bucket.set(cacheKey, { at: now, result })
+	return result
+}
+
+async function fetchInsights(source: { sql: SqlBinding; from: string }, scope: Scope, period: Period): Promise<Insights | null> {
 	const { sql, from } = source
 	const scoped = 'page' in scope ? `${column('page')} = $scope` : `${column('target')} = $scope AND ${column('kind')} = 'click'`
 	const params = {
@@ -477,7 +533,7 @@ export async function insights(env: Env, scope: Scope, period: Period): Promise<
 		).map((row) => ({ value: String(row.value), count: Number(row.n) }))
 
 	try {
-		const [visitorRows, previous, countries, cities, places, devices, os, browsers, languages, referrers, campaigns, hours, recent, networks, spots] =
+		const [visitorRows, previous, countries, cities, places, clientRows, languages, referrers, campaigns, hours, recent, networks, spots] =
 			await Promise.all([
 				query<{ d: number; n: number }>(
 					`SELECT ${day} AS d, COUNT(DISTINCT ${column('visitor')}) AS n FROM ${from} ${where(people)} GROUP BY d`,
@@ -495,9 +551,13 @@ export async function insights(env: Env, scope: Scope, period: Period): Promise<
 					`SELECT ${column('country')} AS country, ${column('region')} AS region, SUM(sampleInterval) AS n FROM ${from}
 					${where('click')} GROUP BY country, region ORDER BY n DESC LIMIT 60`,
 				),
-				top('device', people, 3),
-				top('os', people, 6),
-				top('browser', people, 8),
+				// Device, OS and browser have the same filters: one query, added up for each below. Every combination
+				// has to come back, or the totals fall short by the ones cut off: 3 devices, 7 systems and 21 browsers
+				// (src/shared/source.ts) are 441 at most, and the limit is well past that.
+				query<{ device: string; os: string; browser: string; n: number }>(
+					`SELECT ${column('device')} AS device, ${column('os')} AS os, ${column('browser')} AS browser, SUM(sampleInterval) AS n FROM ${from}
+					${where(people)} GROUP BY device, os, browser ORDER BY n DESC LIMIT ${CLIENT_ROWS}`,
+				),
 				top('language', people, 6, `AND ${column('language')} != ''`),
 				top('referrer', people, 8, `AND ${column('referrer')} != ''`),
 				// Campaign tags count on both page views and clicks.
@@ -529,6 +589,10 @@ export async function insights(env: Env, scope: Scope, period: Period): Promise<
 					GROUP BY lat, lon, country, city ORDER BY n DESC LIMIT 300`,
 				),
 			])
+
+		const devices = rollupRanked(clientRows.map((row) => ({ value: row.device, n: row.n })), 3)
+		const os = rollupRanked(clientRows.map((row) => ({ value: row.os, n: row.n })), 6)
+		const browsers = rollupRanked(clientRows.map((row) => ({ value: row.browser, n: row.n })), 8)
 
 		const visitorsByDay: Record<string, number> = {}
 		for (const row of visitorRows) visitorsByDay[dayFromNumber(Number(row.d))] = Number(row.n)

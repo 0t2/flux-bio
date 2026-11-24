@@ -8,6 +8,55 @@ import { KV_OPS_AT_ONCE } from './mode'
 export const MEDIA_CSP = "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox"
 export const MEDIA_CACHE = 'public, max-age=31536000, immutable'
 
+const ascii = (bytes: Uint8Array, start: number, end: number) => String.fromCharCode(...bytes.subarray(start, end))
+
+/** Whether a file's first bytes are those of an image of this type. */
+export function matchesImageType(buffer: ArrayBuffer | Uint8Array, type: string): boolean {
+	const b = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
+	switch (type) {
+		case 'image/png':
+			return b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 && b[4] === 0x0d && b[5] === 0x0a && b[6] === 0x1a && b[7] === 0x0a
+		case 'image/jpeg':
+			return b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff
+		case 'image/gif':
+			return b.length >= 6 && (ascii(b, 0, 6) === 'GIF87a' || ascii(b, 0, 6) === 'GIF89a')
+		case 'image/webp':
+			return b.length >= 12 && ascii(b, 0, 4) === 'RIFF' && ascii(b, 8, 12) === 'WEBP'
+		case 'image/avif': {
+			if (b.length < 12 || ascii(b, 4, 8) !== 'ftyp') return false
+			const brands = ['avif', 'avis', 'mif1', 'msf1']
+			if (brands.includes(ascii(b, 8, 12))) return true
+			const boxSize = Math.min(b.length, ((b[0]! << 24) | (b[1]! << 16) | (b[2]! << 8) | b[3]!) >>> 0 || b.length, 64)
+			for (let offset = 16; offset + 4 <= boxSize; offset += 4) {
+				if (brands.includes(ascii(b, offset, offset + 4))) return true
+			}
+			return false
+		}
+		default:
+			return false
+	}
+}
+
+/** The kinds of image a site keeps, and the ending of the id each gets. */
+export const MEDIA_TYPES: Record<string, string> = {
+	'image/png': 'png',
+	'image/jpeg': 'jpg',
+	'image/webp': 'webp',
+	'image/gif': 'gif',
+	'image/avif': 'avif',
+}
+
+/**
+ * The kind of image a file is, read from its first bytes, or null when it is none a site keeps. What a picture is
+ * served as comes from here and not from what the upload called it: a file that is no image is never served as one,
+ * and a JPEG that was sent as a PNG, which uploads were free to do before 0.4.11, still goes into a restored or
+ * moved site, as the JPEG it is.
+ */
+export function imageTypeOf(buffer: ArrayBuffer | Uint8Array): string | null {
+	const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
+	return Object.keys(MEDIA_TYPES).find((type) => matchesImageType(bytes, type)) ?? null
+}
+
 export async function readMedia(env: Env, id: string, cacheControl: string): Promise<Response | null> {
 	if (!MEDIA_ID.test(id)) return null
 	const { value, metadata } = await env.KV.getWithMetadata<{ type?: string }>(mediaKey(id), 'stream')

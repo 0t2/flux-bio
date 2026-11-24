@@ -55,6 +55,11 @@
 	--lib-scale: 0.39;
 	border-radius: var(--r-card);
 }
+/* A theme's thumbnail on 外觀. The top of each page says what the theme is; the rest would only push the color sets off the screen. */
+.option.theme .lib-mini {
+	height: calc(560px * var(--lib-scale));
+	margin: 0 auto;
+}
 .lib-bio {
 	position: absolute;
 	top: 0;

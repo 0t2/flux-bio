@@ -1,12 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import indexHtml from '../admin/index.html?raw'
+import appSource from '../src/admin/App.tsx?raw'
+import { currentAdminLocation } from '../src/admin/lib/route'
 import main from '../src/admin/main.tsx?raw'
 import connectAi from '../src/admin/pages/settings/ConnectAi.tsx?raw'
 import editor from '../src/admin/pages/EditorPage.tsx?raw'
 import pagesPage from '../src/admin/pages/PagesPage.tsx?raw'
 import setupPage from '../src/admin/pages/SetupPage.tsx?raw'
-import styles from '../src/admin/styles.css?raw'
+import pageState from '../src/admin/state/page.tsx?raw'
+import tokensCss from '../src/admin/styles/tokens.css?raw'
+import componentsCss from '../src/admin/styles/components.css?raw'
+import { emptyContent, emptyLink } from '../src/shared/content'
+import { renderBioPage } from '../src/templates/render'
 
+const styles = `${tokensCss}\n${componentsCss}`
 const rule = (selector: string) => styles.slice(styles.indexOf(`\n${selector} {`)).split('}')[0] ?? ''
 const px = (block: string, property: string) => Number(block.match(new RegExp(`\\n\\s*${property}: (\\d+)px`))?.[1])
 
@@ -66,5 +73,37 @@ describe('the page editor', () => {
 	it('has the tabs 內容 and 外觀, with looks beyond those left to the AI', () => {
 		expect([...editor.matchAll(/\{ href: '([^']+)', label: msg\(/g)].map((match) => match[1])).toEqual(['/', '/appearance'])
 		expect(editor).not.toContain('ThemesPanel')
+	})
+})
+
+describe('dashboard reliability', () => {
+	it('computes the current admin path lazily for login redirects', () => {
+		expect(currentAdminLocation('/admin', '')).toBe('/')
+		expect(currentAdminLocation('/admin/', '')).toBe('/')
+		expect(currentAdminLocation('/admin/short-links', '?q=sale')).toBe('/short-links?q=sale')
+		expect(currentAdminLocation('/admin/login', '?next=%2F')).toBe('/login?next=%2F')
+	})
+
+	it('wraps the dashboard in an ErrorBoundary and keeps Router mounted across language switches', () => {
+		expect(appSource).toContain('<ErrorBoundary>')
+		expect(appSource).not.toContain('key={language}')
+	})
+
+	it('clears load errors on page switch, retries transient autosave failures, and memoizes PageStore', () => {
+		expect(pageState).toContain('setError(null)')
+		expect(pageState).toContain('RETRY_BASE_DELAY')
+		expect(pageState).toContain("addEventListener('online'")
+		expect(pageState).toContain('useMemo<PageStore>')
+	})
+
+	it('stamps data-key only when keyed preview is requested, never in live or plain preview HTML', () => {
+		const content = emptyContent('Mei')
+		content.items = [{ ...emptyLink(), id: 'item-key-1', title: 'Docs', url: 'https://example.com', slug: 'docs' }]
+		const keyed = renderBioPage(content, { mode: 'preview', keyed: true, mediaUrl: (id) => `/media/${id}` })
+		const plain = renderBioPage(content, { mode: 'preview', mediaUrl: (id) => `/media/${id}` })
+		const live = renderBioPage(content, { mode: 'live', mediaUrl: (id) => `/media/${id}`, linkHref: (l) => `/${l.slug}` })
+		expect(keyed).toContain('data-key="item-key-1"')
+		expect(plain).not.toContain('data-key=')
+		expect(live).not.toContain('data-key=')
 	})
 })

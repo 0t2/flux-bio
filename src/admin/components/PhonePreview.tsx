@@ -2,7 +2,7 @@ import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState
 import type { Locale, PageContent } from '../../shared/content'
 import { resolveLocale } from '../../shared/locale'
 import { renderBioPage } from '../../templates/render'
-import { LANGUAGES, t } from '../i18n'
+import { LANGUAGES, t, useLanguage } from '../i18n'
 import { morphDocument } from '../lib/morph'
 import { useApp } from '../state/app'
 
@@ -75,6 +75,7 @@ export function PhonePreview({
 	frameSrc?: string
 }) {
 	const app = useApp()
+	const uiLang = useLanguage()
 	const deferred = useDeferredValue(content)
 	// With more languages turned on, the owner can look at the page in each of them.
 	const choices = locale || inline || !app.settings.languages.length ? [] : [app.settings.locale, ...app.settings.languages]
@@ -84,11 +85,12 @@ export function PhonePreview({
 		() =>
 			deferred.custom?.kind === 'redirect' ? redirectNote(deferred.custom.url, t('訪客打開這一頁，會直接轉到：')) : renderBioPage(deferred, {
 				mode: 'preview',
+				keyed: true,
 				locale: shownLocale,
 				mediaUrl: (id) => `/media/${id}`,
 				timeZone: app.settings.timezone,
 			}),
-		[deferred, shownLocale, app.settings.timezone],
+		[deferred, shownLocale, app.settings.timezone, uiLang],
 	)
 
 	const column = useRef<HTMLDivElement>(null)

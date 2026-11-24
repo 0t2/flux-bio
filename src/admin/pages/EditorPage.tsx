@@ -6,7 +6,7 @@ import { PhonePreview } from '../components/PhonePreview'
 import { PublishHistory } from '../components/PublishHistory'
 import { PageKind } from '../editors/CustomPage'
 import { LinkTabs } from '../components/ui'
-import { msg, t } from '../i18n'
+import { msg, t, useLanguage } from '../i18n'
 import { usePage } from '../state/page'
 import { appearanceSummary, AppearancePanel } from './AppearancePage'
 import { LinksPanel } from './LinksPage'
@@ -37,7 +37,8 @@ export function EditorPage() {
 		if (opened.current) opened.current = false
 		else if (saved) setSaves((count) => count + 1)
 	}, [saved, draft.custom])
-	const shown = useMemo(() => (trial ? starterPreview(trial, draft.profile.name, t) : draft), [trial, draft])
+	const uiLang = useLanguage()
+	const shown = useMemo(() => (trial ? starterPreview(trial, draft.profile.name, t) : draft), [trial, draft, uiLang])
 
 	const tabs = kind === 'links' ? TABS : TABS.slice(0, 1)
 	const hiddenCount = draft.items.length - visibleItems(draft, undefined, { unfinished: true }).length
