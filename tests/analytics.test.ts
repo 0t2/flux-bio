@@ -1,7 +1,8 @@
 import { env } from 'cloudflare:test'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import config from '../cloudflare.config.ts?raw'
-import { clearInsightsCache, EVENT_FIELDS, EVENT_NUMBERS, eventBlobs, eventDoubles, insights } from '../src/worker/lib/analytics'
+import { detectBrowser, detectOs } from '../src/shared/source'
+import { CLIENT_ROWS, clearInsightsCache, EVENT_FIELDS, EVENT_NUMBERS, eventBlobs, eventDoubles, insights } from '../src/worker/lib/analytics'
 
 const IP = '203.0.113.77'
 const UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 350.0.0'
@@ -138,32 +139,34 @@ describe('logs', () => {
 })
 
 describe('insights query caching and rollup', () => {
-	it('rolls up device/os/browser from one query and caches repeated calls within the TTL', async () => {
-		clearInsightsCache()
-		let queries = 0
+	const period = { from: '2026-10-01', to: '2026-10-30', previousFrom: '2026-09-01' }
+	const clients = [
+		{ device: 'mobile', os: 'iOS', browser: 'Safari', n: 10 },
+		{ device: 'mobile', os: 'Android', browser: 'Chrome', n: 6 },
+		{ device: 'desktop', os: 'macOS', browser: 'Chrome', n: 4 },
+	]
+	/** Analytics Engine, answering the device query with rows and everything else with none. */
+	function analyticsEnv(answer: (query: string) => Promise<{ data: unknown[] }> | { data: unknown[] }) {
+		const asked: string[] = []
 		const mockEnv = {
 			...env,
 			ANALYTICS_DATASET: 'flux_bio',
 			ANALYTICS_SQL: {
 				async query({ query }: { query: string }) {
-					queries++
-					if (query.includes('GROUP BY device, os, browser')) {
-						return {
-							data: [
-								{ device: 'mobile', os: 'iOS', browser: 'Safari', n: 10 },
-								{ device: 'mobile', os: 'Android', browser: 'Chrome', n: 6 },
-								{ device: 'desktop', os: 'macOS', browser: 'Chrome', n: 4 },
-							],
-						}
-					}
-					return { data: [] }
+					asked.push(query)
+					return answer(query)
 				},
 			},
 		} as unknown as Env
-		const period = { from: '2026-10-01', to: '2026-10-30', previousFrom: '2026-09-01' }
-		const [first, second] = await Promise.all([insights(mockEnv, { page: 'p1' }, period), insights(mockEnv, { page: 'p1' }, period)])
-		expect(queries).toBe(13)
-		expect(first).toEqual(second)
+		return { mockEnv, asked }
+	}
+	const withClients = (query: string) => ({ data: query.includes('GROUP BY device, os, browser') ? clients : [] })
+
+	it('rolls up device/os/browser from one query and answers a repeated call within the minute from what it kept', async () => {
+		clearInsightsCache()
+		const { mockEnv, asked } = analyticsEnv(withClients)
+		const first = await insights(mockEnv, { page: 'p1' }, period)
+		expect(asked).toHaveLength(13)
 		expect(first?.devices).toEqual([
 			{ value: 'mobile', count: 16 },
 			{ value: 'desktop', count: 4 },
@@ -177,9 +180,54 @@ describe('insights query caching and rollup', () => {
 			{ value: 'Safari', count: 10 },
 			{ value: 'Chrome', count: 10 },
 		])
-		// Cached follow-up makes zero additional queries.
+		// A follow-up makes no more queries, and another page or range asks for its own.
+		expect(await insights(mockEnv, { page: 'p1' }, period)).toEqual(first)
+		expect(asked).toHaveLength(13)
+		await insights(mockEnv, { page: 'p2' }, period)
+		expect(asked).toHaveLength(26)
+		clearInsightsCache()
+	})
+
+	it('asks for every combination of device, system and browser, so no total falls short', async () => {
+		clearInsightsCache()
+		const { mockEnv, asked } = analyticsEnv(withClients)
 		await insights(mockEnv, { page: 'p1' }, period)
-		expect(queries).toBe(13)
+		const limit = Number(/GROUP BY device, os, browser ORDER BY n DESC LIMIT (\d+)/.exec(asked.find((query) => query.includes('GROUP BY device, os, browser')) ?? '')?.[1])
+		expect(limit).toBe(CLIENT_ROWS)
+		// Every value the detectors can give: three devices, and each name a system or a browser can have.
+		const names = (fn: (ua: string) => string) => new Set([...fn.toString().matchAll(/return ['"]([^'"]+)['"]/g)].map((match) => match[1])).size
+		expect(names(detectOs)).toBeGreaterThan(3)
+		expect(names(detectBrowser)).toBeGreaterThan(10)
+		expect(3 * names(detectOs) * names(detectBrowser)).toBeLessThanOrEqual(CLIENT_ROWS)
+		clearInsightsCache()
+	})
+
+	it('never hands one request another’s unfinished read: a request that is cancelled leaves nobody waiting', async () => {
+		clearInsightsCache()
+		// The first request's queries never answer, as when its client has gone.
+		const stuck = analyticsEnv(() => new Promise<{ data: unknown[] }>(() => {}))
+		void insights(stuck.mockEnv, { page: 'p1' }, period)
+		const { mockEnv, asked } = analyticsEnv(withClients)
+		const second = await Promise.race([insights(mockEnv, { page: 'p1' }, period), new Promise<'hung'>((resolve) => setTimeout(() => resolve('hung'), 2000))])
+		expect(second).not.toBe('hung')
+		expect(asked).toHaveLength(13)
+		clearInsightsCache()
+	})
+
+	it('keeps no failed read', async () => {
+		clearInsightsCache()
+		let fail = true
+		const { mockEnv, asked } = analyticsEnv((query) => {
+			if (fail) throw new Error('Analytics Engine is away')
+			return withClients(query)
+		})
+		const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
+		expect(await insights(mockEnv, { page: 'p1' }, period)).toBeNull()
+		logged.mockRestore()
+		fail = false
+		const before = asked.length
+		expect((await insights(mockEnv, { page: 'p1' }, period))?.devices).toHaveLength(2)
+		expect(asked.length).toBe(before + 13)
 		clearInsightsCache()
 	})
 })

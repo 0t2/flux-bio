@@ -444,15 +444,24 @@ export async function countsSince(env: Env, since: string): Promise<{ views: num
 	return { views: count('view'), clicks: count('click') }
 }
 
-/** Short-TTL cache for Analytics Engine insights: switching tabs/ranges within a minute reuses one query set. */
+/**
+ * Insights that were read in the last minute: switching between tabs and ranges asks Analytics Engine once.
+ *
+ * What is kept is the answer, never the promise of one. A promise belongs to the request that made it: when that
+ * request is cancelled, as by a reload while the queries are on their way, it never settles, and another request
+ * left waiting for it would hang until the runtime ended it. So two requests that ask at the same moment each ask.
+ */
 const INSIGHTS_TTL_MS = 60_000
 const INSIGHTS_CACHE_MAX = 32
-const insightsCache = perSite<Map<string, { at: number; pending: Promise<Insights | null> }>>()
+const insightsCache = perSite<Map<string, { at: number; result: Insights }>>()
 
 export function clearInsightsCache(env?: Env): void {
 	if (env) insightsCache.delete(siteId(env))
 	else insightsCache.clear()
 }
+
+/** More rows than there are combinations of device, system and browser, so none is cut off. */
+export const CLIENT_ROWS = 1000
 
 function rollupRanked(rows: readonly { value: string; n: number }[], limit: number): Ranked[] {
 	const totals = new Map<string, number>()
@@ -483,18 +492,19 @@ export async function insights(env: Env, scope: Scope, period: Period): Promise<
 	const cacheKey = `${'page' in scope ? `p:${scope.page}` : `t:${scope.target}`}|${period.from}|${period.to}|${period.previousFrom}`
 	const now = Date.now()
 	const cached = bucket.get(cacheKey)
-	if (cached && now - cached.at < INSIGHTS_TTL_MS) return cached.pending
+	if (cached && now - cached.at < INSIGHTS_TTL_MS) return cached.result
 
-	const pending = fetchInsights(source, scope, period).then((result) => {
-		if (!result && bucket.get(cacheKey)?.pending === pending) bucket.delete(cacheKey)
-		return result
-	})
+	const result = await fetchInsights(source, scope, period)
+	// A failed read isn't kept: the next request asks again.
+	if (!result) return null
+	bucket.delete(cacheKey)
 	if (bucket.size >= INSIGHTS_CACHE_MAX) {
 		const oldest = bucket.keys().next().value
 		if (oldest !== undefined) bucket.delete(oldest)
 	}
-	bucket.set(cacheKey, { at: now, pending })
-	return pending
+	// Dated from when it was asked for, so the numbers are never older than the minute.
+	bucket.set(cacheKey, { at: now, result })
+	return result
 }
 
 async function fetchInsights(source: { sql: SqlBinding; from: string }, scope: Scope, period: Period): Promise<Insights | null> {
@@ -541,10 +551,12 @@ async function fetchInsights(source: { sql: SqlBinding; from: string }, scope: S
 					`SELECT ${column('country')} AS country, ${column('region')} AS region, SUM(sampleInterval) AS n FROM ${from}
 					${where('click')} GROUP BY country, region ORDER BY n DESC LIMIT 60`,
 				),
-				// Device, OS and browser share low cardinality and identical filters: one query rolled up in JS.
+				// Device, OS and browser have the same filters: one query, added up for each below. Every combination
+				// has to come back, or the totals fall short by the ones cut off: 3 devices, 7 systems and 21 browsers
+				// (src/shared/source.ts) are 441 at most, and the limit is well past that.
 				query<{ device: string; os: string; browser: string; n: number }>(
 					`SELECT ${column('device')} AS device, ${column('os')} AS os, ${column('browser')} AS browser, SUM(sampleInterval) AS n FROM ${from}
-					${where(people)} GROUP BY device, os, browser ORDER BY n DESC LIMIT 200`,
+					${where(people)} GROUP BY device, os, browser ORDER BY n DESC LIMIT ${CLIENT_ROWS}`,
 				),
 				top('language', people, 6, `AND ${column('language')} != ''`),
 				top('referrer', people, 8, `AND ${column('referrer')} != ''`),
