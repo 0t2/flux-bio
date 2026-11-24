@@ -51,7 +51,7 @@ export function LinksPanel({
 	const page = usePage()
 	const { draft } = page
 
-	function add(choice: BlockChoice) {
+	function add(choice: BlockChoice, focusEditor = false) {
 		const item = choice.kind === 'embed' ? newEmbed(choice.provider) : newItem(choice.kind)
 		// New items come with zh-TW default titles; start them in the dashboard's language.
 		if (item.title) item.title = t(item.title)
@@ -59,8 +59,13 @@ export function LinksPanel({
 			d.items.push(item)
 		})
 		setSelected(item.id)
-		// The editor for the new item sits below the list; bring it into view.
-		requestAnimationFrame(() => document.getElementById('item-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+		// The editor for the new item sits below the list; bring it into view. A choice made in the popover takes the
+		// keyboard there too: the card that had the focus is gone, and the popover would hand it back to its button.
+		requestAnimationFrame(() => {
+			const editor = document.getElementById('item-editor')
+			editor?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+			if (focusEditor) editor?.focus({ preventScroll: true })
+		})
 	}
 
 	function start(starter: StarterId) {
@@ -116,7 +121,7 @@ export function LinksPanel({
 											disabled={draft.items.length >= ITEM_LIMIT}
 											onClick={() => {
 												close()
-												add(choice)
+												add(choice, true)
 											}}
 										>
 											<span className="kind-icon" aria-hidden="true">
@@ -238,7 +243,7 @@ function ItemList({ selected, onSelect }: { selected: string | null; onSelect: (
 									}}
 								/>
 								{item.id === selected && !dragging && (
-									<li className="item-editor" id="item-editor" aria-labelledby="item-editor-title">
+									<li className="item-editor" id="item-editor" aria-labelledby="item-editor-title" tabIndex={-1}>
 										<h2 id="item-editor-title" className="sr-only">
 											{t('編輯：{title}', { title: itemTitle(item) })}
 										</h2>

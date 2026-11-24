@@ -48,8 +48,6 @@ export interface RenderOptions {
 	badgeHref?: string
 	/** Fonts this Worker serves for the page; left out, they come from Google. See headHtml(). */
 	fonts?: readonly HostedFont[]
-	/** Precomputed Google Fonts stylesheet URLs for this locale; skips scanning the rendered HTML on every view. */
-	fontLinks?: readonly string[]
 	/** A preview whose text stays as it is, such as a sample page made into a file: its fonts are then asked for by
 	 * what it shows, as a live page's are (fontLinks). The dashboard's preview leaves this out.
 	 */
@@ -477,17 +475,11 @@ footer{margin-top:auto;padding-top:32px;display:flex;flex-direction:column;align
  * Left out (the dashboard preview, pages published before fonts were hosted),
  * the fonts come from Google. `shown` is what a visitor's page shows, see fontsHtml().
  */
-export function headHtml(
-	look: ResolvedAppearance,
-	title: string,
-	hosted?: readonly HostedFont[],
-	shown?: string,
-	precomputedFontLinks?: readonly string[],
-): string {
+export function headHtml(look: ResolvedAppearance, title: string, hosted?: readonly HostedFont[], shown?: string): string {
 	return `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>${esc(title)}</title>
-<meta name="theme-color" content="${look.theme.bg}">${fontsHtml(look, hosted, shown, precomputedFontLinks)}`
+<meta name="theme-color" content="${look.theme.bg}">${fontsHtml(look, hosted, shown)}`
 }
 
 /** Everything a keyboard types, which a page's markup is made of too. */
@@ -529,18 +521,23 @@ function fontLinks(look: ResolvedAppearance, shown?: string): string[] {
 /**
  * The characters of `text` past ASCII, each once, in the order they first appear. This reads a whole page on every
  * view, and a page is mostly markup, so ASCII is stepped over without being looked at twice: collecting every
- * character first was a quarter of what a view cost, and most of it on a long page.
+ * character first was a quarter of what a view cost, and most of it on a long page. What is past ASCII is kept as a
+ * number until the end, because a page of Chinese shows a thousand such characters and a hundred different ones, and
+ * making a string of each to look it up was most of what was left.
  */
 function beyondAscii(text: string): string[] {
-	const seen = new Set<string>()
+	const seen = new Set<number>()
 	for (let at = 0; at < text.length; at++) {
-		if (text.charCodeAt(at) <= 0x7e) continue
-		const point = text.codePointAt(at)!
+		const unit = text.charCodeAt(at)
+		if (unit <= 0x7e) continue
 		// A character outside the basic plane is two code units, and one character.
-		if (point > 0xffff) at++
-		seen.add(String.fromCodePoint(point))
+		if (unit >= 0xd800 && unit <= 0xdbff) {
+			const point = text.codePointAt(at)!
+			if (point > 0xffff) at++
+			seen.add(point)
+		} else seen.add(unit)
 	}
-	return [...seen]
+	return Array.from(seen, (point) => String.fromCodePoint(point))
 }
 
 /** Text as part of an address, with nothing left in it that HTML would write another way: encodeURIComponent keeps ' ( ) * ! as they are. */
@@ -553,7 +550,7 @@ const isSliced = (family: string): boolean => {
 
 const FACE_WEIGHT = /^\d{3}(?: \d{3})?$/
 
-function fontsHtml(look: ResolvedAppearance, hosted?: readonly HostedFont[], shown?: string, precomputed?: readonly string[]): string {
+function fontsHtml(look: ResolvedAppearance, hosted?: readonly HostedFont[], shown?: string): string {
 	if (hosted) {
 		// Names and files were checked when stored; checked again, as they go into CSS.
 		const faces = hosted.flatMap((font) =>
@@ -568,40 +565,11 @@ function fontsHtml(look: ResolvedAppearance, hosted?: readonly HostedFont[], sho
 		)
 		return faces.length ? `\n<style>${faces.join('\n')}</style>` : ''
 	}
-	const links = precomputed ?? fontLinks(look, shown)
+	const links = fontLinks(look, shown)
 	if (!links.length) return ''
 	return `
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>${links.map((href) => `\n<link rel="stylesheet" href="${esc(href)}">`).join('')}`
-}
-
-/**
- * Precomputes the Google Fonts stylesheet URLs per locale for a published snapshot,
- * when the page's visible text cannot vary with the clock (no opening hours or scheduled links).
- */
-export function precomputeFontLinks(
-	content: PageContent,
-	locales: readonly Locale[],
-	viaShortLink: readonly string[] = [],
-): Partial<Record<Locale, string[]>> | undefined {
-	if (content.custom) return undefined
-	if (content.items.some((item) => item.kind === 'hours' || (item.kind === 'link' && (item.startsAt !== null || item.endsAt !== null)))) {
-		return undefined
-	}
-	const out: Partial<Record<Locale, string[]>> = {}
-	for (const locale of locales) {
-		const html = renderBioPage(content, {
-			mode: 'live',
-			locale,
-			mediaUrl: (id) => `/media/${id}`,
-			linkHref: (link) => `/${encodeURIComponent(link.slug)}`,
-			blockHref: (item, part) => `/_c/_/${encodeURIComponent(item.id)}/${encodeURIComponent(part)}`,
-			viaShortLink,
-			now: 0,
-		})
-		out[locale] = [...html.matchAll(/<link rel="stylesheet" href="([^"]+)">/g)].map((match) => match[1]!.replaceAll('&amp;', '&'))
-	}
-	return out
 }
 
 /** Every built-in word a page can show in a language, for copying the fonts it needs. */
@@ -1071,12 +1039,10 @@ ${reportsTaps ? `<script>${TAP_SCRIPT}</script>` : ''}${ctx.sheets.length ? `<sc
 ${options.draft ? draftScript(options.draft) : ''}`
 	const bodyClass = [lineButton && 'has-line', embedButton && 'has-embed'].filter(Boolean).join(' ')
 
-	const shown = !options.fonts && options.fontLinks === undefined && (live || options.settled) ? body + ownCss : undefined
-
 	return `<!doctype html>
 <html lang="${text.lang}"${dirAttribute(text.lang)}>
 <head>
-${headHtml(look, title, options.fonts, shown, options.fontLinks)}
+${headHtml(look, title, options.fonts, live || options.settled ? body + ownCss : undefined)}
 ${meta}
 <style>${pageVars(look)}
 ${BASE_CSS}

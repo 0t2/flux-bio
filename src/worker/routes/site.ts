@@ -368,21 +368,19 @@ async function serveBio(c: SiteContext, snapshot: Snapshot): Promise<Response> {
 	const path = snapshot.home ? '/' : `/${encodeURIComponent(snapshot.handle)}`
 	const handle = encodeURIComponent(snapshot.handle)
 	const asked = url.searchParams.get('lang')
-	const resolvedLocale = requestedLocale(asked, languages.locale, languages.languages, c.req.header('accept-language'))
 	// Search engines only hear of languages the page is fully translated into; with the others it would mostly repeat itself.
 	const translated = languages.languages.length ? translatedLocales(snapshot.content, languages.languages) : []
 	const html = renderBioPage(snapshot.content, {
 		mode: 'live',
 		canonicalUrl: `${url.origin}${path}${translated.some((code) => code === asked) ? `?lang=${asked}` : ''}`,
 		alternates: languageUrls(`${url.origin}${path}`, languages.locale, translated),
-		locale: resolvedLocale,
+		locale: requestedLocale(asked, languages.locale, languages.languages, c.req.header('accept-language')),
 		mediaUrl: (id) => `/media/${id}`,
 		linkHref: (link) => `/${encodeURIComponent(link.slug)}${suffix}`,
 		blockHref: (item, part) => `/_c/${handle}/${encodeURIComponent(item.id)}/${encodeURIComponent(part)}${suffix}`,
 		viaShortLink: snapshot.viaShortLink,
 		timeZone: snapshot.content.items.some((item) => item.kind === 'hours') ? await zone : undefined,
 		fonts: snapshot.fonts,
-		fontLinks: snapshot.fontLinks?.[resolvedLocale],
 	})
 	recordHit(c.env, c.executionCtx, c.req.raw, {
 		kind: 'view',

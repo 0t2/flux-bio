@@ -1,7 +1,7 @@
 import { request } from '../api'
-import { fallbackImageFormat, keepAnimatedGif, MAX_UPLOAD_BYTES } from './imageFormat'
+import { fallbackImageFormat, isAnimatedGif, keepAnimatedGif, MAX_UPLOAD_BYTES } from './imageFormat'
 
-export { fallbackImageFormat, keepAnimatedGif, MAX_UPLOAD_BYTES }
+export { fallbackImageFormat, isAnimatedGif, keepAnimatedGif, MAX_UPLOAD_BYTES }
 
 function toBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob | null> {
 	return new Promise((resolve) => canvas.toBlob(resolve, type, quality))
@@ -13,7 +13,7 @@ function toBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promi
  */
 export async function prepareImage(file: File, options: { maxWidth: number; maxHeight: number; square?: boolean }): Promise<Blob> {
 	const bitmap = await createImageBitmap(file)
-	if (keepAnimatedGif(file, bitmap, options)) {
+	if (keepAnimatedGif(file, bitmap, options) && isAnimatedGif(new Uint8Array(await file.arrayBuffer()))) {
 		bitmap.close()
 		return file
 	}

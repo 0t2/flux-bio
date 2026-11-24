@@ -5,6 +5,20 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.12 - 2026-11-24
+
+### New
+- The dashboard follows your device's dark mode. [#61](https://github.com/0t2/flux-bio/pull/61)
+- In the page editor, the profile is at the top, folded to a line with the name and address until you open it. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Each short link in the list has a button that copies its address, and a sentence to say to your AI is copied with one click. [#61](https://github.com/0t2/flux-bio/pull/61)
+
+### Fixed
+- An animated GIF that already fits the size it is shown at is uploaded as it is and keeps moving. Before, it became a still. [#61](https://github.com/0t2/flux-bio/pull/61)
+- A PNG keeps its transparency in a browser that can't make WebP, where it used to turn black. [#61](https://github.com/0t2/flux-bio/pull/61)
+- A menu that would run past the edge of a narrow screen is moved to fit. Closing a menu gives the keyboard back to its button, and choosing a block from Add a block takes it to the new block's editor. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Screen readers now read out the dashboard's short messages every time. [#61](https://github.com/0t2/flux-bio/pull/61)
+- In Arabic, the spacing of several boxes and of the stats charts was on the wrong side. [#61](https://github.com/0t2/flux-bio/pull/61)
+
 ## 0.4.11 - 2026-11-24
 
 ### Security

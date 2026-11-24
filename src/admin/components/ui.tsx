@@ -223,9 +223,10 @@ export function Popover({
 			const rect = el.getBoundingClientRect()
 			const margin = 16
 			const maxRight = window.innerWidth - margin
-			if (rect.left < margin) setShiftX(Math.round(margin - rect.left))
-			else if (rect.right > maxRight) setShiftX(Math.round(maxRight - rect.right))
-			else setShiftX(0)
+			const shift = rect.left < margin ? Math.round(margin - rect.left) : rect.right > maxRight ? Math.round(maxRight - rect.right) : 0
+			// Put back here, not left to the render: when the shift comes out as it was, React draws nothing again.
+			el.style.transform = shift ? `translateX(${shift}px)` : ''
+			setShiftX(shift)
 		}
 		measure()
 		window.addEventListener('resize', measure)

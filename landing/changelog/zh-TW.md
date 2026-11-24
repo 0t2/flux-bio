@@ -5,6 +5,20 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.12 - 2026-11-24
+
+### 新功能
+- 後台會跟著裝置的深色模式。 [#61](https://github.com/0t2/flux-bio/pull/61)
+- 頁面編輯器裡，個人資料移到最上面，平常收成一行，顯示名稱和網址，要改時再打開。 [#61](https://github.com/0t2/flux-bio/pull/61)
+- 短網址清單的每一列多了複製網址的按鈕；要對 AI 說的那句話，點一下就能複製。 [#61](https://github.com/0t2/flux-bio/pull/61)
+
+### 修正
+- 尺寸本來就合適的 GIF 動圖會原樣上傳，繼續會動。以前會變成靜止的圖。 [#61](https://github.com/0t2/flux-bio/pull/61)
+- 在做不出 WebP 的瀏覽器裡，PNG 的透明背景會保留，以前會變成黑色。 [#61](https://github.com/0t2/flux-bio/pull/61)
+- 選單在窄螢幕上超出邊緣時，會移回畫面內。關掉選單後，鍵盤焦點回到打開它的按鈕；從「新增區塊」選了區塊，焦點會到新區塊的編輯器。 [#61](https://github.com/0t2/flux-bio/pull/61)
+- 螢幕閱讀器現在每次都會念出後台的簡短提示訊息。 [#61](https://github.com/0t2/flux-bio/pull/61)
+- 阿拉伯文介面裡，有幾處方框和統計圖表的間距原本在錯的一邊。 [#61](https://github.com/0t2/flux-bio/pull/61)
+
 ## 0.4.11 - 2026-11-24
 
 ### 安全性

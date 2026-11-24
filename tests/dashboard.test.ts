@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import indexHtml from '../admin/index.html?raw'
 import appSource from '../src/admin/App.tsx?raw'
-import { fallbackImageFormat, keepAnimatedGif, MAX_UPLOAD_BYTES } from '../src/admin/lib/imageFormat'
+import { fallbackImageFormat, isAnimatedGif, keepAnimatedGif, MAX_UPLOAD_BYTES } from '../src/admin/lib/imageFormat'
 import imageSource from '../src/admin/lib/image.ts?raw'
 import { currentAdminLocation } from '../src/admin/lib/route'
 import main from '../src/admin/main.tsx?raw'
@@ -122,11 +122,30 @@ describe('dashboard reliability', () => {
 		expect(keepAnimatedGif({ type: 'image/gif', size: 512_000 }, { width: 600, height: 400 }, { maxWidth: 800, maxHeight: 800, square: true })).toBe(false)
 		// GIFs past the 2 MB Worker limit still resize through canvas.
 		expect(keepAnimatedGif({ type: 'image/gif', size: MAX_UPLOAD_BYTES + 1 }, { width: 400, height: 400 }, { maxWidth: 1400, maxHeight: 1400 })).toBe(false)
+		// One larger than what was asked for is made smaller like any picture: kept, a 3000 px avatar would be served whole.
+		expect(keepAnimatedGif({ type: 'image/gif', size: 512_000 }, { width: 3000, height: 3000 }, { maxWidth: 800, maxHeight: 800, square: true })).toBe(false)
+		expect(keepAnimatedGif({ type: 'image/gif', size: 512_000 }, { width: 600, height: 1500 }, { maxWidth: 1400, maxHeight: 1400 })).toBe(false)
+
+		// Only a GIF that moves is kept as a GIF: one picture in it is a still, which WebP holds in far less.
+		const picture = [0x2c, 0, 0, 0, 0, 1, 0, 1, 0, 0, 2, 2, 0x4c, 0x01, 0]
+		const ownColors = [0x2c, 0, 0, 0, 0, 1, 0, 1, 0, 0x80, 0, 0, 0, 255, 255, 255, 2, 2, 0x4c, 0x01, 0]
+		const timing = [0x21, 0xf9, 4, 0, 10, 0, 0, 0]
+		const looping = [0x21, 0xff, 11, ...new TextEncoder().encode('NETSCAPE2.0'), 3, 1, 0, 0, 0]
+		const gif = (...blocks: number[][]) =>
+			new Uint8Array([...new TextEncoder().encode('GIF89a'), 1, 0, 1, 0, 0x80, 0, 0, 0, 0, 0, 255, 255, 255, ...blocks.flat(), 0x3b])
+		expect(isAnimatedGif(gif(picture))).toBe(false)
+		expect(isAnimatedGif(gif(timing, picture))).toBe(false)
+		expect(isAnimatedGif(gif(looping, timing, picture, timing, picture))).toBe(true)
+		expect(isAnimatedGif(gif(ownColors, ownColors))).toBe(true)
+		expect(isAnimatedGif(gif())).toBe(false)
+		expect(isAnimatedGif(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49]))).toBe(false)
+		// A file cut short ends the reading; it never runs past the end.
+		expect(isAnimatedGif(gif(timing, picture).slice(0, 30))).toBe(false)
 
 		expect(fallbackImageFormat('image/png')).toEqual({ type: 'image/png', quality: 1 })
 		expect(fallbackImageFormat('image/webp')).toEqual({ type: 'image/png', quality: 1 })
 		expect(fallbackImageFormat('image/jpeg')).toEqual({ type: 'image/jpeg', quality: 0.88 })
-		expect(imageSource).toContain('keepAnimatedGif(file, bitmap, options)')
+		expect(imageSource).toContain('keepAnimatedGif(file, bitmap, options) && isAnimatedGif(')
 		expect(imageSource).toContain('fallbackImageFormat(file.type)')
 	})
 

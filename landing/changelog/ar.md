@@ -5,6 +5,20 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.12 - 2026-11-24
+
+### جديد
+- لوحة التحكم تتبع الوضع الداكن في جهازك. [#61](https://github.com/0t2/flux-bio/pull/61)
+- في محرر الصفحة، أصبح الملف الشخصي في الأعلى، مطويًا في سطر واحد فيه الاسم والعنوان إلى أن تفتحه. [#61](https://github.com/0t2/flux-bio/pull/61)
+- لكل رابط مختصر في القائمة زر ينسخ عنوانه، والجملة التي تقولها لذكائك الاصطناعي تُنسخ بنقرة واحدة. [#61](https://github.com/0t2/flux-bio/pull/61)
+
+### إصلاحات
+- صورة GIF المتحركة التي تناسب أصلًا الحجم الذي تُعرض به تُرفع كما هي وتبقى متحركة. كانت من قبل تصير صورة ثابتة. [#61](https://github.com/0t2/flux-bio/pull/61)
+- صورة PNG تحتفظ بشفافيتها في متصفح لا يستطيع إنشاء WebP، وكانت الشفافية تصير سوداء من قبل. [#61](https://github.com/0t2/flux-bio/pull/61)
+- القائمة التي كانت تتجاوز حافة الشاشة الضيقة تُنقل لتظهر كاملة. إغلاق القائمة يعيد تركيز لوحة المفاتيح إلى زرها، واختيار قسم من «إضافة قسم» ينقل التركيز إلى محرر القسم الجديد. [#61](https://github.com/0t2/flux-bio/pull/61)
+- قارئات الشاشة تقرأ الآن رسائل لوحة التحكم القصيرة في كل مرة. [#61](https://github.com/0t2/flux-bio/pull/61)
+- في العربية، كانت المسافات في عدة مربعات وفي مخططات الإحصاءات على الجانب الخطأ. [#61](https://github.com/0t2/flux-bio/pull/61)
+
 ## 0.4.11 - 2026-11-24
 
 ### الأمان

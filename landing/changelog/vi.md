@@ -5,6 +5,20 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.12 - 2026-11-24
+
+### Mới
+- Bảng điều khiển theo chế độ tối của thiết bị. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Trong trình chỉnh sửa trang, hồ sơ nằm trên cùng, được gập thành một dòng gồm tên và địa chỉ cho đến khi bạn mở ra. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Mỗi liên kết rút gọn trong danh sách có nút sao chép địa chỉ của nó, và câu để nói với AI của bạn được sao chép bằng một lần nhấp. [#61](https://github.com/0t2/flux-bio/pull/61)
+
+### Đã sửa
+- Ảnh GIF động đã vừa với kích thước hiển thị được tải lên nguyên vẹn và vẫn chuyển động. Trước đây, nó trở thành ảnh tĩnh. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Ảnh PNG giữ được độ trong suốt trên trình duyệt không tạo được WebP. Trước đây phần trong suốt bị chuyển thành màu đen. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Menu tràn ra ngoài mép trên màn hình hẹp được dịch vào cho vừa. Đóng menu sẽ trả tiêu điểm bàn phím về nút của nó, và chọn một khối từ “Thêm khối” sẽ đưa tiêu điểm đến trình chỉnh sửa của khối mới. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Trình đọc màn hình giờ luôn đọc các thông báo ngắn của bảng điều khiển. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Trong tiếng Ả Rập, khoảng cách của một số khung và của các biểu đồ thống kê nằm sai phía. [#61](https://github.com/0t2/flux-bio/pull/61)
+
 ## 0.4.11 - 2026-11-24
 
 ### Bảo mật

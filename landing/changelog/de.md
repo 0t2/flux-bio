@@ -5,6 +5,20 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.12 - 2026-11-24
+
+### Neu
+- Das Dashboard folgt dem Dunkelmodus Ihres Geräts. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Im Seiteneditor steht das Profil ganz oben, eingeklappt zu einer Zeile mit Name und Adresse, bis Sie es öffnen. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Jeder Kurzlink in der Liste hat eine Schaltfläche, die seine Adresse kopiert, und der Satz für Ihre KI wird mit einem Klick kopiert. [#61](https://github.com/0t2/flux-bio/pull/61)
+
+### Behoben
+- Ein animiertes GIF, das bereits in die Größe passt, in der es gezeigt wird, wird unverändert hochgeladen und bewegt sich weiter. Vorher wurde es zu einem Standbild. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Ein PNG behält seine Transparenz in einem Browser, der kein WebP erzeugen kann. Dort wurde sie bisher schwarz. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Ein Menü, das auf einem schmalen Bildschirm über den Rand ragte, wird so verschoben, dass es passt. Nach dem Schließen eines Menüs liegt der Tastaturfokus wieder auf seiner Schaltfläche, und nach der Wahl eines Blocks unter „Block hinzufügen“ liegt er im Editor des neuen Blocks. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Screenreader lesen die kurzen Meldungen des Dashboards jetzt jedes Mal vor. [#61](https://github.com/0t2/flux-bio/pull/61)
+- Auf Arabisch lagen die Abstände mehrerer Felder und der Statistikdiagramme auf der falschen Seite. [#61](https://github.com/0t2/flux-bio/pull/61)
+
 ## 0.4.11 - 2026-11-24
 
 ### Sicherheit

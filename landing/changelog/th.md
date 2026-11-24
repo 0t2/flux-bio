@@ -5,6 +5,20 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.12 - 2026-11-24
+
+### ใหม่
+- แดชบอร์ดจะแสดงตามโหมดมืดของอุปกรณ์คุณ [#61](https://github.com/0t2/flux-bio/pull/61)
+- ในตัวแก้ไขหน้า โปรไฟล์อยู่บนสุด และพับเป็นบรรทัดเดียวที่มีชื่อกับที่อยู่ จนกว่าคุณจะเปิด [#61](https://github.com/0t2/flux-bio/pull/61)
+- ลิงก์สั้นแต่ละรายการในรายการมีปุ่มคัดลอกที่อยู่ และประโยคที่ใช้บอก AI ของคุณคัดลอกได้ด้วยคลิกเดียว [#61](https://github.com/0t2/flux-bio/pull/61)
+
+### แก้ไข
+- GIF เคลื่อนไหวที่มีขนาดพอดีกับขนาดที่แสดงอยู่แล้วจะถูกอัปโหลดตามเดิมและยังเคลื่อนไหวได้ ก่อนหน้านี้จะกลายเป็นภาพนิ่ง [#61](https://github.com/0t2/flux-bio/pull/61)
+- PNG ยังคงความโปร่งใสในเบราว์เซอร์ที่สร้าง WebP ไม่ได้ ซึ่งก่อนหน้านี้จะกลายเป็นสีดำ [#61](https://github.com/0t2/flux-bio/pull/61)
+- เมนูที่ล้นขอบบนจอแคบจะถูกเลื่อนให้พอดี เมื่อปิดเมนู โฟกัสของคีย์บอร์ดจะกลับไปที่ปุ่มของเมนู และเมื่อเลือกบล็อกจาก “เพิ่มบล็อก” โฟกัสจะไปที่ตัวแก้ไขของบล็อกใหม่ [#61](https://github.com/0t2/flux-bio/pull/61)
+- โปรแกรมอ่านหน้าจอจะอ่านข้อความสั้นของแดชบอร์ดทุกครั้ง [#61](https://github.com/0t2/flux-bio/pull/61)
+- ในภาษาอาหรับ ระยะห่างของกล่องหลายจุดและของกราฟสถิติเคยอยู่ผิดด้าน [#61](https://github.com/0t2/flux-bio/pull/61)
+
 ## 0.4.11 - 2026-11-24
 
 ### ความปลอดภัย

@@ -515,7 +515,9 @@ function PageProvider({ initial, children }: { initial: PageJson; children: Reac
 		() => !publishedJson || (deferredDraft !== published && JSON.stringify(deferredDraft) !== publishedJson),
 		[deferredDraft, published, publishedJson],
 	)
-	const dirty = !publishedJson || draft !== deferredDraft || deferredDirty
+	// While the deferred draft is a keystroke behind, this is the answer for the one before, not "changed": an edit that
+	// changes nothing would otherwise flash 發布變更 on a page that is published as it stands, and let it be published again.
+	const dirty = deferredDirty
 	const publicUrl = app.pageUrl({ id, handle })
 
 	const store = useMemo<PageStore>(
