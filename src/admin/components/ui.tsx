@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'wouter'
 import type { IconName } from '../../templates/icons'
 import { t } from '../i18n'
@@ -188,15 +188,60 @@ export function Popover({
 	align?: 'start' | 'end'
 }) {
 	const [open, setOpen] = useState(false)
+	const [shiftX, setShiftX] = useState(0)
 	const root = useRef<HTMLDivElement>(null)
+	const panel = useRef<HTMLDivElement>(null)
+	const trigger = useRef<HTMLElement | null>(null)
 	const id = useId()
+
+	const restoreTriggerFocus = () => {
+		const target = trigger.current ?? root.current?.querySelector<HTMLElement>('[aria-controls]')
+		target?.focus()
+	}
+
+	const close = (returnFocus = false) => {
+		const hadFocusInside = Boolean(panel.current && panel.current.contains(document.activeElement))
+		setOpen(false)
+		if (returnFocus) {
+			restoreTriggerFocus()
+		} else if (hadFocusInside) {
+			requestAnimationFrame(() => {
+				if (!document.activeElement || document.activeElement === document.body) restoreTriggerFocus()
+			})
+		}
+	}
+
+	useLayoutEffect(() => {
+		if (!open || !panel.current) {
+			setShiftX(0)
+			return
+		}
+		const measure = () => {
+			const el = panel.current
+			if (!el) return
+			el.style.transform = ''
+			const rect = el.getBoundingClientRect()
+			const margin = 16
+			const maxRight = window.innerWidth - margin
+			if (rect.left < margin) setShiftX(Math.round(margin - rect.left))
+			else if (rect.right > maxRight) setShiftX(Math.round(maxRight - rect.right))
+			else setShiftX(0)
+		}
+		measure()
+		window.addEventListener('resize', measure)
+		return () => window.removeEventListener('resize', measure)
+	}, [open])
+
 	useEffect(() => {
 		if (!open) return
 		const onDown = (event: PointerEvent) => {
 			if (root.current && !root.current.contains(event.target as Node)) setOpen(false)
 		}
 		const onKey = (event: KeyboardEvent) => {
-			if (event.key === 'Escape') setOpen(false)
+			if (event.key === 'Escape') {
+				event.stopPropagation()
+				close(true)
+			}
 		}
 		document.addEventListener('pointerdown', onDown)
 		document.addEventListener('keydown', onKey)
@@ -205,12 +250,27 @@ export function Popover({
 			document.removeEventListener('keydown', onKey)
 		}
 	}, [open])
+
 	return (
 		<div className="popover-root" ref={root}>
-			{button({ open, toggle: () => setOpen((value) => !value), id })}
+			{button({
+				open,
+				toggle: () => {
+					if (!open) trigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+					setOpen((value) => !value)
+				},
+				id,
+			})}
 			{open && (
-				<div className={`popover ${align}`} id={id} role="dialog" aria-label={label}>
-					{children(() => setOpen(false))}
+				<div
+					ref={panel}
+					className={`popover ${align}`}
+					id={id}
+					role="dialog"
+					aria-label={label}
+					style={shiftX ? { transform: `translateX(${shiftX}px)` } : undefined}
+				>
+					{children(() => close(false))}
 				</div>
 			)}
 		</div>
@@ -333,13 +393,13 @@ export function toast(message: string): void {
 }
 
 export function ToastHost() {
-	const [message, setMessage] = useState<string | null>(null)
+	const [current, setCurrent] = useState<{ text: string; seq: number } | null>(null)
 	useEffect(() => {
 		let timer = 0
-		const listener: ToastListener = (next) => {
-			setMessage(next)
+		const listener: ToastListener = (text) => {
+			setCurrent((previous) => ({ text, seq: (previous?.seq ?? 0) + 1 }))
 			window.clearTimeout(timer)
-			timer = window.setTimeout(() => setMessage(null), 2400)
+			timer = window.setTimeout(() => setCurrent(null), 2400)
 		}
 		listeners.add(listener)
 		return () => {
@@ -347,10 +407,13 @@ export function ToastHost() {
 			window.clearTimeout(timer)
 		}
 	}, [])
-	if (!message) return null
 	return (
-		<div className="toast" role="status">
-			{message}
+		<div className="toast-region" role="status" aria-live="polite" aria-atomic="true">
+			{current && (
+				<div key={current.seq} className="toast">
+					{current.text}
+				</div>
+			)}
 		</div>
 	)
 }

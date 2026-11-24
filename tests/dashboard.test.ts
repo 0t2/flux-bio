@@ -10,6 +10,7 @@ import editor from '../src/admin/pages/EditorPage.tsx?raw'
 import pagesPage from '../src/admin/pages/PagesPage.tsx?raw'
 import setupPage from '../src/admin/pages/SetupPage.tsx?raw'
 import pageState from '../src/admin/state/page.tsx?raw'
+import uiSource from '../src/admin/components/ui.tsx?raw'
 import tokensCss from '../src/admin/styles/tokens.css?raw'
 import componentsCss from '../src/admin/styles/components.css?raw'
 import { emptyContent, emptyLink } from '../src/shared/content'
@@ -122,5 +123,11 @@ describe('dashboard reliability', () => {
 		expect(fallbackImageFormat('image/jpeg')).toEqual({ type: 'image/jpeg', quality: 0.88 })
 		expect(imageSource).toContain('keepAnimatedGif(file, bitmap, options)')
 		expect(imageSource).toContain('fallbackImageFormat(file.type)')
+	})
+
+	it('keeps a persistent ARIA live region for toasts and restores focus when closing popovers', () => {
+		expect(uiSource).toContain('className="toast-region" role="status" aria-live="polite" aria-atomic="true"')
+		expect(uiSource).not.toContain('if (!message) return null')
+		expect(uiSource).toContain('restoreTriggerFocus()')
 	})
 })
