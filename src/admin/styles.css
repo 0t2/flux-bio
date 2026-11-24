@@ -1,4 +1,10 @@
-/* Dashboard design system layered explicitly so page stylesheets always win without relying on import order. */
+/* Dashboard design system layered explicitly so page stylesheets always win without relying on import order.
+
+   Between layers the later one wins, whatever the selectors say. So a rule that changes a component in one place,
+   ".editor-tabs .link-tabs" for the tabs in the editor, goes after that component's own rule and in its file: in a
+   layer before it, it never applies, however exact its selector. The page stylesheets (styles/library.css,
+   settings.css, stats.css and qr.css) are in no layer and win over all of these, so a rule here can't change what
+   one of them sets either: it goes there. tests/dashboard-layers.test.ts holds both. */
 @layer tokens, shell, components, editor, responsive;
 
 @import './styles/tokens.css' layer(tokens);

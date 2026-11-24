@@ -133,6 +133,16 @@
 		border-top: 1px solid var(--line);
 	}
 }
+/* A starter's sample phone (.starter-phone, editor.css) is a preview column with nothing of a column about it, at
+   every width: after the rule above and in its layer, or that one would give it the padding of a pane again. */
+.starter-phone .preview-col {
+	position: static;
+	height: auto;
+	min-width: 0;
+	padding: 0;
+	background: none;
+	border: 0;
+}
 
 /* The one control in the brand's lime. */
 .btn.publish {

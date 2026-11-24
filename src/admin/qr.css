@@ -45,9 +45,6 @@
 }
 
 /* Shape and logo */
-.qr-subtitle {
-	margin-top: 6px;
-}
 .qr-choices {
 	display: flex;
 	flex-wrap: wrap;

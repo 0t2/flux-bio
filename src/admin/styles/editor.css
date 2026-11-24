@@ -120,7 +120,6 @@
 	background: transparent;
 	border: 0;
 	color: var(--muted);
-	cursor: pointer;
 }
 .info-tip:hover,
 .info-tip:focus-visible {
@@ -1239,14 +1238,6 @@ samp {
 	justify-content: center;
 	width: 100%;
 }
-.starter-phone .preview-col {
-	position: static;
-	height: auto;
-	min-width: 0;
-	padding: 0;
-	background: none;
-	border: 0;
-}
 
 /* The color sets of a theme, on 外觀: its background with its accent, and the name. */
 .color-sets {
@@ -1268,7 +1259,6 @@ samp {
 	background: var(--sheet, transparent);
 	border: 1px solid var(--line);
 	border-radius: 8px;
-	cursor: pointer;
 }
 .color-set[aria-pressed='true'] {
 	border-color: var(--text);
@@ -1290,11 +1280,6 @@ samp {
 	width: 14px;
 	height: 14px;
 	border-radius: 999px;
-}
-/* The top of each page says what the theme is; the rest would only push the color sets off the screen. */
-.option.theme .lib-mini {
-	height: calc(560px * var(--lib-scale));
-	margin: 0 auto;
 }
 
 /* Right to left. The layout above is in logical properties; these are what they can't say. */

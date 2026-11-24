@@ -278,11 +278,6 @@
 	gap: 12px;
 	margin-top: 16px;
 }
-.custom-field .textarea {
-	width: 100%;
-	font-size: 13px;
-	line-height: 1.5;
-}
 .editor-head {
 	display: flex;
 	align-items: flex-end;
@@ -337,9 +332,6 @@
 	margin: 0 calc(var(--pad) * -1);
 	padding: 0 var(--pad);
 	background: var(--card);
-}
-.editor-tabs .link-tabs {
-	margin: 0;
 }
 .editor-col > .page-head {
 	align-items: center;

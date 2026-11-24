@@ -27,6 +27,15 @@
 	line-height: 1.6;
 	color: var(--muted);
 }
+/* A hint that is itself a link still darkens under the pointer: a:hover is in an earlier layer, and loses to the color above. */
+a.hint:hover {
+	color: var(--accent-strong);
+}
+/* In a page's head a paragraph has a small gap above it (.page-head p, in shell.css), and a hint there, or in a dialog
+   opened from there, is such a paragraph. :where() makes this exactly as exact as that rule, and no more. */
+:where(.page-head) p.hint {
+	margin: 4px 0 0;
+}
 
 .field {
 	display: flex;
@@ -68,6 +77,12 @@
 	min-height: 84px;
 	line-height: 1.6;
 	resize: vertical;
+}
+/* The HTML of a custom page (editors/CustomPage.tsx): smaller, for code. With the field's own rule, for the reason given at .editor-tabs .link-tabs. */
+.custom-field .textarea {
+	width: 100%;
+	font-size: 13px;
+	line-height: 1.5;
 }
 .select {
 	appearance: none;
@@ -357,6 +372,10 @@
 	gap: 4px;
 	margin: -4px 0 20px;
 	border-bottom: 1px solid var(--line);
+}
+/* In the editor the tabs sit in their own sticky bar (shell.css). Here and not there: a rule in an earlier layer loses to the one above, however exact its selector. */
+.editor-tabs .link-tabs {
+	margin: 0;
 }
 .link-tab {
 	display: inline-flex;
