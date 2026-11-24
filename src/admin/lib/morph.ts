@@ -34,6 +34,10 @@ function morph(from: Node, to: Node): void {
 /**
  * Updates `from`'s children to match `to`'s. Keyed elements (`data-key`) are matched in O(1) via a Map so
  * reordering or editing items in a large bio page never falls back to O(N^2) deep `isEqualNode` scans.
+ *
+ * The rest, the few children inside an item or in the head, are matched by what they are: one that only moved keeps
+ * its element, so its picture, player or stylesheet doesn't load again. Changing the first of a row in place to look
+ * like the second would give every one after it a new address, and the browser would fetch them all again.
  */
 export function morphChildren(from: Node, to: Node): void {
 	const doc = from.ownerDocument!
@@ -42,11 +46,6 @@ export function morphChildren(from: Node, to: Node): void {
 	for (const child of from.childNodes) {
 		const key = keyOf(child)
 		if (key && !keyedFrom.has(key)) keyedFrom.set(key, child as Element)
-	}
-	const wantedKeys = new Set<string>()
-	for (const node of wanted) {
-		const key = keyOf(node)
-		if (key) wantedKeys.add(key)
 	}
 
 	wanted.forEach((next, i) => {
@@ -64,21 +63,17 @@ export function morphChildren(from: Node, to: Node): void {
 		}
 
 		if (current?.isEqualNode(next)) return
-		const currentKey = keyOf(current)
-		if (current && !currentKey && sameKind(current, next)) {
-			morph(current, next)
-			return
-		}
-		if (currentKey && wantedKeys.has(currentKey)) {
-			from.insertBefore(doc.importNode(next, true), current)
-			return
-		}
+		// What only moved keeps its element. Keyed ones are found by their key above and never compared here.
 		const moved = [...from.childNodes].slice(i + 1).find((node) => !keyOf(node) && node.isEqualNode(next))
 		if (moved) {
 			from.insertBefore(moved, current)
 			return
 		}
-		from.insertBefore(doc.importNode(next, true), current)
+		// One with a key is found by it when its turn comes, or goes at the end. One without is changed in place,
+		// unless the new page still has it further on: then it is left as it is, to be found there.
+		const stays = current !== null && (keyOf(current) !== null || wanted.slice(i + 1).some((node) => !keyOf(node) && node.isEqualNode(current)))
+		if (current && !stays && sameKind(current, next)) morph(current, next)
+		else from.insertBefore(doc.importNode(next, true), current)
 	})
 	while (from.childNodes.length > wanted.length) from.lastChild!.remove()
 }
