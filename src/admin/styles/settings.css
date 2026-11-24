@@ -104,6 +104,55 @@
 	color: var(--text);
 	font-family: var(--sans);
 }
+.avatar-box.compact {
+	width: 44px;
+	height: 44px;
+}
+.avatar-box.compact.set-initials {
+	font-size: 16px;
+}
+.profile-summary {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	width: 100%;
+	padding: 8px 10px;
+	margin: -4px 0;
+	border: 0;
+	border-radius: var(--r-card);
+	background: transparent;
+	text-align: start;
+}
+.profile-summary:hover {
+	background: var(--raised);
+}
+.profile-summary-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+.profile-summary-text strong {
+	font-size: 15px;
+	font-weight: 600;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.profile-summary-text .mono {
+	font-size: 12px;
+	color: var(--muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.profile-summary-text small {
+	font-size: 13px;
+	color: var(--text-3);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
 .set-avatar-field {
 	display: flex;
 	flex-direction: column;

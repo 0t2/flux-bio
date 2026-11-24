@@ -284,6 +284,8 @@ export function CopyButton({
 	className = 'btn small',
 	icon = true,
 	ariaLabel,
+	stopPropagation = false,
+	toastOnCopy = false,
 }: {
 	text: string
 	label?: string
@@ -291,6 +293,8 @@ export function CopyButton({
 	className?: string
 	icon?: boolean
 	ariaLabel?: string
+	stopPropagation?: boolean
+	toastOnCopy?: boolean
 }) {
 	const [copied, setCopied] = useState(false)
 	useEffect(() => {
@@ -303,9 +307,12 @@ export function CopyButton({
 			type="button"
 			className={className}
 			aria-label={ariaLabel}
-			onClick={async () => {
-				if (await copyText(text)) setCopied(true)
-				else toast(t('無法複製，請手動選取'))
+			onClick={async (event) => {
+				if (stopPropagation) event.stopPropagation()
+				if (await copyText(text)) {
+					setCopied(true)
+					if (toastOnCopy) toast(t('已複製'))
+				} else toast(t('無法複製，請手動選取'))
 			}}
 		>
 			{icon && <Icon name={copied ? 'check' : 'copy'} size={16} stroke={2} />}

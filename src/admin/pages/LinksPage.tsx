@@ -27,7 +27,7 @@ import { STARTER_IDS, STARTER_LABELS, starterContent, starterPreview, type Start
 import { SOCIAL_META } from '../../templates/icons'
 import { Icon } from '../components/Icon'
 import { PhonePreview } from '../components/PhonePreview'
-import { ConfirmButton, EmptyState, Section, Toggle, useMedia } from '../components/ui'
+import { ConfirmButton, EmptyState, Popover, Section, Toggle, useMedia } from '../components/ui'
 import { EmbedAccountField, EmbedEditor, GalleryEditor, HeadingEditor, ProductEditor, VideoEditor } from '../editors/BlockEditors'
 import { HoursEditor } from '../editors/HoursEditor'
 import { BLOCK_CHOICES, choiceText, itemIcon, itemTitle, kindText, type BlockChoice } from '../editors/kinds'
@@ -75,14 +75,64 @@ export function LinksPanel({
 
 	return (
 		<>
+			<ProfileSection collapsible />
+
 			<div className="page-head">
 				<p>
 					<span className="mobile-only">{t('長按拖曳調整順序，右上角的眼睛可以預覽。')}</span>
 				</p>
-				<button type="button" className="btn" onClick={() => add({ kind: 'link' })} disabled={draft.items.length >= ITEM_LIMIT}>
-					<Icon name="plus" size={18} stroke={2} />
-					{t('新增連結')}
-				</button>
+				<div className="editor-actions">
+					<button type="button" className="btn" onClick={() => add({ kind: 'link' })} disabled={draft.items.length >= ITEM_LIMIT}>
+						<Icon name="plus" size={18} stroke={2} />
+						{t('新增連結')}
+					</button>
+					<Popover
+						label={t('新增區塊')}
+						align="end"
+						button={({ open, toggle, id }) => (
+							<button
+								type="button"
+								className="btn"
+								aria-expanded={open}
+								aria-controls={id}
+								disabled={draft.items.length >= ITEM_LIMIT}
+								onClick={toggle}
+							>
+								<Icon name="layers" size={16} />
+								{t('新增區塊')}
+								<Icon name="chevronDown" size={16} style={{ transform: open ? 'rotate(180deg)' : undefined }} />
+							</button>
+						)}
+					>
+						{(close) => (
+							<div className="kind-grid kind-popover">
+								{BLOCK_CHOICES.map((choice) => {
+									const text = choiceText(choice)
+									return (
+										<button
+											key={choice.kind === 'embed' ? choice.provider : choice.kind}
+											type="button"
+											className="kind-card"
+											disabled={draft.items.length >= ITEM_LIMIT}
+											onClick={() => {
+												close()
+												add(choice)
+											}}
+										>
+											<span className="kind-icon" aria-hidden="true">
+												<Icon name={text.icon} size={16} />
+											</span>
+											<span className="kind-text">
+												<strong>{text.add}</strong>
+												<small>{text.sub}</small>
+											</span>
+										</button>
+									)
+								})}
+							</div>
+						)}
+					</Popover>
+				</div>
 			</div>
 
 			{draft.items.length === 0 ? (
@@ -97,26 +147,6 @@ export function LinksPanel({
 				<ItemList selected={selected} onSelect={setSelected} />
 			)}
 
-			<Section title={t('新增區塊')}>
-				<div className="kind-grid">
-					{BLOCK_CHOICES.map((choice) => {
-						const text = choiceText(choice)
-						return (
-							<button key={choice.kind === 'embed' ? choice.provider : choice.kind} type="button" className="kind-card" onClick={() => add(choice)} disabled={draft.items.length >= ITEM_LIMIT}>
-								<span className="kind-icon" aria-hidden="true">
-									<Icon name={text.icon} size={16} />
-								</span>
-								<span className="kind-text">
-									<strong>{text.add}</strong>
-									<small>{text.sub}</small>
-								</span>
-							</button>
-						)
-					})}
-				</div>
-			</Section>
-
-			<ProfileSection />
 			<SocialSection />
 		</>
 	)

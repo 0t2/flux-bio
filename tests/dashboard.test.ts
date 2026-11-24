@@ -6,7 +6,10 @@ import imageSource from '../src/admin/lib/image.ts?raw'
 import { currentAdminLocation } from '../src/admin/lib/route'
 import main from '../src/admin/main.tsx?raw'
 import connectAi from '../src/admin/pages/settings/ConnectAi.tsx?raw'
+import askAiSource from '../src/admin/components/AskAi.tsx?raw'
 import editor from '../src/admin/pages/EditorPage.tsx?raw'
+import linksPage from '../src/admin/pages/LinksPage.tsx?raw'
+import shortLinksPage from '../src/admin/pages/ShortLinksPage.tsx?raw'
 import pagesPage from '../src/admin/pages/PagesPage.tsx?raw'
 import setupPage from '../src/admin/pages/SetupPage.tsx?raw'
 import pageState from '../src/admin/state/page.tsx?raw'
@@ -131,5 +134,13 @@ describe('dashboard reliability', () => {
 		expect(uiSource).toContain('className="toast-region" role="status" aria-live="polite" aria-atomic="true"')
 		expect(uiSource).not.toContain('if (!message) return null')
 		expect(uiSource).toContain('restoreTriggerFocus()')
+	})
+
+	it('places collapsible profile at the top of the editor, uses a semantic short-links table, and lets AskAi copy prompts in one click', () => {
+		expect(linksPage.indexOf('<ProfileSection collapsible />')).toBeLessThan(linksPage.indexOf('<ItemList'))
+		expect(linksPage).toContain('className="kind-grid kind-popover"')
+		expect(shortLinksPage).toContain("<table className={plain ? 'table plain' : 'table'}>")
+		expect(shortLinksPage).toContain('className="icon-btn row-copy"')
+		expect(askAiSource).toContain('copyText(say)')
 	})
 })
