@@ -5,6 +5,23 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.11 - 2026-11-24
+
+### セキュリティ
+- 管理パスワードのまちがいは、ログインフォームでも API の bearer token でも、訪問者ごとに数えるようになりました。15 分間に 10 回まちがえると、その訪問者には時間が過ぎるまで `429` `rate-limited` が返り、ほかの人は締め出されません。パスワードを変えると、回数は 0 から始まります。 [#60](https://github.com/0t2/flux-bio/pull/60)
+- アップロードされた画像は中身を確認するようになりました。PNG、JPEG、WebP、GIF、AVIF のいずれでもないファイルは、どの種類として送られても `415` で拒否され、画像は実際の種類のまま保存されます。 [#60](https://github.com/0t2/flux-bio/pull/60)
+- `POST /api/themes/fetch` はリダイレクトをたどらなくなり、テーマファイルは 512 KB までしか読みません。 [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### 変更
+- 詳細な統計は 1 分間保持されるので、ページや期間を行き来しても取得し直しません。数値は最大で 1 分遅れることがあります。 [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### 修正
+- 保存できなかった下書きは自動でもう一度送られ、接続が戻ったときにも送られます。エディターにも再試行のボタンが付きました。 [#60](https://github.com/0t2/flux-bio/pull/60)
+- ダッシュボードの画面の描画中にエラーが起きても、ウィンドウが真っ白になることはなくなりました。エラーが表示され、再読み込みのボタンが出ます。 [#60](https://github.com/0t2/flux-bio/pull/60)
+- ダッシュボードの言語を切り替えても、開いているものはそのまま残り、すべてを読み込み直すこともなくなりました。 [#60](https://github.com/0t2/flux-bio/pull/60)
+- セッションが切れたあとでログインし直すと、開いていた画面に戻ります。 [#60](https://github.com/0t2/flux-bio/pull/60)
+- あるページの読み込みで出たエラーが、別のページに切り替えたあとも画面に残ることはなくなりました。 [#60](https://github.com/0t2/flux-bio/pull/60)
+
 ## 0.4.10 - 2026-11-20
 
 ### 変更

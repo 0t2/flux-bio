@@ -5,6 +5,23 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.11 - 2026-11-24
+
+### Segurança
+- As tentativas erradas da senha de administração agora são contadas por visitante, no formulário de login e como bearer token da API: depois de dez em 15 minutos, esse visitante recebe `429` `rate-limited` até o tempo passar, e ninguém mais fica bloqueado. Uma senha nova começa sem nenhuma tentativa contada. [#60](https://github.com/0t2/flux-bio/pull/60)
+- O conteúdo de cada imagem enviada agora é verificado: um arquivo que não é uma imagem PNG, JPEG, WebP, GIF ou AVIF é recusado com `415`, seja qual for o tipo declarado, e uma imagem é guardada como o tipo que realmente é. [#60](https://github.com/0t2/flux-bio/pull/60)
+- `POST /api/themes/fetch` não segue mais redirecionamentos e lê no máximo 512 KB de um arquivo de tema. [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### Alterações
+- As estatísticas detalhadas ficam guardadas por um minuto, então ir e voltar entre páginas e períodos não as pede de novo. Elas podem estar até um minuto atrasadas. [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### Correções
+- Um rascunho que não pôde ser salvo é enviado de novo sozinho, e mais uma vez quando a conexão volta. O editor também tem um botão para tentar de novo. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Um erro ao desenhar uma tela do painel não deixa mais a janela em branco: ele é mostrado, com um botão para recarregar. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Trocar o idioma do painel mantém o que está aberto e não carrega mais tudo de novo. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Ao entrar de novo depois que a sessão terminou, você volta para a tela que estava aberta. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Um erro ao carregar uma página não fica mais na tela depois de mudar para outra. [#60](https://github.com/0t2/flux-bio/pull/60)
+
 ## 0.4.10 - 2026-11-20
 
 ### Alterações

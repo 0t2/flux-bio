@@ -5,6 +5,23 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.11 - 2026-11-24
+
+### Sicherheit
+- Falsche Versuche beim Admin-Passwort werden jetzt pro Besucher gezählt, im Anmeldeformular wie als bearer token der API: Nach zehn in 15 Minuten bekommt dieser Besucher `429` `rate-limited`, bis die Zeit um ist, und niemand sonst wird ausgesperrt. Ein neues Passwort beginnt ohne gezählte Versuche. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Ein hochgeladenes Bild wird jetzt anhand seines Inhalts geprüft: Eine Datei, die kein PNG-, JPEG-, WebP-, GIF- oder AVIF-Bild ist, wird mit `415` abgelehnt, egal als was sie ausgegeben wird, und ein Bild wird als das gespeichert, was es wirklich ist. [#60](https://github.com/0t2/flux-bio/pull/60)
+- `POST /api/themes/fetch` folgt keiner Weiterleitung mehr und liest höchstens 512 KB einer Theme-Datei. [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### Geändert
+- Die detaillierten Statistiken werden eine Minute lang gemerkt, sodass der Wechsel zwischen Seiten und Zeiträumen sie nicht erneut abfragt. Sie können bis zu eine Minute hinterherhinken. [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### Behoben
+- Ein Entwurf, der nicht gespeichert werden konnte, wird von selbst noch einmal gesendet und erneut, sobald die Verbindung wieder da ist. Der Editor hat außerdem eine Schaltfläche zum Wiederholen. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Ein Fehler beim Aufbau einer Ansicht im Dashboard lässt das Fenster nicht mehr leer: Er wird gemeldet, mit einer Schaltfläche zum Neuladen. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Beim Wechsel der Dashboard-Sprache bleibt Geöffnetes erhalten, und es wird nicht mehr alles neu geladen. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Wer sich nach dem Ende einer Sitzung wieder anmeldet, kommt zurück zu der Ansicht, die geöffnet war. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Ein Fehler beim Laden einer Seite bleibt nach dem Wechsel zu einer anderen nicht mehr stehen. [#60](https://github.com/0t2/flux-bio/pull/60)
+
 ## 0.4.10 - 2026-11-20
 
 ### Geändert

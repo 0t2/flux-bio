@@ -5,6 +5,23 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.11 - 2026-11-24
+
+### Keamanan
+- Percobaan kata sandi admin yang salah kini dihitung per pengunjung, baik di formulir masuk maupun sebagai bearer token API: setelah sepuluh kali dalam 15 menit, pengunjung itu mendapat `429` `rate-limited` sampai waktunya habis, dan tidak ada orang lain yang terkunci. Kata sandi baru mulai tanpa hitungan. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Gambar yang diunggah kini diperiksa isinya: berkas yang bukan gambar PNG, JPEG, WebP, GIF, atau AVIF ditolak dengan `415`, apa pun jenis yang disebutkannya, dan gambar disimpan sesuai jenis aslinya. [#60](https://github.com/0t2/flux-bio/pull/60)
+- `POST /api/themes/fetch` tidak lagi mengikuti pengalihan dan membaca paling banyak 512 KB dari berkas tema. [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### Diubah
+- Statistik terperinci diingat selama satu menit, sehingga berpindah-pindah antara halaman dan rentang waktu tidak memintanya lagi. Angkanya bisa tertinggal hingga satu menit. [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### Diperbaiki
+- Draf yang gagal disimpan dikirim ulang dengan sendirinya, dan sekali lagi saat koneksi kembali. Editor juga punya tombol untuk mencoba lagi. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Kesalahan saat menampilkan satu layar dasbor tidak lagi membuat jendela kosong: kesalahannya ditampilkan, dengan tombol untuk memuat ulang. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Mengganti bahasa dasbor mempertahankan apa yang sedang terbuka dan tidak lagi memuat ulang semuanya. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Masuk lagi setelah sesi berakhir akan kembali ke layar yang tadi terbuka. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Kesalahan saat memuat satu halaman tidak lagi tertinggal di layar setelah beralih ke halaman lain. [#60](https://github.com/0t2/flux-bio/pull/60)
+
 ## 0.4.10 - 2026-11-20
 
 ### Diubah

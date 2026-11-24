@@ -5,6 +5,23 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.11 - 2026-11-24
+
+### Bảo mật
+- Số lần nhập sai mật khẩu quản trị nay được đếm theo từng khách, ở biểu mẫu đăng nhập lẫn khi gửi làm bearer token của API: sau mười lần trong 15 phút, khách đó nhận `429` `rate-limited` cho đến khi hết thời gian, và không ai khác bị khóa. Mật khẩu mới bắt đầu lại từ số không. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Ảnh tải lên nay được kiểm tra theo nội dung: tệp không phải ảnh PNG, JPEG, WebP, GIF hoặc AVIF sẽ bị từ chối với `415` dù được khai là loại gì, và ảnh được lưu đúng với loại thật của nó. [#60](https://github.com/0t2/flux-bio/pull/60)
+- `POST /api/themes/fetch` không còn đi theo chuyển hướng và chỉ đọc tối đa 512 KB của tệp giao diện. [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### Đã thay đổi
+- Số liệu chi tiết được ghi nhớ trong một phút, nên chuyển qua lại giữa các trang và khoảng thời gian không phải truy vấn lại. Số liệu có thể chậm tối đa một phút. [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### Đã sửa
+- Bản nháp chưa lưu được sẽ tự gửi lại, và gửi lại lần nữa khi có kết nối trở lại. Trình chỉnh sửa cũng có nút thử lại. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Lỗi khi hiển thị một màn hình của bảng điều khiển không còn làm cửa sổ trắng trơn: lỗi được báo, kèm nút tải lại. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Đổi ngôn ngữ của bảng điều khiển vẫn giữ nguyên những gì đang mở và không còn tải lại mọi thứ. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Đăng nhập lại sau khi phiên kết thúc sẽ quay về màn hình đang mở trước đó. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Lỗi khi tải một trang không còn nằm lại trên màn hình sau khi chuyển sang trang khác. [#60](https://github.com/0t2/flux-bio/pull/60)
+
 ## 0.4.10 - 2026-11-20
 
 ### Đã thay đổi

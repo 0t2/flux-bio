@@ -5,6 +5,23 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.11 - 2026-11-24
+
+### Sécurité
+- Les essais erronés du mot de passe d’administration sont désormais comptés par visiteur, dans le formulaire de connexion comme en bearer token de l’API : après dix en 15 minutes, ce visiteur reçoit `429` `rate-limited` jusqu’à la fin du délai, et personne d’autre n’est bloqué. Un nouveau mot de passe repart sans aucun essai compté. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Le contenu de chaque image envoyée est désormais vérifié : un fichier qui n’est pas une image PNG, JPEG, WebP, GIF ou AVIF est refusé avec `415`, quel que soit le type annoncé, et une image est conservée sous le type qui est vraiment le sien. [#60](https://github.com/0t2/flux-bio/pull/60)
+- `POST /api/themes/fetch` ne suit plus les redirections et lit au plus 512 Ko d’un fichier de thème. [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### Modifications
+- Les statistiques détaillées sont gardées en mémoire une minute : passer d’une page ou d’une période à l’autre ne les redemande plus. Elles peuvent avoir jusqu’à une minute de retard. [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### Corrections
+- Un brouillon qui n’a pas pu être enregistré est renvoyé automatiquement, puis de nouveau au retour de la connexion. L’éditeur a aussi un bouton pour réessayer. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Une erreur pendant l’affichage d’un écran du tableau de bord ne laisse plus la fenêtre vide : elle est signalée, avec un bouton pour recharger. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Changer la langue du tableau de bord conserve ce qui est ouvert et ne recharge plus tout. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Se reconnecter après la fin d’une session ramène à l’écran qui était ouvert. [#60](https://github.com/0t2/flux-bio/pull/60)
+- Une erreur survenue au chargement d’une page ne reste plus à l’écran après le passage à une autre. [#60](https://github.com/0t2/flux-bio/pull/60)
+
 ## 0.4.10 - 2026-11-20
 
 ### Modifications

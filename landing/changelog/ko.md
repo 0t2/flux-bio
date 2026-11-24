@@ -5,6 +5,23 @@ If you host your own, `pnpm update:code` in your FluxBio folder brings its code 
 
 The format is narrow because a script reads it: `## <version> - YYYY-MM-DD` (newest first), then `### ` and one of Action needed, Security, New, Changed, Fixed (in that order), then `- ` entries on one line each, with only `code` and `[links](https://…)` as markup. `tests/changelog.test.ts` holds it. A change someone using FluxBio would see gets a release of its own, on top, in the same pull request, with its version in `package.json` too: the next minor if it has an Action needed, else the next patch. Leave purely internal work out. The date is the day the change reaches `main`. The headings below 0.3.0 are days without a version, because every site of those days called itself 0.2.1.
 
+## 0.4.11 - 2026-11-24
+
+### 보안
+- 관리자 비밀번호를 틀린 횟수를 이제 로그인 양식과 API bearer token 모두에서 방문자별로 셉니다. 15분 안에 열 번 틀리면 그 방문자는 시간이 지날 때까지 `429` `rate-limited`를 받고, 다른 사람은 잠기지 않습니다. 비밀번호를 바꾸면 횟수는 0에서 다시 시작합니다. [#60](https://github.com/0t2/flux-bio/pull/60)
+- 업로드한 이미지는 이제 내용을 확인합니다. PNG, JPEG, WebP, GIF, AVIF 이미지가 아닌 파일은 어떤 형식이라고 보내든 `415`로 거부되고, 이미지는 실제 형식대로 저장됩니다. [#60](https://github.com/0t2/flux-bio/pull/60)
+- `POST /api/themes/fetch`는 더 이상 리디렉션을 따라가지 않으며, 테마 파일을 최대 512 KB까지만 읽습니다. [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### 변경
+- 상세 통계를 1분 동안 기억하므로 페이지와 기간을 오가도 다시 조회하지 않습니다. 숫자는 최대 1분 늦을 수 있습니다. [#60](https://github.com/0t2/flux-bio/pull/60)
+
+### 수정
+- 저장하지 못한 초안은 자동으로 다시 보내고, 연결이 돌아왔을 때도 다시 보냅니다. 편집기에 다시 시도 버튼도 생겼습니다. [#60](https://github.com/0t2/flux-bio/pull/60)
+- 대시보드 화면을 그리다 오류가 나도 창이 하얗게 비지 않습니다. 오류를 알리고 새로 고침 버튼을 보여 줍니다. [#60](https://github.com/0t2/flux-bio/pull/60)
+- 대시보드 언어를 바꿔도 열려 있던 내용이 그대로 남고, 전체를 다시 불러오지도 않습니다. [#60](https://github.com/0t2/flux-bio/pull/60)
+- 세션이 끝난 뒤 다시 로그인하면 열려 있던 화면으로 돌아갑니다. [#60](https://github.com/0t2/flux-bio/pull/60)
+- 한 페이지를 불러오다 생긴 오류가 다른 페이지로 바꾼 뒤에도 화면에 남아 있지 않습니다. [#60](https://github.com/0t2/flux-bio/pull/60)
+
 ## 0.4.10 - 2026-11-20
 
 ### 변경
