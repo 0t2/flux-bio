@@ -67,6 +67,7 @@ async function newCopy(): Promise<Worker> {
 	return (await import('../src/worker/index')).default
 }
 
+const owner = { authorization: `Bearer ${PASSWORD}` }
 let pageId = ''
 let linkId = ''
 let cookie = ''
@@ -106,6 +107,12 @@ describe('a new copy of the Worker', () => {
 		expect(first.trips).toBeLessThanOrEqual(3)
 	})
 
+	it('asks whether a visitor has had their wrong tries before it looks at the admin password: the day’s salt and the count, after the schema check', async () => {
+		const asked = await trips(await newCopy(), '/api/auth/me', { headers: owner })
+		expect(asked.status).toBe(200)
+		expect(asked.trips).toBeLessThanOrEqual(3)
+	})
+
 	it('looks an API token up on the second trip', async () => {
 		const { token } = await apiJson<{ token: string }>('/tokens', { method: 'POST', json: { name: 'trips', scope: 'full' } })
 		const asked = await trips(await newCopy(), '/api/auth/me', { headers: { authorization: `Bearer ${token}` } })
@@ -129,6 +136,19 @@ describe('the dashboard, once the Worker is running', () => {
 		expect(asked.status).toBe(200)
 		expect(asked.trips).toBeLessThanOrEqual(most)
 		expect(asked.trips).toBeGreaterThan(0)
+	})
+
+	// A session is checked without D1. The admin password itself, sent as a bearer token, is not looked at until the
+	// count of that visitor's wrong tries has been read, or the count would stop nobody: one trip, as a token's
+	// lookup is, and never more than that.
+	it.each([
+		['who it is', () => '/api/auth/me', 1],
+		['a page', () => `/api/pages/${pageId}`, 2],
+		['its pages', () => '/api/state', 3],
+	])('answers a call that carries the admin password, asking for %s, one trip after a signed-in one', async (_, path, most) => {
+		const asked = await trips(warm, path(), { headers: owner })
+		expect(asked.status).toBe(200)
+		expect(asked.trips).toBeLessThanOrEqual(most)
 	})
 
 	it('gives each page the clicks on its links and inside its blocks, from one statement', async () => {

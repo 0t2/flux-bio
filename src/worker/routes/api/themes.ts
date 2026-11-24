@@ -84,7 +84,7 @@ export function registerThemeRoutes(api: Hono<AppEnv>): void {
 		if (!raw) throw new ApiError(400, 'invalid', msg('請貼 GitHub 上的主題檔網址（github.com 或 raw.githubusercontent.com）'))
 		let json: unknown
 		try {
-			const response = await fetch(raw, { redirect: 'error', signal: AbortSignal.timeout(5000) })
+			const response = await fetch(raw, { redirect: 'manual', signal: AbortSignal.timeout(5000) })
 			if (!response.ok) throw new Error(String(response.status))
 			json = JSON.parse(await readCappedText(response, MAX_THEME_BYTES))
 		} catch {

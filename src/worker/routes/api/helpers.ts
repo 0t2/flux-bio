@@ -14,7 +14,7 @@ import { draftChanged, refuseTooLarge } from '../../lib/ops'
 import { siteId, sitesOf } from '../../lib/sites'
 import { clicksByPage, type LinkStats } from '../../lib/stats'
 
-/** Reserved rate-limit bucket for admin password attempts; "/" never appears in a link id. */
+/** Where wrong tries at the admin password are counted (takePasswordTry in lib/db.ts): "/" is in no link's id. */
 export const ADMIN_TRIES = '/admin'
 export const tooManyTries = () => new ApiError(429, 'rate-limited', msg('嘗試次數太多，請稍後再試'))
 

@@ -1,4 +1,4 @@
-import { Hono } from 'hono'
+import { Hono, type Context } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import type { AuthInfo, AuthResponse, OkResponse } from '../../shared/api'
 import { msg } from '../../templates/msg'
@@ -16,7 +16,7 @@ import {
 	tokenTag,
 	verifySession,
 } from '../lib/auth'
-import { ensureSchema, findTokenByHash, passwordLocked, returnPasswordTry, takePasswordTry, touchToken } from '../lib/db'
+import { ensureSchema, findTokenByHash, passwordLocked, returnPasswordTry, takePasswordTry, touchToken, type TriesSince } from '../lib/db'
 import { adminPassword, isTestSite } from '../lib/mode'
 import { passwordVisitor } from '../lib/password'
 import { LoginInput } from '../lib/schemas'
@@ -47,16 +47,35 @@ api.get('/auth/info', (c) => {
 	return c.json(body)
 })
 
+/**
+ * This visitor's wrong tries at the admin password: ten in a quarter of an hour, then that visitor is read no
+ * password until the time is up. Theirs only, never everyone's together, which would let anyone lock the owner out
+ * (lib/db.ts).
+ *
+ * The password itself is part of what tells a visitor apart, so a new password starts with no wrong tries, as a
+ * link's does: the owner who was locked out guessing at the old one signs in with the new one at once, and so does
+ * `pnpm reset-password`. It only goes into the hash a visitor's four characters are cut from, with the day's salt.
+ */
+async function ownerTries(c: Context<AppEnv>) {
+	await ensureSchema(c.env.DB)
+	const visitor = await passwordVisitor(c.env, `${ADMIN_TRIES}|${adminPassword(c.env)}`, c.req.header('cf-connecting-ip') ?? '')
+	const db = c.env.DB
+	return {
+		locked: () => passwordLocked(db, ADMIN_TRIES, visitor, Date.now(), false),
+		take: () => takePasswordTry(db, ADMIN_TRIES, visitor, Date.now(), false),
+		giveBack: (since: TriesSince) => returnPasswordTry(db, ADMIN_TRIES, visitor, since, false),
+	}
+}
+
 api.post('/auth/login', async (c) => {
 	const secret = adminPassword(c.env)
 	const problem = adminPasswordProblem(secret)
 	if (problem) throw new ApiError(503, 'setup', problem)
 	const { password } = await readBody(c, LoginInput)
-	await ensureSchema(c.env.DB)
-	const visitor = await passwordVisitor(c.env, ADMIN_TRIES, c.req.header('cf-connecting-ip') ?? '')
-	if (await passwordLocked(c.env.DB, ADMIN_TRIES, visitor)) throw tooManyTries()
-	const tried = await takePasswordTry(c.env.DB, ADMIN_TRIES, visitor)
-	const giveBack = () => c.executionCtx.waitUntil(returnPasswordTry(c.env.DB, ADMIN_TRIES, visitor, tried.since).catch(() => {}))
+	const tries = await ownerTries(c)
+	if (await tries.locked()) throw tooManyTries()
+	const tried = await tries.take()
+	const giveBack = () => c.executionCtx.waitUntil(tries.giveBack(tried.since).catch(() => {}))
 	if (!tried.ok) {
 		giveBack()
 		throw tooManyTries()
@@ -110,15 +129,16 @@ api.use('*', async (c, next) => {
 			if (!token.lastUsedAt || now - token.lastUsedAt > 60_000) c.executionCtx.waitUntil(touchToken(c.env.DB, token.id, now).catch(() => {}))
 		}
 	} else if (bearer) {
-		await ensureSchema(c.env.DB)
-		const visitor = await passwordVisitor(c.env, ADMIN_TRIES, c.req.header('cf-connecting-ip') ?? '')
-		if (await passwordLocked(c.env.DB, ADMIN_TRIES, visitor)) throw tooManyTries()
+		// One trip to D1 more than a session has, as a token has for being looked up: whether this visitor has had
+		// their wrong tries has to be known before the password is looked at, or the count would stop nobody.
+		const tries = await ownerTries(c)
+		if (await tries.locked()) throw tooManyTries()
 		if (await secretsMatch(bearer, secret)) auth = { role: 'admin' }
 		// A wrong password counts and waits here as it does at the sign-in form, or this would be the quicker place to guess at.
 		else {
-			const tried = await takePasswordTry(c.env.DB, ADMIN_TRIES, visitor)
+			const tried = await tries.take()
 			if (!tried.ok) {
-				c.executionCtx.waitUntil(returnPasswordTry(c.env.DB, ADMIN_TRIES, visitor, tried.since).catch(() => {}))
+				c.executionCtx.waitUntil(tries.giveBack(tried.since).catch(() => {}))
 				throw tooManyTries()
 			}
 			await scheduler.wait(800)

@@ -124,7 +124,7 @@ TO=https://<site> TO_AUTH="Authorization: Bearer <password in .secrets.env>"
 curl -s -H "$FROM_AUTH" $FROM/api/export | sed "s#$FROM#$TO#g" > backup.json   # links between their pages go with them
 for id in $(jq -r '.media[]' backup.json); do
   curl -fsS -H "$FROM_AUTH" -D headers.txt -o picture "$FROM/api/media/$id" || exit 1
-  curl -s -X PUT -H "$TO_AUTH" -H "content-type: $(awk 'tolower($1)=="content-type:"{print $2}' headers.txt | tr -d '\r')" --data-binary @picture "$TO/api/media/$id"
+  curl -fsS -o /dev/null -X PUT -H "$TO_AUTH" -H "content-type: $(awk 'tolower($1)=="content-type:"{print $2}' headers.txt | tr -d '\r')" --data-binary @picture "$TO/api/media/$id" || exit 1
 done
 curl -s -X POST -H "$TO_AUTH" -H 'content-type: application/json' --data @backup.json $TO/api/import
 rm backup.json headers.txt picture
@@ -467,6 +467,10 @@ Rules worth knowing:
   state is read (`forgetPastTries`); no try looks through the rows, or a flood of them would each read all the others.
   The address itself is stored nowhere, here as everywhere. A draft's preview link shows a link
   behind a password, or with `hideUrl`, as its short link, as the live page does (`keepPrivate` in `render.ts`).
+  The admin password is counted the same way, at the sign-in form and as a bearer token (`429` `rate-limited`), but for each
+  visitor only (`ownerTries` in `routes/api.ts`): a count from everyone together would let anyone lock the owner out. The
+  password is part of what tells a visitor apart there, so a new one starts with no wrong tries. Nor is a picture's type
+  taken on trust: an upload is stored as the kind of image its first bytes say it is (`imageTypeOf` in `lib/media.ts`).
 - **Smart routing** (per short link): `lineExternal` adds `openExternalBrowser=1` inside LINE;
   `inAppPrompt` shows Instagram, Threads and Facebook users how to open the link in their browser
   first (`?inapp=preview` shows that page anywhere); `iosUrl`/`androidUrl` send those devices

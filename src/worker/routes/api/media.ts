@@ -4,27 +4,23 @@ import { MEDIA_ID, randomString } from '../../../shared/content'
 import { msg } from '../../../templates/msg'
 import { ApiError, type AppEnv } from '../../types'
 import { mediaKey } from '../../lib/cache'
-import { deleteUnusedMedia, listMedia, matchesImageType, readMedia, unusedMedia, UNUSED_AFTER, type MediaMetadata } from '../../lib/media'
+import { deleteUnusedMedia, imageTypeOf, listMedia, MEDIA_TYPES, readMedia, unusedMedia, UNUSED_AFTER, type MediaMetadata } from '../../lib/media'
 import { MEDIA_PER_PAGE, MediaListQuery } from '../../lib/schemas'
 
-const MEDIA_TYPES: Record<string, string> = {
-	'image/png': 'png',
-	'image/jpeg': 'jpg',
-	'image/webp': 'webp',
-	'image/gif': 'gif',
-	'image/avif': 'avif',
-}
 const MAX_MEDIA_BYTES = 2 * 1024 * 1024
 
+/** The picture a request carries. Its type is what its bytes say it is (imageTypeOf), whatever the request called it. */
 async function readImage(c: Context<AppEnv>): Promise<{ bytes: ArrayBuffer; type: string; ext: string }> {
-	const type = (c.req.header('content-type') ?? '').split(';')[0]?.trim().toLowerCase() ?? ''
-	const ext = MEDIA_TYPES[type]
-	if (!ext) throw new ApiError(415, 'unsupported', msg('只接受 PNG、JPEG、WebP、GIF 或 AVIF 圖片'))
+	const refused = () => new ApiError(415, 'unsupported', msg('只接受 PNG、JPEG、WebP、GIF 或 AVIF 圖片'))
+	const declared = (c.req.header('content-type') ?? '').split(';')[0]?.trim().toLowerCase() ?? ''
+	if (!MEDIA_TYPES[declared]) throw refused()
 	if (Number(c.req.header('content-length') ?? 0) > MAX_MEDIA_BYTES) throw new ApiError(413, 'too-large', msg('圖片太大了，不能超過 2 MB'))
 	const bytes = await c.req.arrayBuffer()
 	if (!bytes.byteLength) throw new ApiError(400, 'invalid', msg('沒有收到圖片'))
 	if (bytes.byteLength > MAX_MEDIA_BYTES) throw new ApiError(413, 'too-large', msg('圖片太大了，不能超過 2 MB'))
-	if (!matchesImageType(bytes, type)) throw new ApiError(415, 'unsupported', msg('只接受 PNG、JPEG、WebP、GIF 或 AVIF 圖片'))
+	const type = imageTypeOf(bytes)
+	const ext = type && MEDIA_TYPES[type]
+	if (!type || !ext) throw refused()
 	return { bytes, type, ext }
 }
 

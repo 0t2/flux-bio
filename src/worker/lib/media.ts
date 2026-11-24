@@ -10,7 +10,7 @@ export const MEDIA_CACHE = 'public, max-age=31536000, immutable'
 
 const ascii = (bytes: Uint8Array, start: number, end: number) => String.fromCharCode(...bytes.subarray(start, end))
 
-/** Checks the file header bytes against the declared image MIME type. */
+/** Whether a file's first bytes are those of an image of this type. */
 export function matchesImageType(buffer: ArrayBuffer | Uint8Array, type: string): boolean {
 	const b = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
 	switch (type) {
@@ -35,6 +35,26 @@ export function matchesImageType(buffer: ArrayBuffer | Uint8Array, type: string)
 		default:
 			return false
 	}
+}
+
+/** The kinds of image a site keeps, and the ending of the id each gets. */
+export const MEDIA_TYPES: Record<string, string> = {
+	'image/png': 'png',
+	'image/jpeg': 'jpg',
+	'image/webp': 'webp',
+	'image/gif': 'gif',
+	'image/avif': 'avif',
+}
+
+/**
+ * The kind of image a file is, read from its first bytes, or null when it is none a site keeps. What a picture is
+ * served as comes from here and not from what the upload called it: a file that is no image is never served as one,
+ * and a JPEG that was sent as a PNG, which uploads were free to do before 0.4.11, still goes into a restored or
+ * moved site, as the JPEG it is.
+ */
+export function imageTypeOf(buffer: ArrayBuffer | Uint8Array): string | null {
+	const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
+	return Object.keys(MEDIA_TYPES).find((type) => matchesImageType(bytes, type)) ?? null
 }
 
 export async function readMedia(env: Env, id: string, cacheControl: string): Promise<Response | null> {

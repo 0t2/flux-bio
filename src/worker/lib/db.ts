@@ -524,6 +524,11 @@ export function writeMetaStatement(db: D1Database, key: string, value: unknown):
  * A visitor's row goes when a try given back leaves it at none, when the link's next quarter of an hour begins,
  * when the link gets a new password, and when the site's state is read (forgetPastTries). No try looks through
  * the rows to find what is past: someone sending thousands at once would have each of them read all the others.
+ *
+ * The admin password is counted the same way, for each visitor only (`everyone` false, ownerTries in routes/api.ts).
+ * A count from everyone together would be a way to lock the owner out: fifty wrong tries from anywhere, every
+ * quarter of an hour, and the right password is refused for good. It is at least 12 characters, which is what
+ * holds someone who comes from many addresses.
  */
 export const PASSWORD_TRIES = 10
 export const PASSWORD_TRIES_LINK = 50
@@ -533,8 +538,12 @@ const linkTries = (linkId: string) => `${TRIES}${linkId}`
 const visitorTries = (linkId: string, visitor: string) => `${TRIES}${linkId}:${visitor}`
 
 /** Whether this visitor, or the link, has had its wrong tries for now. One query, and nothing written. */
-export async function passwordLocked(db: D1Database, linkId: string, visitor: string, now = Date.now()): Promise<boolean> {
-	const { results } = await db.prepare('SELECT key, value FROM _meta WHERE key IN (?1, ?2)').bind(linkTries(linkId), visitorTries(linkId, visitor)).all<{ key: string; value: string }>()
+export async function passwordLocked(db: D1Database, linkId: string, visitor: string, now = Date.now(), everyone = true): Promise<boolean> {
+	// Asked for by name, so a count nobody keeps is never read: the visitor's twice, where that is the only one.
+	const { results } = await db
+		.prepare('SELECT key, value FROM _meta WHERE key IN (?1, ?2)')
+		.bind(everyone ? linkTries(linkId) : visitorTries(linkId, visitor), visitorTries(linkId, visitor))
+		.all<{ key: string; value: string }>()
 	return results.some((row) => {
 		let tries: { n?: unknown; since?: unknown }
 		try {
@@ -558,7 +567,7 @@ export interface TriesSince {
  * statement each for the visitor and the link, so that a thousand tries sent at once are a thousand counts and not
  * a thousand looks.
  */
-export async function takePasswordTry(db: D1Database, linkId: string, visitor: string, now = Date.now()): Promise<{ ok: boolean; since: TriesSince }> {
+export async function takePasswordTry(db: D1Database, linkId: string, visitor: string, now = Date.now(), everyone = true): Promise<{ ok: boolean; since: TriesSince }> {
 	const count = (key: string) =>
 		db
 			.prepare(
@@ -569,7 +578,7 @@ export async function takePasswordTry(db: D1Database, linkId: string, visitor: s
 				 RETURNING json_extract(value, '$.n') AS n, json_extract(value, '$.since') AS since`,
 			)
 			.bind(key, now, now - PASSWORD_WINDOW)
-	const [mine, links] = await db.batch<{ n: number; since: number }>([count(visitorTries(linkId, visitor)), count(linkTries(linkId))])
+	const [mine, links] = await db.batch<{ n: number; since: number }>([count(visitorTries(linkId, visitor)), ...(everyone ? [count(linkTries(linkId))] : [])])
 	const [visitorRow, linkRow] = [mine?.results[0], links?.results[0]]
 	// The link's quarter of an hour has just begun: its visitors' rows from the one before go. Once for each, and
 	// only this link's rows are looked through. ";" is the character after ":".
@@ -590,14 +599,14 @@ export async function takePasswordTry(db: D1Database, linkId: string, visitor: s
  * up what is kept for guessers, and one that was counted and never looked at, or the right password sent thirty times
  * at once would leave a link locked that nobody guessed at. Only wrong tries that were looked at stay counted.
  */
-export async function returnPasswordTry(db: D1Database, linkId: string, visitor: string, since: TriesSince): Promise<void> {
+export async function returnPasswordTry(db: D1Database, linkId: string, visitor: string, since: TriesSince, everyone = true): Promise<void> {
 	const back = (key: string, began: number) =>
 		db.prepare(`UPDATE _meta SET value = json_set(value, '$.n', max(0, json_extract(value, '$.n') - 1)) WHERE key = ?1 AND json_extract(value, '$.since') = ?2`).bind(key, began)
 	await db.batch([
 		back(visitorTries(linkId, visitor), since.visitor),
 		// A visitor with no wrong try to their name has no row: the right password leaves nothing behind.
 		db.prepare(`DELETE FROM _meta WHERE key = ?1 AND json_extract(value, '$.n') <= 0`).bind(visitorTries(linkId, visitor)),
-		back(linkTries(linkId), since.link),
+		...(everyone ? [back(linkTries(linkId), since.link)] : []),
 	])
 }
 
