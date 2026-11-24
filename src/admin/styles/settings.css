@@ -193,7 +193,7 @@
 }
 
 .set-page .section.set-danger {
-	border-color: rgba(196, 36, 42, 0.35);
+	border-color: color-mix(in srgb, var(--danger) 35%, transparent);
 }
 .set-danger-row,
 .set-backup-row {
@@ -328,7 +328,7 @@
 }
 .set-table td {
 	padding: 10px 14px;
-	border-top: 1px solid rgba(19, 20, 22, 0.06);
+	border-top: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
 	color: var(--text-3);
 	vertical-align: middle;
 }
@@ -362,7 +362,7 @@
 }
 .set-page .btn.set-revoke {
 	color: var(--danger);
-	border-color: rgba(196, 36, 42, 0.4);
+	border-color: color-mix(in srgb, var(--danger) 40%, transparent);
 }
 .set-page .btn.set-revoke.danger {
 	background: var(--danger-soft);
@@ -384,8 +384,8 @@
 	gap: 8px;
 	padding: 14px 16px;
 	border-radius: var(--r-card);
-	background: rgba(79, 112, 0, 0.07);
-	border: 1px solid rgba(79, 112, 0, 0.35);
+	background: color-mix(in srgb, var(--accent) 8%, transparent);
+	border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
 }
 .set-new-token strong {
 	font-size: 14px;
@@ -410,7 +410,7 @@
 }
 .set-page .btn.set-lime {
 	color: var(--accent);
-	border-color: rgba(79, 112, 0, 0.5);
+	border-color: color-mix(in srgb, var(--accent) 50%, transparent);
 	font-weight: 700;
 }
 

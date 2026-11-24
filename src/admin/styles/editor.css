@@ -215,7 +215,7 @@
 	border-radius: var(--r-chip);
 }
 .tag.muted {
-	background: rgba(19, 20, 22, 0.07);
+	background: color-mix(in srgb, var(--text) 7%, transparent);
 	color: var(--muted);
 }
 .tag.cyan {
@@ -291,7 +291,7 @@
 	padding: 14px 18px;
 	border-radius: var(--r-card);
 	background: var(--danger-soft);
-	border: 1px solid rgba(196, 36, 42, 0.35);
+	border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
 	color: var(--text);
 	font-size: 14px;
 	margin-bottom: 16px;
@@ -304,7 +304,7 @@
 }
 .banner.ok {
 	background: var(--accent-soft);
-	border-color: rgba(79, 112, 0, 0.35);
+	border-color: color-mix(in srgb, var(--accent) 35%, transparent);
 }
 .banner.usage-note {
 	flex-direction: row;
@@ -466,7 +466,7 @@
 	padding-block: 10px;
 	padding-inline: 12px;
 	height: 64px;
-	border-top: 1px solid rgba(19, 20, 22, 0.06);
+	border-top: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
 	color: var(--text);
 	vertical-align: middle;
 }
@@ -491,7 +491,7 @@ tbody .table-row {
 	cursor: pointer;
 }
 tbody .table-row:hover {
-	background: rgba(19, 20, 22, 0.02);
+	background: color-mix(in srgb, var(--text) 3%, transparent);
 }
 tbody .table-row.selected {
 	background: var(--row-on);
@@ -546,7 +546,7 @@ tbody .table-row.selected {
 	display: inline-block;
 	padding: 4px 10px;
 	background: var(--raised);
-	border: 1px solid rgba(19, 20, 22, 0.1);
+	border: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
 	font-size: 12px;
 	color: var(--text-3);
 	border-radius: var(--r-chip);
@@ -568,7 +568,7 @@ tbody .table-row.selected {
 }
 .status.expired,
 .status.archived {
-	background: rgba(19, 20, 22, 0.07);
+	background: color-mix(in srgb, var(--text) 7%, transparent);
 	color: var(--muted);
 }
 .clicks {
@@ -625,7 +625,7 @@ tbody .table-row.selected {
 	height: 128px;
 	padding: 8px;
 	border-radius: var(--r-card);
-	background: var(--text);
+	background: var(--phone-ring);
 }
 .qr svg {
 	display: block;
@@ -642,7 +642,7 @@ tbody .table-row.selected {
 	justify-content: space-between;
 	gap: 12px;
 	min-height: var(--control);
-	border-bottom: 1px solid rgba(19, 20, 22, 0.05);
+	border-bottom: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
 	font-size: 14px;
 }
 .kv span:first-child {
@@ -687,7 +687,7 @@ tbody .table-row.selected {
 }
 .item-row.dragging {
 	z-index: 2;
-	box-shadow: 0 8px 24px rgba(19, 20, 22, 0.12);
+	box-shadow: 0 8px 24px var(--shadow);
 }
 .item-row.dimmed .item-icon,
 .item-row.dimmed .item-pick {
@@ -833,7 +833,7 @@ tbody .table-row.selected {
 	text-align: start;
 }
 .kind-card:hover {
-	border-color: rgba(79, 112, 0, 0.45);
+	border-color: color-mix(in srgb, var(--accent) 45%, transparent);
 }
 .kind-icon {
 	flex: 0 0 auto;
@@ -1358,7 +1358,7 @@ samp {
 	height: 36px;
 	padding: 4px;
 	border-radius: 5px;
-	box-shadow: inset 0 0 0 1px rgba(19, 20, 22, 0.12);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 12%, transparent);
 }
 .color-set i {
 	display: block;

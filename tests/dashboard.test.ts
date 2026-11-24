@@ -143,4 +143,10 @@ describe('dashboard reliability', () => {
 		expect(shortLinksPage).toContain('className="icon-btn row-copy"')
 		expect(askAiSource).toContain('copyText(say)')
 	})
+
+	it('defines prefers-color-scheme: dark tokens and keeps dark ink on the lime publish button', () => {
+		expect(tokensCss).toContain('color-scheme: light dark')
+		expect(tokensCss).toContain('@media (prefers-color-scheme: dark)')
+		expect(tokensCss).toContain('--brand-ink: #131416')
+	})
 })

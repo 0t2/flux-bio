@@ -233,7 +233,7 @@ export function ShortLinksPage() {
 									</tbody>
 								</table>
 								{data && visible.length === 0 && (
-									<p className="hint" style={{ padding: '32px 20px', borderTop: '1px solid rgba(19, 20, 22, 0.06)' }}>
+									<p className="hint" style={{ padding: '32px 20px', borderTop: '1px solid var(--line)' }}>
 										{t('沒有符合的短網址。')}
 									</p>
 								)}

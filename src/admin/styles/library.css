@@ -245,13 +245,13 @@
 	min-height: 240px;
 	padding: 24px;
 	border-radius: var(--r-card);
-	border: 1.5px dashed rgba(19, 20, 22, 0.2);
+	border: 1.5px dashed color-mix(in srgb, var(--text) 20%, transparent);
 	background: transparent;
 	color: var(--text-3);
 	text-align: center;
 }
 .lib-add-card:hover:not(:disabled) {
-	border-color: rgba(79, 112, 0, 0.45);
+	border-color: color-mix(in srgb, var(--accent) 45%, transparent);
 	color: var(--text);
 }
 .lib-add-card strong {
@@ -371,7 +371,7 @@
 	border: 1px solid var(--line);
 }
 .lib-step.active {
-	border-color: rgba(79, 112, 0, 0.4);
+	border-color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 .lib-step-icon {
 	flex: 0 0 auto;
@@ -381,11 +381,11 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background: rgba(19, 20, 22, 0.07);
+	background: color-mix(in srgb, var(--text) 7%, transparent);
 	color: var(--muted);
 }
 .lib-step-icon.done {
-	background: rgba(79, 112, 0, 0.14);
+	background: color-mix(in srgb, var(--accent) 14%, transparent);
 	color: var(--lib-ok);
 }
 .lib-step-icon.next {

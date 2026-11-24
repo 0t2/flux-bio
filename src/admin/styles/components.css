@@ -204,7 +204,7 @@ a.hint:hover {
 .bar {
 	height: 8px;
 	border-radius: 999px;
-	background: rgba(19, 20, 22, 0.06);
+	background: color-mix(in srgb, var(--text) 7%, transparent);
 	overflow: hidden;
 }
 .bar i {
@@ -296,7 +296,7 @@ a.hint:hover {
 	border: 1px solid var(--line-3);
 	font-size: 14px;
 	border-radius: var(--r-card);
-	box-shadow: 0 8px 24px rgba(19, 20, 22, 0.12);
+	box-shadow: 0 8px 24px var(--shadow);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -321,7 +321,7 @@ a.hint:hover {
 	align-items: center;
 	gap: 12px;
 	min-height: var(--control);
-	border-bottom: 1px solid rgba(19, 20, 22, 0.05);
+	border-bottom: 1px solid color-mix(in srgb, var(--text) 6%, transparent);
 	font-size: 14px;
 }
 .recent li > .mono {
@@ -435,13 +435,13 @@ a.hint:hover {
 	border: 1px solid var(--line-3);
 	background: var(--card);
 	color: var(--text);
-	box-shadow: 0 16px 48px rgba(19, 20, 22, 0.16);
+	box-shadow: 0 16px 48px var(--shadow-lg);
 }
 .dialog.wide {
 	width: min(860px, calc(100vw - 32px));
 }
 .dialog::backdrop {
-	background: rgba(19, 20, 22, 0.4);
+	background: var(--backdrop);
 }
 .dialog-body {
 	display: flex;
@@ -476,7 +476,7 @@ a.hint:hover {
 	border-radius: var(--r-card);
 	border: 1px solid var(--line-3);
 	background: var(--raised);
-	box-shadow: 0 8px 24px rgba(19, 20, 22, 0.12);
+	box-shadow: 0 8px 24px var(--shadow);
 }
 .popover.start {
 	inset-inline-start: 0;
