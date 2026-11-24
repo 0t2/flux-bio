@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { emptyContent, emptyLink, type Locale, type PageContent } from '../src/shared/content'
+import { emptyContent, emptyLink, newItem, type Locale, type PageContent } from '../src/shared/content'
 import { GOOGLE_TEXT_LIMIT } from '../src/shared/fonts'
-import { renderBioPage } from '../src/templates/render'
+import { precomputeFontLinks, renderBioPage } from '../src/templates/render'
 import { resolveAppearance, THEMES } from '../src/templates/themes'
 
 // A Chinese font's stylesheet at Google is about 35 KB of rules that hold up the first paint, and a page of Chinese
@@ -167,5 +167,34 @@ describe('everything else', () => {
 			expect(links(html), locale).toEqual([resolveAppearance(page(themed(withHead)).appearance, locale).fontsHref])
 			expect(html, locale).not.toContain('Noto+Sans+TC')
 		}
+	})
+
+	it('precomputes identical per-locale font links for static snapshots and skips clock-dependent pages', () => {
+		const content = page({
+			...themed(withHead),
+			profile: { name: '島嶼咖啡', bio: '台南手沖', avatar: null },
+			translations: { en: { 島嶼咖啡: 'Island Coffee', 台南手沖: 'Hand-drip in Tainan' } },
+		})
+		const precomputed = precomputeFontLinks(content, ['zh-TW', 'en'])
+		expect(precomputed?.['zh-TW']).toEqual(links(live(content, 'zh-TW')))
+		expect(precomputed?.en).toEqual(links(live(content, 'en')))
+
+		const rendered = renderBioPage(content, {
+			mode: 'live',
+			locale: 'zh-TW',
+			mediaUrl: (id) => `/media/${id}`,
+			linkHref: (link) => `/${link.slug}`,
+			fontLinks: precomputed?.['zh-TW'],
+		})
+		expect(links(rendered)).toEqual(links(live(content, 'zh-TW')))
+
+		// Pages with opening hours or scheduled links change their shown text over time, so they compute per visit.
+		expect(precomputeFontLinks({ ...content, items: [newItem('hours')] }, ['zh-TW'])).toBeUndefined()
+		expect(
+			precomputeFontLinks(
+				{ ...content, items: [{ ...emptyLink(), id: 'sched-1', title: '限時優惠', url: 'https://example.com', startsAt: 1000 }] },
+				['zh-TW'],
+			),
+		).toBeUndefined()
 	})
 })

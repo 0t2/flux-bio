@@ -2,6 +2,7 @@ import { CONTENT_BYTES_LIMIT, contentBytes, contentPastLimit, isHttpUrl, type Pa
 import { normalizeSlug, SLUG_PROBLEM_TEXT, slugProblem, uniqueSlug } from '../../../shared/slug'
 import { TOO_LARGE } from '../../../shared/validate'
 import { msg } from '../../../templates/msg'
+import { precomputeFontLinks } from '../../../templates/render'
 import { ApiError } from '../../types'
 import {
 	COPY_VERSION,
@@ -119,9 +120,11 @@ export function linkNeedsWorker(link: LinkRow): boolean {
  */
 export async function snapshotOf(db: D1Database, page: PageRow, settings: Settings): Promise<Snapshot | null> {
 	if (!settings.bio || !page.published || !page.publishedAt) return null
+	const viaShortLink = (await listPageLinks(db, page.id)).filter(linkNeedsWorker).map((link) => link.id)
+	const fontLinks = settings.hostFonts ? undefined : precomputeFontLinks(page.published, [settings.locale, ...settings.languages], viaShortLink)
 	return {
 		v: COPY_VERSION,
-		viaShortLink: (await listPageLinks(db, page.id)).filter(linkNeedsWorker).map((link) => link.id),
+		viaShortLink,
 		pageId: page.id,
 		handle: page.handle,
 		content: page.published,
@@ -132,6 +135,7 @@ export async function snapshotOf(db: D1Database, page: PageRow, settings: Settin
 		// With hostFonts on, a page whose fonts aren't copied yet (Google was unreachable, or it was
 		// imported and not published since) uses the visitor's own fonts rather than Google's.
 		...(settings.hostFonts && { fonts: page.fonts ?? [] }),
+		...(fontLinks && { fontLinks }),
 	}
 }
 

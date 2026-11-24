@@ -97,6 +97,8 @@ describe('dashboard reliability', () => {
 		expect(pageState).toContain('RETRY_BASE_DELAY')
 		expect(pageState).toContain("addEventListener('online'")
 		expect(pageState).toContain('useMemo<PageStore>')
+		expect(pageState).toContain('cloneDraftForEdit')
+		expect(pageState).toContain('useDeferredValue(draft)')
 	})
 
 	it('stamps data-key only when keyed preview is requested, never in live or plain preview HTML', () => {

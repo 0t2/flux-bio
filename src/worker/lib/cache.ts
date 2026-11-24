@@ -35,6 +35,8 @@ export interface Snapshot {
 	home: boolean
 	/** Fonts served by this Worker; missing, the page loads them from Google. */
 	fonts?: HostedFont[]
+	/** Precomputed Google Fonts stylesheet URLs per locale, avoiding full-HTML character scans on every view. */
+	fontLinks?: Partial<Record<Locale, string[]>>
 	/** Links whose button has to use the short link (linkNeedsWorker). */
 	viaShortLink: string[]
 }
